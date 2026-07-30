@@ -52,6 +52,8 @@ export { RealtimeSnapshotStore } from "./realtime/store.js";
 
 export { buildRoutingSnapshotHandle } from "./snapshot/handle.js";
 
+export * from "./static-pipeline/index.js";
+
 import { MetricsRegistry } from "./metrics.js";
 import { StaticImporter } from "./static/importer.js";
 import { StaticDatasetStore } from "./static/store.js";
@@ -64,8 +66,41 @@ import {
   DEFAULT_FRESHNESS_POLICY,
   type FreshnessPolicy,
 } from "./types.js";
+import {
+  loadStaticPipelineConfig,
+  type StaticPipelineConfig,
+} from "./static-pipeline/config.js";
+import {
+  assertFixtureStaticAllowed,
+  isStaticReady,
+  loadActiveStaticFromDisk,
+  type StartupLoadResult,
+} from "./static-pipeline/readiness.js";
+import {
+  rollbackStaticVersion,
+  runStaticRefresh,
+  startStaticRefreshScheduler,
+  type RefreshDeps,
+  type RefreshOutcome,
+  type SchedulerHandle,
+} from "./static-pipeline/refresh.js";
+import {
+  RecordingGraphBuildTrigger,
+  type GraphBuildTrigger,
+} from "./static-pipeline/trigger.js";
+import { listRetainedVersions } from "./static-pipeline/version-store.js";
 
 export type { FeedInput, IngestOptions, ImportOptions };
+
+export interface DataPlatformOptions {
+  metrics?: MetricsRegistry;
+  policy?: FreshnessPolicy;
+  /** Pipeline config; when omitted, loaded lazily from env on first use. */
+  pipelineConfig?: StaticPipelineConfig;
+  serviceRoot?: string;
+  env?: NodeJS.ProcessEnv;
+  graphBuildTrigger?: GraphBuildTrigger;
+}
 
 /** Convenience façade composing static + realtime stores. */
 export class DataPlatform {
@@ -75,11 +110,13 @@ export class DataPlatform {
   readonly staticImporter: StaticImporter;
   readonly realtimeIngestor: RealtimeIngestor;
   readonly policy: FreshnessPolicy;
+  private readonly env: NodeJS.ProcessEnv;
+  private readonly serviceRoot: string;
+  private _pipelineConfig: StaticPipelineConfig | null;
+  private scheduler: SchedulerHandle | null = null;
+  private graphBuildTrigger: GraphBuildTrigger | undefined;
 
-  constructor(options?: {
-    metrics?: MetricsRegistry;
-    policy?: FreshnessPolicy;
-  }) {
+  constructor(options?: DataPlatformOptions) {
     this.metrics = options?.metrics ?? new MetricsRegistry();
     this.policy = options?.policy ?? DEFAULT_FRESHNESS_POLICY;
     this.staticStore = new StaticDatasetStore();
@@ -89,10 +126,90 @@ export class DataPlatform {
       this.realtimeStore,
       this.metrics,
     );
+    this.env = options?.env ?? process.env;
+    this.serviceRoot = options?.serviceRoot ?? process.cwd();
+    this._pipelineConfig = options?.pipelineConfig ?? null;
+    this.graphBuildTrigger = options?.graphBuildTrigger;
   }
 
+  get pipelineConfig(): StaticPipelineConfig {
+    if (!this._pipelineConfig) {
+      this._pipelineConfig = loadStaticPipelineConfig({
+        env: this.env,
+        serviceRoot: this.serviceRoot,
+      });
+    }
+    return this._pipelineConfig;
+  }
+
+  /**
+   * Fixture / pre-extracted directory import.
+   * Refused in production; requires BETTERMTA_ALLOW_FIXTURE_STATIC=true otherwise.
+   */
   importStatic(dir: string, options?: ImportOptions) {
-    return this.staticImporter.importFromDirectory(dir, options);
+    assertFixtureStaticAllowed({
+      nodeEnv: this.pipelineConfig.nodeEnv,
+      allowFixtureStatic: this.pipelineConfig.allowFixtureStatic,
+    });
+    return this.staticImporter.importFromDirectory(dir, {
+      ...options,
+      synthetic: options?.synthetic ?? true,
+    });
+  }
+
+  /** True when an active static dataset is loaded in memory. */
+  isReady(): boolean {
+    return isStaticReady(this.staticStore);
+  }
+
+  /**
+   * Startup: load active.json from disk with zero network calls.
+   * Returns not-ready when no active version exists yet.
+   */
+  loadActiveFromDisk(): StartupLoadResult {
+    return loadActiveStaticFromDisk({
+      config: this.pipelineConfig,
+      metrics: this.metrics,
+      staticStore: this.staticStore,
+      staticImporter: this.staticImporter,
+    });
+  }
+
+  /** Run one production refresh cycle. */
+  refreshStatic(): Promise<RefreshOutcome> {
+    return runStaticRefresh(this.refreshDeps());
+  }
+
+  startRefreshScheduler(options?: {
+    runImmediately?: boolean;
+  }): SchedulerHandle {
+    this.scheduler?.stop();
+    this.scheduler = startStaticRefreshScheduler(
+      this.refreshDeps(),
+      options,
+    );
+    return this.scheduler;
+  }
+
+  stopRefreshScheduler(): void {
+    this.scheduler?.stop();
+    this.scheduler = null;
+  }
+
+  rollbackStatic(versionId: string) {
+    return rollbackStaticVersion(
+      {
+        config: this.pipelineConfig,
+        metrics: this.metrics,
+        staticStore: this.staticStore,
+        staticImporter: this.staticImporter,
+      },
+      versionId,
+    );
+  }
+
+  listStaticVersions(): string[] {
+    return listRetainedVersions(this.pipelineConfig.dataDir);
   }
 
   ingestRealtime(feeds: FeedInput[], options: IngestOptions) {
@@ -129,4 +246,16 @@ export class DataPlatform {
       policy: this.policy,
     });
   }
+
+  private refreshDeps(): RefreshDeps {
+    return {
+      config: this.pipelineConfig,
+      metrics: this.metrics,
+      staticStore: this.staticStore,
+      staticImporter: this.staticImporter,
+      trigger: this.graphBuildTrigger,
+    };
+  }
 }
+
+export { RecordingGraphBuildTrigger };

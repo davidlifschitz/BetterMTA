@@ -16,13 +16,17 @@ This document is the authoritative inventory of MTA sources, licensing, refresh 
 | Field | Value |
 |---|---|
 | Source | MTA New York City Transit subway static GTFS |
-| Canonical download | `http://web.mta.info/developers/data/nyct/subway/google_transit.zip` |
+| Canonical download (production default) | `https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip` |
+| Legacy / portal mirror | `http://web.mta.info/developers/data/nyct/subway/google_transit.zip` |
 | Developer portal | https://new.mta.info/developers |
-| Format | GTFS zip (`stops`, `routes`, `trips`, `stop_times`, `transfers`, `calendar`, plus optional `shapes`, `calendar_dates`, etc.) |
+| Format | GTFS zip (`agency`, `stops`, `routes`, `trips`, `stop_times`, optional `transfers`, `calendar` and/or `calendar_dates`, plus optional `shapes`, etc.) |
 | Product use | Versioned static dataset for routing + `lineId` mapping |
-| Fixture stand-in | `services/data/fixtures/static/valid/` (deterministic subset; labeled synthetic) |
+| Fixture stand-in | `services/data/fixtures/static/valid/` (deterministic subset; labeled synthetic; **never** used in production) |
 
-Required tables imported by the MVP pipeline: `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, `transfers.txt`, `calendar.txt`.
+Required tables for the production pipeline: `agency.txt`, `stops.txt`, `routes.txt`, `trips.txt`, `stop_times.txt`, plus `calendar.txt` and/or `calendar_dates.txt`. `transfers.txt` is optional (empty stub synthesized when absent).
+
+Override the download URL with `BETTERMTA_STATIC_GTFS_URL`. Re-verify the mirror before ops cutover (MTA relocates hosts occasionally).
+
 
 ### 1.2 GTFS-Realtime — trip updates (by trunk)
 
@@ -167,12 +171,90 @@ The canonical static download URL in §1.1 should be **re-verified against curre
 services/data/
   package.json          # @bettermta/data — do not use repo-root package.json
   src/                  # TypeScript platform
-  fixtures/             # Recorded static + realtime fixtures
-  tests/                # Vitest, offline-only
+    static-pipeline/    # Production download → validate → version → activate
+  fixtures/             # Recorded static + realtime fixtures (test/dev only)
+  tests/                # Vitest
   RUNBOOK.md            # Ops notes
 ```
 
 Public façade: `DataPlatform` in `src/index.ts`.
+
+---
+
+## 6.1 Production static pipeline
+
+Module: `services/data/src/static-pipeline/`. Built around the fixture-era `StaticImporter` / `StaticDatasetStore` / `validateGtfs` primitives.
+
+### Config / env
+
+| Env | Default | Meaning |
+|---|---|---|
+| `BETTERMTA_STATIC_GTFS_URL` | `https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip` | Zip source (http(s), `file://`, or filesystem path) |
+| `BETTERMTA_DATA_DIR` | `var/data` (relative to service root) | On-disk data root |
+| `BETTERMTA_STATIC_MAX_BYTES` | `104857600` (100MB) | Download byte cap |
+| `BETTERMTA_STATIC_TIMEOUT_MS` | `60000` | Download timeout |
+| `BETTERMTA_REFRESH_INTERVAL_MS` | `86400000` (24h) | Scheduler interval |
+| `BETTERMTA_STATIC_RETAIN_VERSIONS` | `3` | Retained version directories |
+| `BETTERMTA_STATIC_MIN_STOPS` | `400` | Row-count sanity (real feed) |
+| `BETTERMTA_STATIC_MIN_ROUTES` | `20` | Row-count sanity (real feed) |
+| `BETTERMTA_STATIC_SERVICE_COVERAGE_DAYS` | `7` | Require active service for today..today+N |
+| `BETTERMTA_GRAPH_BUILD_WEBHOOK` | _(unset)_ | Optional POST target on new activation |
+| `BETTERMTA_ALLOW_FIXTURE_STATIC` | _(unset/false)_ | Permit fixture directory import (test/dev) |
+| `NODE_ENV` | — | `production` always refuses fixture static loading |
+
+### On-disk layout
+
+```text
+$BETTERMTA_DATA_DIR/static/
+  tmp/                          # download + extract scratch (never under versions/)
+  versions/<versionId>/         # extracted .txt tables + metadata.json
+  active.json                   # atomic pointer { versionId, sha256, activatedAt }
+  graph-build-request.json      # written only when a NEW version activates
+```
+
+### Version ID convention (BINDING)
+
+```text
+versionId = "mta-subway-" + first_12_hex_chars(sha256(zip_bytes))
+```
+
+Full sha256 (64 hex) is recorded in `metadata.json` and `active.json`. Other workstreams must key static dataset identity on this `versionId`.
+
+`metadata.json` fields: `versionId`, `sha256`, `sourceUrl` (sanitized), `fetchedAt`, `byteSize`, `serviceDateRange`, `tableCounts`, `attribution` (`Schedule data © Metropolitan Transportation Authority`), `licenseNote`.
+
+### Refresh semantics
+
+1. Download to temp (timeout + byte cap + content-type sanity).
+2. sha256 zip bytes → versionId.
+3. If sha256 equals the active version’s sha256 → log unchanged and **do nothing** (no re-activation, no graph-build trigger).
+4. Else: ZIP integrity (central directory + inflate) → extract required tables → validate (existing referential checks + service coverage today..today+7 + row counts) → store under `versions/<versionId>/` → atomic `active.json` via temp+rename → load into `StaticDatasetStore` → fire graph-build trigger → prune to last N versions.
+5. Any failure leaves the previous active version untouched; failures are logged and counted in metrics.
+
+### Rollback
+
+`rollbackStaticVersion` / `DataPlatform.rollbackStatic(versionId)` rewrites `active.json` atomically to a retained prior version and reloads it into memory. Readiness stays true when the prior version loads successfully.
+
+### Graph-build trigger contract
+
+Fired **only** when a new version activates (not on unchanged checksum, not on startup disk load).
+
+Payload (`graph-build-request.json` and optional webhook body):
+
+```json
+{ "versionId": "mta-subway-…", "sha256": "<64 hex>", "requestedAt": "<ISO-8601>" }
+```
+
+Default implementation writes the file atomically and, when `BETTERMTA_GRAPH_BUILD_WEBHOOK` is set, POSTs the same JSON. The trigger interface is pluggable (`GraphBuildTrigger`).
+
+### Readiness
+
+- `DataPlatform.isReady()` / `isStaticReady()` → true only when an active static dataset is loaded in memory.
+- On process start: `loadActiveFromDisk()` reads `active.json` and loads that version from disk with **zero network calls**. If no active version exists and no successful refresh has run → not ready.
+- Production **never** falls back to fixtures. `DataPlatform.importStatic` requires `BETTERMTA_ALLOW_FIXTURE_STATIC=true` and refuses when `NODE_ENV=production`.
+
+### Metrics (additions)
+
+Counters/gauges follow existing `bettermta_*` conventions, including: `bettermta_static_refresh_success_total`, `bettermta_static_refresh_failure_total`, `bettermta_static_refresh_unchanged_total`, `bettermta_static_download_failures_total`, `bettermta_static_validation_failures_total`, `bettermta_static_activation_failures_total`, `bettermta_static_rollback_total`, `bettermta_graph_build_triggers_total`, `bettermta_static_ready`, `bettermta_static_download_bytes`, `bettermta_static_refresh_duration_ms`.
 
 ---
 
@@ -182,6 +264,12 @@ Public façade: `DataPlatform` in `src/index.ts`.
 cd services/data
 npm install
 npm test
+```
+
+Env-gated real-feed integration (optional):
+
+```bash
+BETTERMTA_REAL_GTFS_ZIP=/path/to/gtfs_subway.zip npm test
 ```
 
 Contract validation (unchanged conductor package):

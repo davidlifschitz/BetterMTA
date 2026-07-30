@@ -17,6 +17,13 @@ export interface ImportOptions {
   activate?: boolean;
   /** When true, treat as synthetic fixture path — still validates. */
   synthetic?: boolean;
+  /**
+   * Explicit dataset version id (production pipeline binding).
+   * When set, overrides versionPrefix-based version construction.
+   */
+  version?: string;
+  /** Explicit checksum (e.g. sha256 of the source zip). */
+  checksum?: string;
 }
 
 export interface ImportResult {
@@ -74,12 +81,11 @@ export class StaticImporter {
   ): ImportResult {
     const source = options.source ?? "mta-subway-gtfs";
     const importedAt = options.importedAt ?? new Date().toISOString();
-    const checksum = checksumContents(parsed.rawFiles);
-    const version = buildVersion(
-      options.versionPrefix ?? "gtfs",
-      checksum,
-      importedAt,
-    );
+    const checksum =
+      options.checksum ?? checksumContents(parsed.rawFiles);
+    const version =
+      options.version ??
+      buildVersion(options.versionPrefix ?? "gtfs", checksum, importedAt);
 
     this.metrics.setStaticStatus("pending", version);
 
