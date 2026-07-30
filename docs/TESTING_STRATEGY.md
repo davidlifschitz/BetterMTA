@@ -1,7 +1,7 @@
 # BetterMTA Testing Strategy
 
-**Owner:** Benchmark / QA (`agent/benchmark-qa`)  
-**Status:** Seed corpus + fixture runner  
+**Owner:** Benchmark / QA  
+**Status:** Seed corpus + fixture runner + live HTTP SUT + recorded NYC captures  
 **Related:** `docs/ACCEPTANCE_CRITERIA.md` §D, `benchmarks/`
 
 ## 1. Goals
@@ -10,42 +10,42 @@
 - Grow an internal corpus colloquially called “Beat Google 100” — an **internal name only**, not a public superiority claim.
 - Never scrape or automate third-party products in violation of their terms.
 - Never label synthetic fixtures as verified real-world outcomes.
+- Capture live API responses once into `recorded_data`; keep `live` cases for gate-time HTTP smoke.
 
 ## 2. Categories covered
 
 | Category | What we test | Seed coverage |
 |---|---|---|
-| Borough / cross-borough OD | Manhattan, Brooklyn, Queens, Bronx, SI placeholders | Seed cases + pending slots |
+| Borough / cross-borough OD | Manhattan, Brooklyn, Queens, Bronx, SI placeholders | Seed + recorded NYC |
 | Peak / off-peak timing | `depart_at` morning/evening vs mid-day/late | Seed + pending |
-| Selected line counts | 0, 1, 2, 3 lines | Seed |
-| Transfers / complexes | Multi-leg + Times Sq / W4 style transfers | Seed (synthetic) |
-| Incompatible / impossible constraints | Partial + none feasibility with structured explanations | Seed |
+| Selected line counts | 0, 1, 2, 3 lines | Seed + recorded |
+| Transfers / complexes | Multi-leg + Times Sq / W4 style transfers | Seed (synthetic) + pending |
+| Incompatible / impossible constraints | Partial + none feasibility with structured explanations | Seed + recorded |
 | Duplicate selection | Dedupe must not inflate satisfaction | Seed |
 | Local / express | Same `lineId` counts once | Pending live patterns |
-| Data honesty | `dataMode` + freshness warnings | Seed (`synthetic`, `stale`, `schedule_only`) |
+| Data honesty | `dataMode` + freshness warnings | Seed + recorded (`stale`) |
 | Ranking order | Complete≻partial; max satisfaction before time; time within sat | Seed (QA fixtures) |
 | External comparison | Manual-only slots | 1 reserved case |
-| Recorded realtime | Data-owned recordings | 1 reserved slot |
+| Recorded realtime | Captured live responses under `fixtures/recorded-responses/` | 8 recorded cases |
+| Live HTTP smoke | `classification=live` against local API | 1 live smoke case |
 
 ## 3. Corpus path to 100 cases
 
-Current seed: **25** cases under `benchmarks/cases/`.
-
 | Phase | Target count | Classification mix | Blocker |
 |---|---|---|---|
-| A — Seed (this package) | 20–30 | Mostly `synthetic_contract_fixture` + `pending_live_integration` | None |
-| B — Routing integration | ~50 | Reclassify pending → executable against live/router SUT | Routing engine + adapter implementing `SystemUnderTest` |
-| C — Recorded feeds | ~70 | Add `recorded_data` from data workstream fixtures | Data recorded GTFS-RT packs |
+| A — Seed | 20–30 | Mostly `synthetic_contract_fixture` + `pending_live_integration` | None |
+| B — Routing integration | ~50 | `recorded_data` + `live` against HTTP SUT | Live stack (done locally) |
+| C — Recorded feeds | ~70 | Expand `recorded_data` / data-owned packs | Broader OD/time coverage |
 | D — Human-reviewed real trips | ~90 | `manually_reviewed_real_trip` with review checklist | Field / rider review sessions |
-| E — Full “100” | 100 | Fill gaps across boroughs, peak windows, 1–3 lines, complexes, accessibility subset | Integration workstream |
+| E — Full “100” | 100 | Fill gaps across boroughs, peak windows, 1–3 lines, complexes | Integration workstream |
 
 Assembly process:
 
 1. Author case JSON conforming to `benchmarks/schema/benchmark-case.schema.json`.
 2. Prefer **invariant lists** over a single golden itinerary.
-3. Set `classification` honestly.
-4. Map `sut` to a conductor fixture, QA fixture, or (later) live SUT key.
-5. Run `npm --prefix benchmarks/runner run validate-cases` then `run-benchmarks`.
+3. Set `classification` honestly (`recorded_data` only with a file under `fixtures/recorded-responses/`).
+4. Map `sut.kind` to `conductor_fixture` | `qa_fixture` | `recorded_response` | `live`.
+5. Run `validate-cases` then `run-benchmarks` (fixture default).
 6. For defects, follow `benchmarks/docs/REGRESSION_CAPTURE.md`.
 
 ## 4. Tooling layout
@@ -54,11 +54,13 @@ Assembly process:
 benchmarks/
   schema/benchmark-case.schema.json
   cases/*.json
-  fixtures/sut-responses/     # QA-owned synthetic responses (not conductor)
-  runner/                     # TypeScript package (own package.json)
-  docs/                       # Regression, gates, human review
-  reports/                    # Generated (local)
-  templates/                  # Regression case template
+  fixtures/sut-responses/        # QA-owned synthetic responses
+  fixtures/recorded-responses/   # Captured live API responses (not synthetic)
+  runner/                        # TypeScript package (own package.json)
+  docs/
+  reports/                       # Generated (gitignored)
+  templates/
+  release-subset.json
 ```
 
 ## 5. Invariant classes
@@ -74,68 +76,78 @@ benchmarks/
 | `max_satisfaction_before_time` | Ranking lexicographic | Merge-blocking (skip if <2) |
 | `deterministic_order` | Repeat search identical fingerprints | Merge-blocking |
 | `max_three_itineraries` | Contract list cap | Merge-blocking |
-| `honest_data_mode` | `dataMode` present; fixtures ≠ live | Merge-blocking |
+| `honest_data_mode` | `dataMode` present; authored fixtures ≠ live | Merge-blocking |
 | `impossible_constraint_explanation` | Structured facts when partial/none | Merge-blocking |
-| `expected_feasibility` | Case expectation | Merge-blocking on release subset (soft-omitted on placeholders) |
-| `minimum_satisfaction` | Case floor | Merge-blocking on release subset (soft-omitted on placeholders) |
+| `expected_feasibility` | Case expectation | Merge-blocking on release subset |
+| `minimum_satisfaction` | Case floor | Merge-blocking on release subset |
 
-Details: `docs/CI_QUALITY_GATES.md` (mirrored at `benchmarks/docs/CI_QUALITY_GATES.md`). Release subset: `benchmarks/release-subset.json`. Self-test: `npm --prefix benchmarks/runner run self-test`.
+Details: `docs/CI_QUALITY_GATES.md`. Release subset: `benchmarks/release-subset.json`. Self-test: `npm --prefix benchmarks/runner run self-test`.
 
-## 6. Coverage today vs gaps
+## 6. System under test
 
-**Today (fixture SUT):**
+| Mode | Env / flag | Notes |
+|---|---|---|
+| Fixture (default) | `BETTERMTA_SUT=fixture` | Deterministic CI |
+| Live HTTP | `BETTERMTA_SUT=live` | `LiveSystemUnderTest` → `POST /v1/routes/search`; PlaceRef as `{placeId}` only |
 
-- Schema + 25 seed cases
-- Invariant library + reports
-- Conductor fixtures exercised: `complete-match`, `partial-match`, `baseline-only`, `degraded-realtime`
-- QA fixtures for ordering + feasibility none
+Live runs write shadow reports: `benchmarks/reports/live-shadow-<timestamp>.{json,txt}` with OD, lines, versions, itinerary summary, satisfaction, latency, and `humanValidity` defaulting to `pending_review`.
+
+## 7. Coverage today vs gaps
+
+**Today:**
+
+- Schema + ~30 cases (synthetics, recorded NYC, live smoke, remaining pendings)
+- Fixture SUT + live HTTP SUT + hybrid runner
+- Recorded captures pinned to `mta-subway-c9c3366cdd16` (dataMode often `stale`)
+- Release gate checklist G01–G20
 
 **Gaps:**
 
-- No live router SUT
-- No recorded GTFS-RT packs wired
-- No accessibility-specific cases yet (deferred unless corpus requires minimal subset)
-- Arrive-by strategy still conductor-unresolved
+- Full 100-case geographic/time coverage
+- Human-reviewed real trips
+- Manual external comparison evidence
+- Arrive-by still conductor-unresolved / beta-rejected
 - SI / ferry-adjacent multimodal may be out of MVP scope
-- Full 100-case geographic/time coverage incomplete by design until Phases B–E
+- Fly deploy / rollback still infra-blocked
 
-## 7. What requires live-data integration
+## 8. What requires live-data integration
 
-- Real travel times, waits, and transfer feasibility
+- Real travel times, waits, and transfer feasibility at gate time (`live` cases)
 - Local vs express pattern distinction under one `lineId`
 - Stale/live thresholds against real feed ages
-- True impossible-constraint discovery (not hand-authored)
-- Reclassification of `pending_live_integration` cases
+- Reclassification of remaining `pending_live_integration` cases
 - Any external comparison (manual only; evidence-backed claims)
 
-## 8. Release gates (summary)
+## 9. Release gates (summary)
 
 From `ACCEPTANCE_CRITERIA.md` §D, enforced here as:
 
-1. Zero topology-invalid itineraries on the active release subset (`valid_itinerary_structure` + chronology/durations).
-2. Zero selected-line accounting errors (`satisfaction_accounting`).
-3. Deterministic repeats (`deterministic_order`).
-4. Honest degraded/synthetic labeling (`honest_data_mode`).
+1. Zero topology-invalid itineraries on the active release subset.
+2. Zero selected-line accounting errors.
+3. Deterministic repeats.
+4. Honest degraded/synthetic/recorded labeling.
 
-Runnable: `npm --prefix benchmarks/runner run gate` (exit 0/1/2).
+Runnable: `npm --prefix benchmarks/runner run gate` (exit 0/1/2). Emits `release-gate-*.md`.
 
 Accessibility and FE mobile regressions are owned with Frontend; this workstream records the gate definition and expects their evidence in the go/no-go package.
 
-## 9. Blind spots
+## 10. Blind spots
 
-- Fixture SUT cannot catch router topology bugs that fixtures do not encode.
-- Satisfaction alignment is only as good as case↔response mapping.
-- No fuzz/property generation yet (planned: random place + line-set generator against live SUT).
+- Fixture/recorded SUT cannot catch router regressions after capture time without re-recording or live smoke.
+- Live `deterministic_order` can flake if snapshots change between the two searches in one case.
 - Human preference (“preferable to baseline”) is not fully automatable.
-- Performance p95 is owned with Backend/Infra probes, not this runner.
+- Performance p95 is owned with Backend/Infra probes; shadow reports capture per-case latency only.
 - Marketing misuse of the “Beat Google 100” name (process risk R11).
 
-## 10. Commands
+## 11. Commands
 
 ```bash
 npm --prefix benchmarks/runner install
 npm --prefix benchmarks/runner run validate-cases
 npm --prefix benchmarks/runner run run-benchmarks
+npm --prefix benchmarks/runner run self-test
 npm --prefix benchmarks/runner run gate
+BETTERMTA_SUT=live BETTERMTA_LIVE_API_BASE=http://127.0.0.1:8080 \
+  npm --prefix benchmarks/runner run run-benchmarks -- --sut live
 npm --prefix contracts install && npm --prefix contracts run validate
 ```

@@ -496,11 +496,14 @@ export const invariantLibrary: Record<InvariantId, InvariantFn> = {
     if (!allowed.includes(mode)) {
       return fail(id, `Unknown dataMode ${mode}`);
     }
-    // Synthetic / fixture cases must not claim live.
+    // Synthetic / authored fixture cases must not claim live.
+    // recorded_response and live SUT kinds may honestly return live|stale|schedule_only.
+    const authoredFixtureKind =
+      ctx.benchmarkCase.sut.kind === "conductor_fixture" ||
+      ctx.benchmarkCase.sut.kind === "qa_fixture";
     if (
       (ctx.benchmarkCase.classification === "synthetic_contract_fixture" ||
-        ctx.benchmarkCase.sut.kind === "conductor_fixture" ||
-        ctx.benchmarkCase.sut.kind === "qa_fixture") &&
+        authoredFixtureKind) &&
       mode === "live"
     ) {
       // Allow only if explicitly tagged as testing live labeling against a live-shaped fixture.

@@ -38,11 +38,12 @@
       "enum": [
         "synthetic_contract_fixture",
         "recorded_data",
+        "live",
         "manually_reviewed_real_trip",
         "pending_live_integration",
         "external_comparison_manual"
       ],
-      "description": "Honest provenance label. Never treat synthetic_contract_fixture as a verified real-world outcome. Use pending_live_integration when a slot is reserved but evidence is not yet collected (do not claim recorded_data or external_comparison_manual until real evidence exists)."
+      "description": "Honest provenance label. Never treat synthetic_contract_fixture as a verified real-world outcome. Use recorded_data only for responses saved under benchmarks/fixtures/recorded-responses/. Use live for cases that hit the live HTTP SUT at gate time. Use pending_live_integration when a slot is reserved but evidence is not yet collected (do not claim recorded_data or external_comparison_manual until real evidence exists)."
     },
     "categories": {
       "type": "array",
@@ -147,13 +148,18 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["conductor_fixture", "qa_fixture"],
-          "description": "conductor_fixture maps to contracts/fixtures/routes/*.json; qa_fixture maps to benchmarks/fixtures/sut-responses/*.json."
+          "enum": [
+            "conductor_fixture",
+            "qa_fixture",
+            "recorded_response",
+            "live"
+          ],
+          "description": "conductor_fixture → contracts/fixtures/routes/*.json; qa_fixture → benchmarks/fixtures/sut-responses/*.json; recorded_response → benchmarks/fixtures/recorded-responses/*.json; live → HTTP POST /v1/routes/search when BETTERMTA_SUT=live."
         },
         "responseId": {
           "type": "string",
           "minLength": 1,
-          "description": "Filename stem without .json (e.g. complete-match, feasibility-none)."
+          "description": "Filename stem without .json for fixture/recorded kinds (e.g. complete-match, recorded-f-carroll-bryant-complete). For kind=live, a stable key only (not loaded from disk)."
         }
       }
     },

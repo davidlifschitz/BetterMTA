@@ -18,12 +18,17 @@
  *   - expected_feasibility, minimum_satisfaction (non-soft synthetic / release subset)
  *
  * Note: ACCEPTANCE_CRITERIA §D.3 accessibility/performance is NOT measured by this gate.
+ * Fly-deploy BLOCKED and Google NOT_CLAIMED checklist rows do not fail the gate alone.
  */
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { BENCHMARKS_ROOT } from "./paths.js";
-import { runBenchmarks } from "./runner.js";
-import type { InvariantId } from "./types.js";
+import { BENCHMARKS_ROOT, REPORTS_DIR } from "./paths.js";
+import {
+  buildReleaseChecklist,
+  writeReleaseChecklist,
+} from "./release-checklist.js";
+import { resolveSutMode, runBenchmarks } from "./runner.js";
+import type { InvariantId, SutMode } from "./types.js";
 
 const MERGE_BLOCKING: Set<InvariantId> = new Set([
   "valid_itinerary_structure",
@@ -58,6 +63,20 @@ function parseSubsetArg(argv: string[]): string | undefined {
   return value;
 }
 
+function parseSutArg(argv: string[]): SutMode | undefined {
+  const idx = argv.indexOf("--sut");
+  if (idx === -1) return undefined;
+  const value = argv[idx + 1];
+  if (!value || value.startsWith("-")) {
+    throw new Error("--sut requires live|fixture");
+  }
+  const normalized = value.trim().toLowerCase();
+  if (normalized !== "live" && normalized !== "fixture") {
+    throw new Error(`Invalid --sut=${value} (expected live|fixture)`);
+  }
+  return normalized;
+}
+
 async function loadSubsetCaseIds(subsetPath: string): Promise<string[]> {
   const raw = await readFile(subsetPath, "utf8");
   const data = JSON.parse(raw) as { caseIds?: unknown };
@@ -74,10 +93,12 @@ async function loadSubsetCaseIds(subsetPath: string): Promise<string[]> {
 
 async function main() {
   try {
-    const subsetPath = parseSubsetArg(process.argv.slice(2)) ?? DEFAULT_SUBSET_PATH;
+    const argv = process.argv.slice(2);
+    const subsetPath = parseSubsetArg(argv) ?? DEFAULT_SUBSET_PATH;
+    const sutMode = resolveSutMode(parseSutArg(argv));
     const caseIds = await loadSubsetCaseIds(subsetPath);
 
-    const result = await runBenchmarks({ caseIds });
+    const result = await runBenchmarks({ caseIds, sutMode });
     if (result.validateOnly || !result.report) {
       console.error("Unexpected validate-only result in gate");
       process.exit(2);
@@ -92,6 +113,13 @@ async function main() {
         configFailures.push(`${id}: missing from loaded corpus`);
         continue;
       }
+      // Live-only cases are soft under fixture SUT; do not require full invariant list for config.
+      if (
+        sutMode === "fixture" &&
+        (c.classification === "live" || c.sut.kind === "live")
+      ) {
+        continue;
+      }
       const present = new Set(c.invariantAssertions);
       for (const inv of MERGE_BLOCKING) {
         if (!present.has(inv)) {
@@ -104,6 +132,7 @@ async function main() {
 
     const blockingFailures: string[] = [];
     for (const c of result.report.cases) {
+      if (c.soft) continue;
       for (const a of c.assertions) {
         if (a.status !== "fail") continue;
         if (!MERGE_BLOCKING.has(a.invariantId)) continue;
@@ -120,12 +149,37 @@ async function main() {
       }
     }
 
+    const checklist = buildReleaseChecklist({
+      generatedAt: result.report.generatedAt,
+      sutMode,
+      subsetPath,
+      subsetCaseCount: caseIds.length,
+      rankingPasses,
+      blockingFailures,
+      configFailures,
+      report: result.report,
+      shadowReportPath: result.shadowReportPaths?.jsonPath ?? null,
+    });
+    const checklistPath = await writeReleaseChecklist(
+      result.reportsDir ?? REPORTS_DIR,
+      checklist
+    );
+
     console.log(result.human);
     console.log("");
     console.log(`Release subset: ${subsetPath} (${caseIds.length} cases)`);
+    console.log(`SUT mode: ${sutMode}`);
     console.log(
       "NOTE: ACCEPTANCE_CRITERIA §D.3 accessibility/performance is NOT measured by this gate."
     );
+    console.log(`Release checklist: ${checklistPath}`);
+    if (result.shadowReportPaths) {
+      console.log(`Shadow report: ${result.shadowReportPaths.jsonPath}`);
+    }
+    console.log("");
+    for (const item of checklist.items) {
+      console.log(`[${item.status}] ${item.id} ${item.title}`);
+    }
     console.log("");
 
     if (configFailures.length) {
@@ -153,6 +207,9 @@ async function main() {
 
     console.log(
       `GATE PASS: all merge-blocking invariant classes passed on release subset (rankingPasses=${rankingPasses})`
+    );
+    console.log(
+      "NOTE: Fly BLOCKED / Google NOT_CLAIMED checklist rows did not affect exit code."
     );
     if (result.report.findings.length) {
       console.log("Findings (non-exit-affecting unless above):");

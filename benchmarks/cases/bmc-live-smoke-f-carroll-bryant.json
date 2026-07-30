@@ -1,0 +1,42 @@
+{
+  "caseId": "bmc-live-smoke-f-carroll-bryant",
+  "title": "LIVE: Carroll St → Bryant Park F complete smoke",
+  "classification": "live",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "lines_1",
+    "od_on_selected_lines",
+    "degraded_realtime"
+  ],
+  "origin": { "placeId": "st:F21" },
+  "destination": { "placeId": "st:D16" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["F"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Hits live HTTP SUT at gate time (BETTERMTA_SUT=live). Expect complete F match; dataMode live|stale honestly labeled. Soft-skipped under fixture SUT. Not in fixture release-subset. static pin documents known good dataset mta-subway-c9c3366cdd16; live snapshot varies.",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeFixtureVersion": "live_at_gate_time",
+  "sut": {
+    "kind": "live",
+    "responseId": "live-smoke-f-carroll-bryant"
+  },
+  "tags": ["live_smoke", "nyc_od"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

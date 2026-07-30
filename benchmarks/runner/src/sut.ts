@@ -1,20 +1,29 @@
 import path from "node:path";
-import type { RouteSearchRequest, RouteSearchResponse, SystemUnderTest } from "./types.js";
+import type {
+  BenchmarkCase,
+  RouteSearchRequest,
+  RouteSearchResponse,
+  SutKind,
+  SystemUnderTest,
+} from "./types.js";
 import {
   CONDUCTOR_FIXTURES_DIR,
   QA_FIXTURES_DIR,
+  RECORDED_RESPONSES_DIR,
   loadJson,
 } from "./paths.js";
+import { LiveSystemUnderTest } from "./sut-live.js";
 
 export interface FixtureMapEntry {
-  kind: "conductor_fixture" | "qa_fixture";
+  kind: SutKind;
   responseId: string;
 }
 
 /**
  * Fixture-backed SUT stub.
  * Maps each case's sut.responseId to a static RouteSearchResponse.
- * Does not call live network or production routing.
+ * Supports conductor_fixture, qa_fixture, and recorded_response.
+ * Does not call live network for those kinds.
  */
 export class FixtureSystemUnderTest implements SystemUnderTest {
   readonly name = "fixture-sut";
@@ -35,10 +44,7 @@ export class FixtureSystemUnderTest implements SystemUnderTest {
   }
 
   async search(request: RouteSearchRequest): Promise<RouteSearchResponse> {
-    const key = requestKey(request);
-    // Prefer explicit case mapping via selectedLineIds + origin place markers encoded in request.
-    // The runner calls searchWithCaseId for precise mapping.
-    void key;
+    void request;
     throw new Error(
       "FixtureSystemUnderTest.search requires searchForCase(caseId, request)"
     );
@@ -52,22 +58,20 @@ export class FixtureSystemUnderTest implements SystemUnderTest {
     if (!entry) {
       throw new Error(`No fixture mapping for case ${caseId}`);
     }
+    if (entry.kind === "live") {
+      throw new Error(
+        `Case ${caseId} has sut.kind=live; use BETTERMTA_SUT=live (fixture mode cannot execute live cases)`
+      );
+    }
     const dir =
       entry.kind === "conductor_fixture"
         ? CONDUCTOR_FIXTURES_DIR
-        : QA_FIXTURES_DIR;
+        : entry.kind === "recorded_response"
+          ? RECORDED_RESPONSES_DIR
+          : QA_FIXTURES_DIR;
     const filePath = path.join(dir, `${entry.responseId}.json`);
     return loadJson<RouteSearchResponse>(filePath);
   }
-}
-
-function requestKey(request: RouteSearchRequest): string {
-  return JSON.stringify({
-    origin: request.origin,
-    destination: request.destination,
-    timing: request.timing,
-    selectedLineIds: request.selectedLineIds ?? [],
-  });
 }
 
 /** Adapter that exposes SystemUnderTest while routing through case-aware fixture lookup. */
@@ -89,5 +93,40 @@ export class CaseAwareFixtureSut implements SystemUnderTest {
       throw new Error("CaseAwareFixtureSut: active case not set");
     }
     return this.inner.searchForCase(this.activeCaseId, request);
+  }
+}
+
+/**
+ * Hybrid SUT for BETTERMTA_SUT=live:
+ * - sut.kind=live (or classification=live) → LiveSystemUnderTest HTTP
+ * - recorded_response / conductor_fixture / qa_fixture → disk fixtures
+ */
+export class HybridLiveSut implements SystemUnderTest {
+  readonly name = "live-http-sut";
+  private activeCase: BenchmarkCase | null = null;
+  readonly live: LiveSystemUnderTest;
+  private readonly fixture: FixtureSystemUnderTest;
+
+  constructor(live: LiveSystemUnderTest, fixture: FixtureSystemUnderTest) {
+    this.live = live;
+    this.fixture = fixture;
+  }
+
+  setActiveCase(c: BenchmarkCase): void {
+    this.activeCase = c;
+  }
+
+  usesLiveHttp(c: BenchmarkCase): boolean {
+    return c.sut.kind === "live" || c.classification === "live";
+  }
+
+  async search(request: RouteSearchRequest): Promise<RouteSearchResponse> {
+    if (!this.activeCase) {
+      throw new Error("HybridLiveSut: active case not set");
+    }
+    if (this.usesLiveHttp(this.activeCase)) {
+      return this.live.search(request);
+    }
+    return this.fixture.searchForCase(this.activeCase.caseId, request);
   }
 }

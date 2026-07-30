@@ -26,6 +26,12 @@ export const QA_FIXTURES_DIR = path.join(
   "fixtures",
   "sut-responses"
 );
+export const RECORDED_RESPONSES_DIR = path.join(
+  BENCHMARKS_ROOT,
+  "fixtures",
+  "recorded-responses"
+);
+export const REPORTS_DIR = path.join(BENCHMARKS_ROOT, "reports");
 export const ITINERARY_SCHEMA_PATH = path.join(
   CONTRACTS_ROOT,
   "schemas",

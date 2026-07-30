@@ -3,26 +3,62 @@ import path from "node:path";
 import { runInvariants } from "./invariants/index.js";
 import {
   BENCHMARKS_ROOT,
+  REPORTS_DIR,
   caseToRequest,
   loadAndValidateCases,
 } from "./paths.js";
 import { buildReport, formatHumanReport } from "./report.js";
-import { CaseAwareFixtureSut, FixtureSystemUnderTest } from "./sut.js";
-import type { BenchmarkCase, CaseResult, SystemUnderTest } from "./types.js";
+import {
+  buildShadowEntry,
+  writeShadowReport,
+  type ShadowCaseEntry,
+  type ShadowReport,
+} from "./shadow-report.js";
+import {
+  CaseAwareFixtureSut,
+  FixtureSystemUnderTest,
+  HybridLiveSut,
+} from "./sut.js";
+import { LiveSystemUnderTest } from "./sut-live.js";
+import type {
+  BenchmarkCase,
+  CaseResult,
+  SutMode,
+  SystemUnderTest,
+} from "./types.js";
 
 export interface RunOptions {
   validateOnly?: boolean;
   outDir?: string;
   sut?: SystemUnderTest;
+  sutMode?: SutMode;
   /** When set, only these case IDs are executed (order preserved from corpus load). */
   caseIds?: string[];
 }
 
-export function isSoftCase(c: BenchmarkCase): boolean {
-  return (
-    (c.tags ?? []).includes("soft_feasibility") ||
-    c.classification === "pending_live_integration"
+export function resolveSutMode(
+  explicit?: SutMode,
+  env: NodeJS.ProcessEnv = process.env
+): SutMode {
+  if (explicit) return explicit;
+  const raw = (env.BETTERMTA_SUT ?? "fixture").trim().toLowerCase();
+  if (raw === "live" || raw === "fixture") return raw;
+  throw new Error(
+    `Invalid BETTERMTA_SUT="${env.BETTERMTA_SUT}" (expected live|fixture)`
   );
+}
+
+export function isSoftCase(c: BenchmarkCase, sutMode: SutMode = "fixture"): boolean {
+  if ((c.tags ?? []).includes("soft_feasibility")) return true;
+  if (c.classification === "pending_live_integration") return true;
+  // Live cases are soft placeholders under fixture SUT (cannot execute without HTTP).
+  if (
+    (c.classification === "live" || c.sut.kind === "live") &&
+    sutMode !== "live"
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export async function runBenchmarks(options: RunOptions = {}) {
@@ -53,28 +89,88 @@ export async function runBenchmarks(options: RunOptions = {}) {
       cases: allCases,
       report: null,
       human: `Validated ${allCases.length} benchmark cases against schema.`,
+      sutMode: resolveSutMode(options.sutMode),
+      shadowReportPaths: null,
     };
   }
 
+  const sutMode = resolveSutMode(options.sutMode);
   const fixtureInner = FixtureSystemUnderTest.fromCases(allCases);
-  const sut = options.sut ?? new CaseAwareFixtureSut(fixtureInner);
+
+  let sut: SystemUnderTest;
+  let hybrid: HybridLiveSut | null = null;
+  let fixtureSut: CaseAwareFixtureSut | null = null;
+
+  if (options.sut) {
+    sut = options.sut;
+  } else if (sutMode === "live") {
+    hybrid = new HybridLiveSut(new LiveSystemUnderTest(), fixtureInner);
+    sut = hybrid;
+  } else {
+    fixtureSut = new CaseAwareFixtureSut(fixtureInner);
+    sut = fixtureSut;
+  }
 
   const findings: string[] = [];
   const results: CaseResult[] = [];
+  const shadowEntries: ShadowCaseEntry[] = [];
 
   for (const c of cases) {
-    if (sut instanceof CaseAwareFixtureSut) {
-      sut.setActiveCase(c.caseId);
-    }
+    if (fixtureSut) fixtureSut.setActiveCase(c.caseId);
+    if (hybrid) hybrid.setActiveCase(c);
 
     const request = caseToRequest(c);
-    const soft = isSoftCase(c);
+    const soft = isSoftCase(c, sutMode);
+
+    // Under fixture SUT, skip live cases as soft (do not fail CI).
+    if (
+      sutMode === "fixture" &&
+      (c.classification === "live" || c.sut.kind === "live")
+    ) {
+      results.push({
+        caseId: c.caseId,
+        title: c.title,
+        classification: c.classification,
+        categories: c.categories ?? [],
+        assertions: [
+          {
+            invariantId: "valid_itinerary_structure",
+            status: "skip",
+            message:
+              "Skipped under fixture SUT — set BETTERMTA_SUT=live to execute against HTTP API",
+          },
+        ],
+        // soft placeholder (not a pass); skipped=false so report soft totals stay coherent
+        passed: true,
+        skipped: false,
+        soft: true,
+      });
+      continue;
+    }
+
+    const hitLive = Boolean(hybrid?.usesLiveHttp(c));
     let response;
     let repeat;
+    let latencyMs = 0;
     try {
       response = await sut.search(request);
+      if (hitLive && hybrid) {
+        latencyMs = hybrid.live.lastMeta?.latencyMs ?? 0;
+      }
       repeat = await sut.search(request);
     } catch (err) {
+      const message = (err as Error).message;
+      if (hitLive && hybrid) {
+        latencyMs = hybrid.live.lastMeta?.latencyMs ?? 0;
+        shadowEntries.push(
+          buildShadowEntry({
+            benchmarkCase: c,
+            request,
+            latencyMs,
+            error: message,
+          })
+        );
+      }
       results.push({
         caseId: c.caseId,
         title: c.title,
@@ -84,7 +180,7 @@ export async function runBenchmarks(options: RunOptions = {}) {
           {
             invariantId: "valid_itinerary_structure",
             status: "fail",
-            message: `SUT error: ${(err as Error).message}`,
+            message: `SUT error: ${message}`,
           },
         ],
         passed: false,
@@ -92,6 +188,17 @@ export async function runBenchmarks(options: RunOptions = {}) {
         soft,
       });
       continue;
+    }
+
+    if (hitLive) {
+      shadowEntries.push(
+        buildShadowEntry({
+          benchmarkCase: c,
+          request,
+          response,
+          latencyMs,
+        })
+      );
     }
 
     const assertions = await runInvariants(c.invariantAssertions, {
@@ -144,6 +251,21 @@ export async function runBenchmarks(options: RunOptions = {}) {
   await writeFile(latestJson, JSON.stringify(report, null, 2));
   await writeFile(latestTxt, human);
 
+  let shadowReportPaths: { jsonPath: string; txtPath: string } | null = null;
+  if (sutMode === "live" && shadowEntries.length > 0) {
+    const shadow: ShadowReport = {
+      generatedAt: report.generatedAt,
+      sutName: sut.name,
+      apiBase:
+        hybrid?.live.baseUrl ??
+        process.env.BETTERMTA_LIVE_API_BASE ??
+        "http://127.0.0.1:8080",
+      humanValidityDefault: "pending_review",
+      cases: shadowEntries,
+    };
+    shadowReportPaths = await writeShadowReport(outDir, shadow);
+  }
+
   return {
     validateOnly: false as const,
     caseCount: cases.length,
@@ -152,5 +274,8 @@ export async function runBenchmarks(options: RunOptions = {}) {
     human,
     jsonPath,
     txtPath,
+    sutMode,
+    shadowReportPaths,
+    reportsDir: outDir || REPORTS_DIR,
   };
 }

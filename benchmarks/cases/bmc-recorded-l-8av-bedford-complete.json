@@ -1,0 +1,44 @@
+{
+  "caseId": "bmc-recorded-l-8av-bedford-complete",
+  "title": "Recorded: 8 Av → Bedford Av L complete",
+  "classification": "recorded_data",
+  "categories": [
+    "borough_manhattan",
+    "borough_brooklyn",
+    "cross_borough",
+    "off_peak",
+    "lines_1",
+    "od_on_selected_lines",
+    "no_transfer",
+    "degraded_realtime"
+  ],
+  "origin": { "placeId": "st:L03" },
+  "destination": { "placeId": "st:L08" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["L"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Captured 2026-07-30 :8080. Reclassified from pending Manhattan L-only slot. placeIds st:L03→st:L08. static=mta-subway-c9c3366cdd16; dataMode=stale.",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeFixtureVersion": "rt_live_20260730_9b5fa26107",
+  "sut": {
+    "kind": "recorded_response",
+    "responseId": "recorded-l-8av-bedford-complete"
+  },
+  "tags": ["nyc_live_capture"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

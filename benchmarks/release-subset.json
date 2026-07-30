@@ -1,5 +1,5 @@
 {
-  "$comment": "Active §D release subset for fixture-backed CI. Soft/placeholder cases are intentionally excluded. Expand when live SUT lands.",
+  "$comment": "Active §D release subset for fixture-backed CI. Includes synthetic fixtures + recorded NYC captures. Soft/pending and live-HTTP cases are intentionally excluded. Expand live-only subset when BETTERMTA_SUT=live is required in CI.",
   "caseIds": [
     "bmc-brooklyn-baseline-schedule-only",
     "bmc-brooklyn-partial-agl",
@@ -10,6 +10,14 @@
     "bmc-ordering-equal-sat-by-arrival",
     "bmc-ordering-max-sat-before-earlier",
     "bmc-queens-stale-7-complete",
+    "bmc-recorded-7-main-st-vernon",
+    "bmc-recorded-baseline-carroll-bryant",
+    "bmc-recorded-f-carroll-bryant-complete",
+    "bmc-recorded-fb-carroll-bryant-partial",
+    "bmc-recorded-g-metropolitan-courtsq",
+    "bmc-recorded-l-8av-bedford-complete",
+    "bmc-recorded-none-gl-a-corridor",
+    "bmc-recorded-partial-agl-hoyt-1av",
     "bmc-synthetic-depart-now-request-shape",
     "bmc-synthetic-od-on-selected-f-only-path",
     "bmc-synthetic-partial-explanation-required"

@@ -1,0 +1,44 @@
+{
+  "caseId": "bmc-recorded-g-metropolitan-courtsq",
+  "title": "Recorded: Metropolitan Av → Court Sq G complete",
+  "classification": "recorded_data",
+  "categories": [
+    "borough_brooklyn",
+    "borough_queens",
+    "cross_borough",
+    "off_peak",
+    "lines_1",
+    "od_on_selected_lines",
+    "no_transfer",
+    "degraded_realtime"
+  ],
+  "origin": { "placeId": "st:G29" },
+  "destination": { "placeId": "st:G22" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["G"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Captured 2026-07-30 :8080. Reclassified from pending off-peak G crosstown slot. static=mta-subway-c9c3366cdd16; dataMode=stale.",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeFixtureVersion": "rt_live_20260730_9b5fa26107",
+  "sut": {
+    "kind": "recorded_response",
+    "responseId": "recorded-g-metropolitan-courtsq"
+  },
+  "tags": ["nyc_live_capture"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

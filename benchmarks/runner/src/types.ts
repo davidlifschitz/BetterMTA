@@ -3,9 +3,18 @@
 export type CaseClassification =
   | "synthetic_contract_fixture"
   | "recorded_data"
+  | "live"
   | "manually_reviewed_real_trip"
   | "pending_live_integration"
   | "external_comparison_manual";
+
+export type SutKind =
+  | "conductor_fixture"
+  | "qa_fixture"
+  | "recorded_response"
+  | "live";
+
+export type SutMode = "fixture" | "live";
 
 export type Feasibility = "complete" | "partial" | "none" | "not_applicable";
 
@@ -59,7 +68,11 @@ export interface BenchmarkCase {
   expectedOriginStationId?: string;
   expectedDestinationStationId?: string;
   sut: {
-    kind: "conductor_fixture" | "qa_fixture";
+    kind: SutKind;
+    /**
+     * Filename stem without .json for fixture/recorded kinds.
+     * For kind=live, use a stable key (e.g. live-smoke-f) — not loaded from disk.
+     */
     responseId: string;
   };
   tags?: string[];

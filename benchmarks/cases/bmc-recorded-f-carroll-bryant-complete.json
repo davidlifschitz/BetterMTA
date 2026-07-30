@@ -1,0 +1,44 @@
+{
+  "caseId": "bmc-recorded-f-carroll-bryant-complete",
+  "title": "Recorded: Carroll St → Bryant Park F complete (stale live capture)",
+  "classification": "recorded_data",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_1",
+    "od_on_selected_lines",
+    "no_transfer",
+    "degraded_realtime"
+  ],
+  "origin": { "placeId": "st:F21" },
+  "destination": { "placeId": "st:D16" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["F"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Captured 2026-07-30 against local compose API :8080. staticDatasetVersion=mta-subway-c9c3366cdd16; realtimeSnapshotId in fixture; dataMode=stale with freshness warning. Complete F match Carroll(st:F21)→Bryant(st:D16). humanValidity pending_review.",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeFixtureVersion": "rt_live_20260730_1c24a8f3d2",
+  "sut": {
+    "kind": "recorded_response",
+    "responseId": "recorded-f-carroll-bryant-complete"
+  },
+  "tags": ["nyc_live_capture", "stale_mode"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}
