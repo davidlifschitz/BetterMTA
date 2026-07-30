@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { track } from "@/lib/analytics";
+import { shouldShowFeedback } from "@/lib/mode";
 
 type SearchFeedbackProps = {
   requestId: string;
@@ -9,7 +10,7 @@ type SearchFeedbackProps = {
 
 /**
  * Anonymous thumbs feedback tied to a search requestId only.
- * Transport uses the analytics dispatcher (console / fixture-mode stub by default).
+ * Gated by shouldShowFeedback() (live + flag off → never mount / no stub path).
  * Never attaches coordinates or OD address free text.
  */
 export function SearchFeedback({ requestId }: SearchFeedbackProps) {
@@ -17,6 +18,11 @@ export function SearchFeedback({ requestId }: SearchFeedbackProps) {
   const [comment, setComment] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const commentId = useId();
+
+  // Defense in depth: live builds with flag off must not render or stub.
+  if (!shouldShowFeedback()) {
+    return null;
+  }
 
   function submit() {
     if (!rating || submitted) return;

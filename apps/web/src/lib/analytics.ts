@@ -80,7 +80,7 @@ export type AnalyticsPayload = {
     comment?: string;
   };
   location_permission: {
-    outcome: "granted" | "denied" | "unsupported" | "error";
+    outcome: "granted" | "denied" | "unsupported" | "timeout" | "error";
     mappedToFixtureOrigin: boolean;
   };
 };

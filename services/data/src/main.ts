@@ -119,7 +119,7 @@ async function main(): Promise<void> {
 
 const isDirect =
   process.argv[1] &&
-  fileURLToPath(import.meta.url) ===
+  import.meta.url ===
     (await import("node:url")).pathToFileURL(process.argv[1]!).href;
 
 if (isDirect) {

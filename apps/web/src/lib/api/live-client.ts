@@ -19,14 +19,26 @@ export function createLiveApiClient(baseUrl: string): BetterMtaApi {
   const root = baseUrl.replace(/\/$/, "");
 
   async function request<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${root}${path}`, {
-      ...init,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${root}${path}`, {
+        ...init,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(init?.headers ?? {}),
+        },
+      });
+    } catch {
+      throw new ApiClientError(0, {
+        error: {
+          code: "data_unavailable",
+          message:
+            "Could not reach the BetterMTA API. Check your connection and try again.",
+          requestId: "client",
+        },
+      });
+    }
 
     const json: unknown = await res.json().catch(() => null);
     if (!res.ok) {

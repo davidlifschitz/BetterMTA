@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import type {
   ApiErrorBody,
   Itinerary,
   Line,
   Place,
-  PlaceRef,
   RouteSearchResponse,
   Timing,
 } from "@/lib/contracts";
@@ -17,6 +16,20 @@ import {
   displayItineraries,
   summarizeSelectedLines,
 } from "@/lib/format";
+import {
+  errorUiForCode,
+  NETWORK_UNAVAILABLE_UI,
+  type ErrorUiPhase,
+} from "@/lib/api-error-ui";
+import {
+  placeFromGeolocation,
+  toPlaceRef,
+} from "@/lib/geolocation-place";
+import {
+  isFixtureMode,
+  shouldOfferArriveBy,
+  shouldShowFeedback,
+} from "@/lib/mode";
 import { LinePicker } from "@/components/LinePicker";
 import { DataModeBanner } from "@/components/DataModeBanner";
 import { PartialSatisfactionBanner, RouteCard } from "@/components/RouteCard";
@@ -34,7 +47,9 @@ type UiPhase =
   | "invalid"
   | "error"
   | "no_route"
-  | "unavailable";
+  | "unavailable"
+  | "timeout"
+  | "rate_limited";
 
 type PlaceField = {
   query: string;
@@ -47,6 +62,7 @@ type LocationStatus =
   | "granted"
   | "denied"
   | "unsupported"
+  | "timeout"
   | "error";
 
 const DEMO_ORIGINS: Place[] = [
@@ -93,34 +109,30 @@ const DEMO_DESTS: Place[] = [
   },
 ];
 
-const IS_FIXTURE_MODE =
-  (process.env.NEXT_PUBLIC_API_MODE ?? "fixture") !== "live";
+const PLACE_DEBOUNCE_MS = 250;
 
-function toPlaceRef(place: Place): PlaceRef {
-  if (
-    (place.kind === "coordinate" || place.kind === "current_location") &&
-    typeof place.lat === "number" &&
-    typeof place.lon === "number" &&
-    !IS_FIXTURE_MODE
-  ) {
-    return {
-      coordinate: { lat: place.lat, lon: place.lon },
-      label: place.label,
-    };
+function initialOrigin(): PlaceField {
+  if (isFixtureMode()) {
+    return { query: "Carroll St", selected: DEMO_ORIGINS[0] };
   }
-  return { placeId: place.placeId };
+  return { query: "", selected: null };
+}
+
+function initialDestination(): PlaceField {
+  if (isFixtureMode()) {
+    return { query: "Bryant Park", selected: DEMO_DESTS[0] };
+  }
+  return { query: "", selected: null };
 }
 
 export function TripApp() {
+  const fixture = isFixtureMode();
+  const showFeedback = shouldShowFeedback();
+  const offerArriveBy = shouldOfferArriveBy();
+
   const [lines, setLines] = useState<Line[]>([]);
-  const [origin, setOrigin] = useState<PlaceField>({
-    query: "Carroll St",
-    selected: DEMO_ORIGINS[0],
-  });
-  const [destination, setDestination] = useState<PlaceField>({
-    query: "Bryant Park",
-    selected: DEMO_DESTS[0],
-  });
+  const [origin, setOrigin] = useState<PlaceField>(initialOrigin);
+  const [destination, setDestination] = useState<PlaceField>(initialDestination);
   const [timing, setTiming] = useState<Timing>({ type: "depart_now" });
   const [selectedLineIds, setSelectedLineIds] = useState<string[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -135,14 +147,20 @@ export function TripApp() {
   const [originSuggestions, setOriginSuggestions] = useState<Place[]>([]);
   const [destSuggestions, setDestSuggestions] = useState<Place[]>([]);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  const originDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const destDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const originTimer = originDebounce;
+    const destTimer = destDebounce;
     api.getLines().then((res) => {
       if (!cancelled) setLines(res.lines);
     });
     return () => {
       cancelled = true;
+      if (originTimer.current) clearTimeout(originTimer.current);
+      if (destTimer.current) clearTimeout(destTimer.current);
     };
   }, []);
 
@@ -150,6 +168,19 @@ export function TripApp() {
     () => summarizeSelectedLines(lines, selectedLineIds),
     [lines, selectedLineIds],
   );
+
+  const applyApiError = useCallback((body: ApiErrorBody) => {
+    setError(body);
+    const ui = errorUiForCode(body.error.code);
+    setPhase(ui.phase as UiPhase);
+    if (ui.phase === "invalid") {
+      setInvalidMessage(body.error.message || ui.defaultBody);
+    }
+    track("error_viewed", {
+      code: body.error.code,
+      requestId: body.error.requestId,
+    });
+  }, []);
 
   const runSearch = useCallback(
     async (opts?: { fromLineEdit?: boolean }) => {
@@ -159,7 +190,15 @@ export function TripApp() {
         track("error_viewed", { code: "invalid_input" });
         return;
       }
-      if (origin.selected.placeId === destination.selected.placeId) {
+      if (
+        origin.selected.placeId &&
+        destination.selected.placeId &&
+        origin.selected.placeId === destination.selected.placeId &&
+        !(
+          origin.selected.kind === "current_location" ||
+          destination.selected.kind === "current_location"
+        )
+      ) {
         setPhase("invalid");
         setInvalidMessage("Origin and destination must be different.");
         track("error_viewed", { code: "invalid_input" });
@@ -188,8 +227,10 @@ export function TripApp() {
 
       try {
         const res = await api.searchRoutes({
-          origin: toPlaceRef(origin.selected),
-          destination: toPlaceRef(destination.selected),
+          origin: toPlaceRef(origin.selected, { fixtureMode: fixture }),
+          destination: toPlaceRef(destination.selected, {
+            fixtureMode: fixture,
+          }),
           timing,
           selectedLineIds:
             selectedLineIds.length > 0 ? selectedLineIds : undefined,
@@ -218,28 +259,17 @@ export function TripApp() {
         }
       } catch (err) {
         if (err instanceof ApiClientError) {
-          setError(err.body);
-          track("error_viewed", {
-            code: err.body.error.code,
-            requestId: err.body.error.requestId,
-          });
-          if (err.body.error.code === "no_transit_path") {
-            setPhase("no_route");
-          } else if (err.body.error.code === "data_unavailable") {
-            setPhase("unavailable");
-          } else {
-            setPhase("error");
-          }
+          applyApiError(err.body);
         } else {
           setError({
             error: {
-              code: "internal_error",
-              message: "Something went wrong. Please try again.",
+              code: "data_unavailable",
+              message: NETWORK_UNAVAILABLE_UI.defaultBody,
               requestId: "client",
             },
           });
-          setPhase("error");
-          track("error_viewed", { code: "internal_error" });
+          setPhase(NETWORK_UNAVAILABLE_UI.phase as ErrorUiPhase);
+          track("error_viewed", { code: "data_unavailable" });
         }
       }
     },
@@ -249,36 +279,50 @@ export function TripApp() {
       timing,
       selectedLineIds,
       hasSearched,
+      applyApiError,
+      fixture,
     ],
   );
 
-  async function onPlaceQuery(
-    field: "origin" | "destination",
-    query: string,
-  ) {
+  function onPlaceQuery(field: "origin" | "destination", query: string) {
     if (field === "origin") {
       setOrigin({ query, selected: null });
     } else {
       setDestination({ query, selected: null });
     }
+
+    const debounceRef = field === "origin" ? originDebounce : destDebounce;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
     if (query.trim().length < 2) {
       if (field === "origin") setOriginSuggestions([]);
       else setDestSuggestions([]);
       return;
     }
-    const local =
-      field === "origin"
-        ? DEMO_ORIGINS.filter((p) =>
-            p.label.toLowerCase().includes(query.toLowerCase()),
-          )
-        : DEMO_DESTS.filter((p) =>
-            p.label.toLowerCase().includes(query.toLowerCase()),
-          );
+
+    debounceRef.current = setTimeout(() => {
+      void fetchPlaceSuggestions(field, query);
+    }, PLACE_DEBOUNCE_MS);
+  }
+
+  async function fetchPlaceSuggestions(
+    field: "origin" | "destination",
+    query: string,
+  ) {
+    const local = isFixtureMode()
+      ? (field === "origin" ? DEMO_ORIGINS : DEMO_DESTS).filter((p) =>
+          p.label.toLowerCase().includes(query.toLowerCase()),
+        )
+      : [];
+
     try {
       const remote = await api.searchPlaces(query);
-      const merged = [...local, ...remote.places].filter(
-        (p, i, arr) => arr.findIndex((x) => x.placeId === p.placeId) === i,
-      );
+      // Live: API only. Fixture: merge local demos for presets.
+      const merged = isFixtureMode()
+        ? [...local, ...remote.places].filter(
+            (p, i, arr) => arr.findIndex((x) => x.placeId === p.placeId) === i,
+          )
+        : remote.places;
       if (field === "origin") setOriginSuggestions(merged);
       else setDestSuggestions(merged);
     } catch {
@@ -316,47 +360,21 @@ export function TripApp() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude: lat, longitude: lon } = pos.coords;
-        if (IS_FIXTURE_MODE) {
-          const mapped: Place = {
-            ...DEMO_ORIGINS[0],
-            kind: "current_location",
-            label: "Near you (demo — mapped to Carroll St)",
-            lat,
-            lon,
-          };
-          setOrigin({ query: mapped.label, selected: mapped });
-          setOriginSuggestions([]);
-          setLocationStatus("granted");
-          track("location_permission", {
-            outcome: "granted",
-            mappedToFixtureOrigin: true,
-          });
-          track("place_selected", {
-            field: "origin",
-            placeKind: "current_location",
-            placeId: mapped.placeId,
-          });
-          return;
-        }
-
-        const livePlace: Place = {
-          placeId: `coord_${lat.toFixed(5)}_${lon.toFixed(5)}`,
-          label: "Current location",
-          kind: "current_location",
-          lat,
-          lon,
-        };
-        setOrigin({ query: livePlace.label, selected: livePlace });
+        const mapped = placeFromGeolocation(lat, lon, {
+          fixtureMode: isFixtureMode(),
+          demoOrigin: DEMO_ORIGINS[0],
+        });
+        setOrigin({ query: mapped.label, selected: mapped });
         setOriginSuggestions([]);
         setLocationStatus("granted");
         track("location_permission", {
           outcome: "granted",
-          mappedToFixtureOrigin: false,
+          mappedToFixtureOrigin: isFixtureMode(),
         });
         track("place_selected", {
           field: "origin",
           placeKind: "current_location",
-          placeId: livePlace.placeId,
+          placeId: mapped.placeId,
         });
       },
       (err) => {
@@ -364,6 +382,12 @@ export function TripApp() {
           setLocationStatus("denied");
           track("location_permission", {
             outcome: "denied",
+            mappedToFixtureOrigin: false,
+          });
+        } else if (err.code === err.TIMEOUT) {
+          setLocationStatus("timeout");
+          track("location_permission", {
+            outcome: "timeout",
             mappedToFixtureOrigin: false,
           });
         } else {
@@ -423,19 +447,25 @@ export function TripApp() {
       case "requesting":
         return "Requesting location permission…";
       case "granted":
-        return IS_FIXTURE_MODE
+        return fixture
           ? "Location granted — origin set to a fixture station near you (demo mapping)."
           : "Location granted — origin set to your current coordinates.";
       case "denied":
         return "Location permission denied. Enter a starting station instead.";
       case "unsupported":
         return "Location is not supported in this browser.";
+      case "timeout":
+        return "Location request timed out. Enter a starting station instead.";
       case "error":
         return "Couldn’t read your location. Enter a starting station instead.";
       default:
         return null;
     }
   })();
+
+  function errorBody(fallback: string): string {
+    return error?.error.message ?? fallback;
+  }
 
   return (
     <div className="app-shell">
@@ -451,7 +481,7 @@ export function TripApp() {
           value={origin.query}
           suggestions={originSuggestions}
           listLabel="Origin suggestions"
-          onQueryChange={(q) => void onPlaceQuery("origin", q)}
+          onQueryChange={(q) => onPlaceQuery("origin", q)}
           onSelect={(p) => selectPlace("origin", p)}
           onCloseSuggestions={() => setOriginSuggestions([])}
         />
@@ -482,7 +512,7 @@ export function TripApp() {
           value={destination.query}
           suggestions={destSuggestions}
           listLabel="Destination suggestions"
-          onQueryChange={(q) => void onPlaceQuery("destination", q)}
+          onQueryChange={(q) => onPlaceQuery("destination", q)}
           onSelect={(p) => selectPlace("destination", p)}
           onCloseSuggestions={() => setDestSuggestions([])}
         />
@@ -491,8 +521,10 @@ export function TripApp() {
           <span>When</span>
           <select
             value={timing.type}
+            data-testid="timing-select"
             onChange={(e) => {
               const type = e.target.value as Timing["type"];
+              if (type === "arrive_by" && !offerArriveBy) return;
               const next: Timing =
                 type === "depart_now"
                   ? { type }
@@ -503,7 +535,9 @@ export function TripApp() {
           >
             <option value="depart_now">Leave now</option>
             <option value="depart_at">Depart at…</option>
-            <option value="arrive_by">Arrive by…</option>
+            {offerArriveBy ? (
+              <option value="arrive_by">Arrive by…</option>
+            ) : null}
           </select>
         </label>
 
@@ -516,6 +550,7 @@ export function TripApp() {
           className="lines-row"
           onClick={openPicker}
           aria-haspopup="dialog"
+          data-testid="open-line-picker"
         >
           <span className="lines-row__label">Lines to use</span>
           <span className="lines-row__value">{lineSummary}</span>
@@ -524,6 +559,7 @@ export function TripApp() {
         <button
           type="button"
           className="btn-primary"
+          data-testid="find-routes"
           onClick={() => void runSearch()}
         >
           Find routes
@@ -536,7 +572,7 @@ export function TripApp() {
         {phase === "invalid" ? (
           <StateMessage
             title="Check your trip"
-            body={invalidMessage}
+            body={invalidMessage || errorBody("Adjust your search and try again.")}
             testId="invalid-state"
             actionLabel="Back to search"
             onAction={() => setPhase("search")}
@@ -546,10 +582,7 @@ export function TripApp() {
         {phase === "no_route" ? (
           <StateMessage
             title="No subway path found"
-            body={
-              error?.error.message ??
-              "No subway path was found between these places."
-            }
+            body={errorBody("No subway path was found between these places.")}
             testId="no-route-state"
             actionLabel="Edit trip"
             onAction={() => setPhase("search")}
@@ -558,12 +591,39 @@ export function TripApp() {
 
         {phase === "unavailable" ? (
           <StateMessage
-            title="Service unavailable"
-            body={
-              error?.error.message ??
-              "Routing is temporarily unavailable. Please try again later."
+            title={
+              error?.error.message?.includes("Could not reach")
+                ? "API unavailable"
+                : "Service unavailable"
             }
+            body={errorBody(
+              "Routing is temporarily unavailable. Please try again later.",
+            )}
             testId="unavailable-state"
+            actionLabel="Try again"
+            onAction={() => void runSearch()}
+          />
+        ) : null}
+
+        {phase === "timeout" ? (
+          <StateMessage
+            title="Request timed out"
+            body={errorBody(
+              "The routing service took too long to respond. Please try again.",
+            )}
+            testId="timeout-state"
+            actionLabel="Try again"
+            onAction={() => void runSearch()}
+          />
+        ) : null}
+
+        {phase === "rate_limited" ? (
+          <StateMessage
+            title="Too many requests"
+            body={errorBody(
+              "You’ve hit a temporary rate limit. Wait a moment and try again.",
+            )}
+            testId="rate-limited-state"
             actionLabel="Try again"
             onAction={() => void runSearch()}
           />
@@ -572,7 +632,7 @@ export function TripApp() {
         {phase === "error" ? (
           <StateMessage
             title="Couldn’t find routes"
-            body={error?.error.message ?? "Please try again."}
+            body={errorBody("Please try again.")}
             testId="error-state"
             actionLabel="Try again"
             onAction={() => void runSearch()}
@@ -590,7 +650,9 @@ export function TripApp() {
               body="Try different stations or clear some selected lines."
               testId="empty-state"
             />
-            <SearchFeedback requestId={response.requestId} />
+            {showFeedback ? (
+              <SearchFeedback requestId={response.requestId} />
+            ) : null}
           </>
         ) : null}
 
@@ -626,7 +688,7 @@ export function TripApp() {
                 onBack={() => setPhase("results")}
               />
             ) : (
-              <div className="card-list">
+              <div className="card-list" data-testid="results-list">
                 {shown.itineraries.map((itin) => (
                   <RouteCard
                     key={itin.itineraryId}
@@ -646,12 +708,14 @@ export function TripApp() {
               </div>
             )}
 
-            <SearchFeedback requestId={response.requestId} />
+            {showFeedback ? (
+              <SearchFeedback requestId={response.requestId} />
+            ) : null}
           </>
         ) : null}
 
-        {phase === "search" ? (
-          <p className="hint-block">
+        {phase === "search" && fixture ? (
+          <p className="hint-block" data-testid="fixture-hint">
             Tip: pick F + B for a complete match demo, A + G + L for partial, or
             only the 7 for a stale-data warning. Fixture mode is active.
           </p>
@@ -659,9 +723,10 @@ export function TripApp() {
       </main>
 
       <footer className="footer">
-        <p>
-          Schedule data © MTA. BetterMTA is an independent project and is not
-          affiliated with the MTA.
+        <p data-testid="attribution">
+          Subway schedule and realtime data provided by the Metropolitan
+          Transportation Authority (MTA). BetterMTA is not affiliated with or
+          endorsed by the MTA.
         </p>
       </footer>
 

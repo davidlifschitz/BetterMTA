@@ -367,11 +367,14 @@ describe("TripApp states", () => {
     const from = screen.getByPlaceholderText(/Starting station/i);
     await user.clear(from);
     await user.type(from, "Ca");
-    await waitFor(() => {
-      expect(
-        screen.getByRole("listbox", { name: /Origin suggestions/i }),
-      ).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole("listbox", { name: /Origin suggestions/i }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 2000 },
+    );
     await user.keyboard("{ArrowDown}");
     const option = screen.getByRole("option", { name: /Carroll St/i });
     expect(option).toHaveAttribute("aria-selected", "true");

@@ -157,3 +157,59 @@ NEXT_PUBLIC_API_MODE=live NEXT_PUBLIC_API_BASE_URL=https://api.example.com npm r
 | Mocked | Fixture API responses; console analytics/feedback stub |
 | Deferred | Map, reverse geocoder, datetime picker UI, network analytics beacon, screenshots/E2E browser pack |
 | Blocked | Live API wiring (needs backend) |
+
+---
+
+## Step 3 Phase 7 — Live frontend integration
+
+**Worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
+**Date:** 2026-07-30  
+**Contract version consumed:** `2026-07-30`
+
+### What changed (live mode)
+
+- Geolocation → real `PlaceRef.coordinate` labeled “Current location” (no demo-station mapping in live).
+- Feedback gated by `NEXT_PUBLIC_FLAG_FEEDBACK` (default off); live + flag off → control not rendered, no console stub path.
+- Arrive-by hidden in live UI (ADR-0014); depart_now / depart_at remain.
+- Place autocomplete: live = `/v1/places/search` only, debounced ~250ms, min 2 chars; fixture demos unchanged.
+- Line picker renders full `/v1/lines` catalog with wrapping scrollable grid (>9 lines).
+- Distinct error UIs: `no_transit_path`, `data_unavailable`, `timeout`, `rate_limited`, `invalid_input`, network abort.
+- Attribution aligned with DATA_SPEC suggested copy.
+- Env docs + `.env.production.example` (live defaults, feedback OFF).
+- Playwright mocked live e2e + `verify:no-fixtures` + env-gated live-stack specs.
+
+### Validation
+
+| Command | Result |
+|---|---|
+| `npm --prefix apps/web test` | **PASS** — 8 files, **48 tests** (30 prior + 18 new) |
+| `NEXT_PUBLIC_API_MODE=live … npm run build` | **PASS** |
+| `npm run verify:no-fixtures` | **CLEAN** (0 fixture markers in `.next/static/chunks`) |
+| `npx playwright test --project=mocked-live` | **PASS** — **12/12** |
+| `npm --prefix contracts run validate` | **PASS** — unchanged |
+| Live-stack e2e (`BETTERMTA_E2E_LIVE_BASE`) | **Skipped** (env unset; not run) |
+
+### E2E coverage
+
+| Spec | Result |
+|---|---|
+| Station autocomplete + selection | PASS |
+| Geolocation grant / deny | PASS |
+| Baseline search (server order) | PASS |
+| Complete satisfaction | PASS |
+| Partial + named omitted lines | PASS |
+| Stale / schedule_only / synthetic-only-when-payload | PASS |
+| no_transit_path / timeout / API abort | PASS |
+| Keyboard-only flow | PASS |
+| Mobile 390×844 + ≥44px line toggles | PASS |
+| a11y axe smoke (search + results) | PASS — no serious/critical |
+| verify:no-fixtures | PASS |
+| Arrive-by absent + attribution | PASS |
+| Live-stack (real API) | SKIPPED |
+
+### Deferred
+
+- Real-stack Playwright (`e2e:live`) until a reachable live base is set.
+- Privacy-reviewed feedback transport (flag remains off in production).
+- Datetime picker UI for depart_at; arrive-by remains deferred for beta.
+- Map / reverse-geocode / POI search (ADR-0013 / 0015).
