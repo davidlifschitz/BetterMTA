@@ -17,7 +17,7 @@ Distinguish: **implemented** / **tested** / **mocked** / **deferred** / **blocke
 BLOCKED
 ```
 
-**Not** `READY_FOR_CONTROLLED_ALPHA` — Phase 12A remote gates (edge proxy, Tunnel, Access, remote smoke) not yet evidenced.  
+**Not** `READY_FOR_CONTROLLED_ALPHA` — Phase 12A local edge (CA02) done; Tunnel, Access, remote smoke not yet evidenced.  
 **Not** `READY_FOR_PUBLIC_BETA` (no Fly activation, no production domain/TLS, no Fly rollback drill).  
 **Not** `READY_FOR_PRIVATE_BETA` when that label means the intended Fly private-beta cohort (ADR-0012).  
 
@@ -217,7 +217,7 @@ Internal networking and smoke curls: `docs/RUNBOOKS.md` § Local compose bring-u
 
 | Item | Status |
 |---|---|
-| Controlled alpha edge proxy (12A.3) | **PENDING** |
+| Controlled alpha edge proxy (12A.3) | **DONE** — `docker-compose.alpha.yml` + Caddy `127.0.0.1:8088`; smoke `infra/alpha/scripts/smoke-edge.sh` |
 | Cloudflare Tunnel + Access configs | **PENDING** (later 12A; no secrets in repo) |
 | Remote Access smoke / `READY_FOR_CONTROLLED_ALPHA` | **PENDING** — final status blocked on remote gates |
 | Home power / internet / sleep / Docker Desktop HA | **Accepted limitation** (ADR-0021; risks R19–R21) |
@@ -246,9 +246,9 @@ Internal networking and smoke curls: `docs/RUNBOOKS.md` § Local compose bring-u
 
 ## 11. Exact next integration step
 
-1. **Next (12A.3+):** edge proxy in front of compose origin; then Cloudflare Tunnel + Access (deny-by-default, email OTP/PIN); no router port forward.
-2. Remote smoke via Access; complete CA02–CA05; only then reconsider `READY_FOR_CONTROLLED_ALPHA`.
-3. Land controlled-alpha runbook under `infra/alpha/` (12A.5–7); keep host-awake / disk watch documented.
+1. **Next (12A.4+):** Cloudflare Tunnel + Access (deny-by-default, email OTP/PIN) to `http://127.0.0.1:8088`; no router port forward.
+2. Remote smoke via Access; complete CA03–CA05; only then reconsider `READY_FOR_CONTROLLED_ALPHA`.
+3. Expand controlled-alpha runbook under `infra/alpha/` (12A.5–7); keep host-awake / disk watch documented.
 4. Hosted Fly private/public beta remains later — do not conflate with controlled alpha.
 5. Do **not** claim `READY_FOR_CONTROLLED_ALPHA`, public beta, or competitive superiority without remote evidence + existing gate discipline.
 

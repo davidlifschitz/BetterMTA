@@ -2,6 +2,9 @@
 
 Root `docker-compose.yml` is the prod-like local stack.
 
+Controlled alpha adds `docker-compose.alpha.yml` (loopback edge on
+`127.0.0.1:8088`, no data/OTP host ports). See `infra/alpha/README.md`.
+
 ## data-proxy (socat)
 
 `services/data` defaults `BETTERMTA_DATA_BIND_HOST` to `127.0.0.1`

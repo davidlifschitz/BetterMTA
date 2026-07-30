@@ -3,6 +3,7 @@
 #   docker build -f apps/web/Dockerfile \
 #     --build-arg NEXT_PUBLIC_API_BASE_URL=http://localhost:8080 \
 #     -t bettermta-web .
+# Alpha edge (same-origin): --build-arg NEXT_PUBLIC_API_BASE_URL=
 #
 # Production flags (baked at build time for NEXT_PUBLIC_*):
 #   NEXT_PUBLIC_API_MODE=live
@@ -12,6 +13,7 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /repo
 
+# Default absolute localhost for local compose; alpha override bakes "".
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ARG NEXT_PUBLIC_API_MODE=live
 ARG NEXT_PUBLIC_FLAG_FEEDBACK=false

@@ -12,9 +12,18 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 
 **Deploy decision:** ADR-0021 — self-hosted macOS + Docker Compose origin; Cloudflare Tunnel transport; Cloudflare Access auth; **no** router port forwarding.
 
-Detailed ops runbook (bring-up, Access allowlist ops, tunnel restart, host-awake checklist, remote smoke) will land under `infra/alpha/` (or equivalent) in Phase 12A.5–7. Until then:
+**Edge origin (12A.3):** loopback Caddy at `http://127.0.0.1:8088` — see `infra/alpha/README.md`.
 
-- Local origin: this doc § Local compose bring-up  
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.alpha.yml build
+docker-compose -f docker-compose.yml -f docker-compose.alpha.yml up -d
+./infra/alpha/scripts/smoke-edge.sh
+```
+
+Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`). Tunnel/Access runbooks land in 12A.5–7.
+
+- Local origin (dev ports): this doc § Local compose bring-up  
+- Alpha edge: `infra/alpha/README.md`  
 - Gates / status: `docs/RELEASE_GATE_REPORT.md` (CA01–CA07 + vocabulary)  
 - Risks: `docs/RISK_REGISTER.md` R19–R23  
 - Do not commit secrets, tunnel UUIDs, hostnames, or tester emails  
@@ -432,7 +441,7 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 | Track | Verdict |
 |---|---|
 | Local compose (data+OTP+API+web) + fixture CI gates | Proven; Critical Phase 10 remediations landed |
-| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge proxy / CF / remote smoke pending |
+| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge local (CA02); Tunnel / Access / remote smoke pending |
 | Fly private beta (intended cloud cohort) | **BLOCKED** — no `flyctl`/creds/apps, no domain/TLS, no rollback drill |
 | Public beta | **BLOCKED** (same + a11y/p95/Google non-claim) |
 

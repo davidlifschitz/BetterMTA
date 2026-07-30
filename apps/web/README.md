@@ -17,7 +17,7 @@ Open http://localhost:3000
 | Variable | Default | Purpose |
 |---|---|---|
 | `NEXT_PUBLIC_API_MODE` | `fixture` | `fixture` (local demos) or `live` (HTTP `/v1/*`) |
-| `NEXT_PUBLIC_API_BASE_URL` | _(required in live)_ | Origin for live API, e.g. `https://api.example.com` |
+| `NEXT_PUBLIC_API_BASE_URL` | _(required in live)_ | API origin, e.g. `https://api.example.com`. Use `""` for same-origin relative `/v1/*` (alpha edge). |
 | `NEXT_PUBLIC_FLAG_FEEDBACK` | off | Set `true` / `1` to show anonymous feedback. **Must stay off in production** until privacy-reviewed transport (ADR-0017). |
 | `NEXT_PUBLIC_FLAG_RESULT_COUNT` | _(unset)_ | Optional UI result-count experiment knob |
 

@@ -5,6 +5,8 @@
 
 | Path | Purpose |
 |---|---|
+| `alpha/` | Controlled-alpha edge (Caddy) + smoke; see `alpha/README.md` |
+| `compose/` | Compose helpers (data-proxy notes) |
 | `fly/` | Fly.io app configs + deploy/rollback commands |
 | `env/` | `.env.example` placeholders + secrets policy |
 | `observability/` | Log fields, metrics, alerts |

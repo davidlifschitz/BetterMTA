@@ -14,6 +14,7 @@ import {
 /**
  * Live HTTP client for the BetterMTA `/v1` API.
  * Enable by setting NEXT_PUBLIC_API_MODE=live and NEXT_PUBLIC_API_BASE_URL.
+ * Use `""` for same-origin relative URLs (browser hits current origin `/v1/...`).
  */
 export function createLiveApiClient(baseUrl: string): BetterMtaApi {
   const root = baseUrl.replace(/\/$/, "");
@@ -21,6 +22,7 @@ export function createLiveApiClient(baseUrl: string): BetterMtaApi {
   async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let res: Response;
     try {
+      // root "" → relative `/v1/...` (same public origin through edge proxy)
       res = await fetch(`${root}${path}`, {
         ...init,
         headers: {

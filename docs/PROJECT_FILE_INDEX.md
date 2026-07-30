@@ -32,7 +32,7 @@
 ## Engineering and readiness
 - `TECHNICAL_DESIGN.md` — directional design; API paths superseded by `API_CONTRACT.md`
 - `PRODUCTION_CHECKLIST.md`
-- `RUNBOOKS.md` — local compose bring-up, controlled-alpha pointer (`infra/alpha/` TBD), drills, cost, go/no-go
+- `RUNBOOKS.md` — local compose bring-up, controlled-alpha pointer (`infra/alpha/`), drills, cost, go/no-go
 - `RELEASE_GATE_REPORT.md` — G01–G20 + CA gates; status vocabulary; final status still `BLOCKED` (not `READY_FOR_CONTROLLED_ALPHA`)
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 
