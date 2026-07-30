@@ -284,7 +284,8 @@ describe("realtime ingestion", () => {
 
   it("records cancellations", () => {
     // Explicit scheduleRelationship=CANCELED only — does not cover NYCT
-    // trip_replacement_period absence-as-cancellation (deferred; see DATA_SPEC).
+    // trip_replacement_period absence-as-cancellation is implemented in
+    // realtime-live/normalize.ts (see tests/realtime-live.test.ts).
     const { snapshot } = platform.ingestRealtime(
       [{ feedId: "nyct-ace", payload: loadRt("cancelled-trip.json") }],
       {

@@ -30,31 +30,35 @@ Override the download URL with `BETTERMTA_STATIC_GTFS_URL`. Re-verify the mirror
 
 ### 1.2 GTFS-Realtime — trip updates (by trunk)
 
-Production uses **protobuf** GTFS-RT. Recorded fixtures use a JSON representation of the same entity shapes for offline deterministic tests. Documented production endpoints (MTA open GTFS-RT API; **anonymous access** — no API key / `x-api-key` required for these feeds as of 2026):
+Production uses **protobuf** GTFS-RT via the live feed gateway (`services/data/src/realtime-live/`). Recorded fixtures use a JSON representation of the same entity shapes for offline deterministic tests, plus captured `.pb` bytes under `fixtures/realtime-pb/captured/`.
 
-| Feed ID (internal) | Trunk | Endpoint path (under MTA GTFS-RT API host) |
+**Base URL:** `https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/`  
+**Access:** anonymous (no API key) as of 2026-07-30.
+
+| Feed ID (BINDING) | Trunk | Full URL |
 |---|---|---|
-| `nyct-ace` | A, C, E, H, FS | `nyct/gtfs-ace` |
-| `nyct-bdfm` | B, D, F, M | `nyct/gtfs-bdfm` |
-| `nyct-g` | G | `nyct/gtfs-g` |
-| `nyct-jz` | J, Z | `nyct/gtfs-jz` |
-| `nyct-nqrw` | N, Q, R, W | `nyct/gtfs-nqrw` |
-| `nyct-l` | L | `nyct/gtfs-l` |
-| `nyct-1234567` | 1–7 + GS (42nd Street Shuttle) | `nyct/gtfs` |
-| `nyct-si` | SIR | `nyct/gtfs-si` |
+| `nyct-gtfs` | 1–7 + GS | `…/nyct%2Fgtfs` |
+| `nyct-gtfs-ace` | A, C, E, H, FS | `…/nyct%2Fgtfs-ace` |
+| `nyct-gtfs-bdfm` | B, D, F, M, FX | `…/nyct%2Fgtfs-bdfm` |
+| `nyct-gtfs-g` | G | `…/nyct%2Fgtfs-g` |
+| `nyct-gtfs-jz` | J, Z | `…/nyct%2Fgtfs-jz` |
+| `nyct-gtfs-nqrw` | N, Q, R, W | `…/nyct%2Fgtfs-nqrw` |
+| `nyct-gtfs-l` | L | `…/nyct%2Fgtfs-l` |
+| `nyct-gtfs-si` | SIR | `…/nyct%2Fgtfs-si` |
 
 Notes:
 
-- The ACE feed also carries the **H** (Rockaway Park Shuttle) and **FS** (Franklin Avenue Shuttle) routes.
-- **GS** (42nd Street Shuttle) is on the numbered-lines feed (`nyct/gtfs`), not ACE.
-- Host reference: MTA open-data GTFS-RT API (`https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/...`). Exact URL wiring is infrastructure-owned; this workstream owns parsing + normalization.
+- Internal `feedId` values are **BINDING** — OTP updater URLs use `/internal/feeds/<feedId>` with these ids.
+- The ACE feed also carries **H** and **FS**. **GS** is on `nyct-gtfs`.
+- Override base with `BETTERMTA_RT_BASE_URL` if needed.
 
 ### 1.3 GTFS-Realtime — service alerts
 
 | Field | Value |
 |---|---|
-| Source | MTA subway alerts GTFS-RT feed |
-| Path | `camsys/subway-alerts` (documented MTA feed) |
+| Feed ID (BINDING) | `camsys-subway-alerts` |
+| Full URL | `https://api-endpoint.mta.info/Dataservice/mtagtfsfeeds/camsys%2Fsubway-alerts` |
+| Mode computation | **Optional** — included in snapshots when present; does not drive overall `dataMode` |
 | Normalized to | `ServiceAlert` (header, description, severity, affected line/stop/trip IDs) |
 
 ### 1.4 Station metadata
@@ -94,11 +98,107 @@ Exact legal text should be confirmed against the current MTA developer terms bef
 | Dataset | Cadence | Notes |
 |---|---|---|
 | Static GTFS | Daily check; activate only after validation | Keep previous version for rollback |
-| Realtime trip updates | Poll each trunk feed every 15–30s (infra tunes) | Live max age 90s |
-| Service alerts | Poll every 30–60s | Attach to snapshot |
+| Realtime trip updates | Poll each trunk feed every **30s** default (`BETTERMTA_RT_POLL_MS`); per-feed overrides via `BETTERMTA_RT_POLL_MS_BY_FEED` | Live max age 90s; timeout 10s; max 5MB; 2 retries w/ exponential backoff + jitter |
+| Service alerts | Same poller loop (optional for mode) | Attach to snapshot when present |
 | Last-known-good retention | ≥ 30 minutes | After that, drop to schedule-only |
+| Snapshot manifests | Retain last **20**, expire **30 min** | Queryable via `/internal/manifests` |
 
-Live pollers are **not** executed in unit tests. Tests use recorded fixtures only.
+Unit tests use recorded fixtures / captured `.pb` only (no network). Env-gated live cycle: `BETTERMTA_LIVE_RT=true npm test`.
+
+---
+
+## 3.1 Live GTFS-Realtime gateway
+
+Module: `services/data/src/realtime-live/`. Entrypoint: `src/main.ts` (`npm run build && npm start` → `node dist/main.js`).
+
+### Dependency + proto provenance
+
+| Item | Choice |
+|---|---|
+| Library | **protobufjs** (runtime `.proto` load) — **not** `gtfs-realtime-bindings` |
+| Why | NYCT extensions (`NyctFeedHeader` / `trip_replacement_period`, `NyctTripDescriptor`, `NyctStopTimeUpdate`) are required; MobilityData bindings cover only base GTFS-RT |
+| `proto/gtfs-realtime.proto` | https://raw.githubusercontent.com/google/transit/master/gtfs-realtime/proto/gtfs-realtime.proto (retrieved 2026-07-30) |
+| `proto/nyct-subway.proto` | https://raw.githubusercontent.com/OneBusAway/onebusaway-gtfs-realtime-api/master/src/main/proto/com/google/transit/realtime/gtfs-realtime-NYCT.proto — linked from https://new.mta.info/developers (retrieved 2026-07-30). Import rewritten to local `gtfs-realtime.proto` |
+
+### Poll / timeout / retry policy
+
+| Env | Default | Meaning |
+|---|---|---|
+| `BETTERMTA_RT_POLL_MS` | `30000` | Base poll interval; starts staggered with jitter |
+| `BETTERMTA_RT_POLL_MS_BY_FEED` | _(unset)_ | `feedId=ms,...` overrides |
+| `BETTERMTA_RT_TIMEOUT_MS` | `10000` | Per-attempt fetch timeout |
+| `BETTERMTA_RT_MAX_BYTES` | `5242880` (5MB) | Response size cap |
+| `BETTERMTA_RT_MAX_RETRIES` | `2` | Extra attempts within the poll cycle (exp backoff + jitter) |
+| `BETTERMTA_RT_MIRROR_DISK` | `true` | Atomic raw LKG under `$BETTERMTA_DATA_DIR/realtime/raw/<feedId>.pb` |
+| `BETTERMTA_INTERNAL_PORT` | `8081` | Internal HTTP listen (127.0.0.1) |
+| `BETTERMTA_INTERNAL_TOKEN` | _(required in production)_ | Bearer token for all `/internal/*` |
+| `BETTERMTA_INTERNAL_ALLOW_ANON` | _(false)_ | Dev/test only when token unset |
+| `BETTERMTA_STATIC_REFRESH_ON_BOOT` | _(false)_ | Optional static refresh if no active version |
+
+On success: store raw bytes as per-feed LKG `{bytes, fetchedAt, headerTimestamp, byteSize}`, decode, normalize, assemble snapshot. On failure after retries: **keep prior raw LKG**; mark feed degraded; never fabricate. Empty/hollow entity lists still do not displace usable **snapshot** LKG (existing ingest rule).
+
+### Decode validation
+
+- Reject HTML/XML/JSON error pages (careful: protobuf length delimiter `0x7b` is not JSON).
+- Require `gtfs_realtime_version`.
+- Reject `timestamp` 0 or >5 minutes in the future.
+
+### NYCT semantics
+
+1. **Explicit cancellations** — `schedule_relationship = CANCELED` → cancelled trips.
+2. **Skipped stops** — stop_time_update `SKIPPED` preserved on normalized updates.
+3. **`trip_replacement_period` (absence-as-cancellation)** — for each route with a replacement period, scheduled trips of that route from the **active static dataset** whose service falls **inside** the replacement window and are **absent** from the feed are derived as cancelled (`derivedFromReplacementPeriod: true`). Trips outside the window or present in the feed are not cancelled.
+4. **Unknown trip IDs** — quarantined with counts by feed (existing behavior).
+5. **Midnight / service-day rule** — NYCT uses `start_date` (service day YYYYMMDD) + origin time. Post-midnight trips belonging to the prior service day use GTFS times ≥ `24:00:00` (e.g. `24:30:00` = 00:30 local next calendar day). Replacement-window matching converts `service_date_local_midnight (America/New_York) + gtfs_time_seconds` to absolute POSIX; tested at a 00:30 boundary.
+6. **Direction / train_id** — retained on normalized trip metadata when present.
+
+### Overall `dataMode` (required feeds)
+
+Required = all eight trip-update feeds. Alerts optional.
+
+- All required **fresh** (≤90s) → `live`
+- Any required **stale** (≤15min) and none unavailable → `stale`
+- Any required **unavailable** / never fetched / older → `schedule_only`
+
+### Snapshot manifest schema
+
+```json
+{
+  "snapshotId": "rt_live_YYYYMMDD_<hash10>",
+  "createdAt": "<ISO-8601>",
+  "staticVersionId": "mta-subway-<sha12>|null",
+  "dataMode": "live|stale|schedule_only|…",
+  "perFeed": {
+    "<feedId>": {
+      "feedId": "<feedId>",
+      "headerTimestamp": "<ISO>|null",
+      "fetchedAt": "<ISO>|null",
+      "ageSeconds": 0,
+      "status": "fresh|stale|unavailable|never_fetched",
+      "entityCounts": { "tripUpdates": 0, "alerts": 0, "vehicles": 0, "quarantined": 0 }
+    }
+  }
+}
+```
+
+### Internal API (not public)
+
+All routes require `Authorization: Bearer ${BETTERMTA_INTERNAL_TOKEN}` (or anon only when `BETTERMTA_INTERNAL_ALLOW_ANON=true` in non-production).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/internal/health` | Liveness (200 if process up) |
+| GET | `/internal/ready` | 200 only when static active |
+| GET | `/internal/status` | `{staticVersionId, activeSince, realtime, ready}` |
+| GET | `/internal/feeds` | Raw LKG manifest |
+| GET | `/internal/feeds/<feedId>` | Raw protobuf (`application/x-protobuf`, `X-Feed-Header-Timestamp`, `X-Fetched-At`, `Cache-Control: no-store`) |
+| GET | `/internal/catalog/lines` | Active static → BetterMTA lineIds (GS/FS/H/SI→SIR) |
+| GET | `/internal/catalog/stations` | Station catalog for place search |
+| GET | `/internal/manifests` | Recent snapshot manifests |
+
+### Capture provenance
+
+`npm run capture:live` → `fixtures/realtime-pb/captured/<feedId>.pb` + `manifest.json` (sizes, header timestamps, capture time, NYCT extension counts). Used as offline decoder regression inputs.
 
 ---
 
@@ -132,8 +232,8 @@ Live pollers are **not** executed in unit tests. Tests use recorded fixtures onl
 
 ### Realtime wire format
 
-- **Production:** GTFS-RT protobuf.
-- **Fixtures/tests:** JSON entity shapes under `fixtures/realtime/*.json` with optional `_fixtureMeta` for simulated timeout/fetch failure/malformed.
+- **Production:** GTFS-RT protobuf via live gateway (`realtime-live/`), including NYCT extensions.
+- **Fixtures/tests:** JSON entity shapes under `fixtures/realtime/*.json` with optional `_fixtureMeta`; captured protobuf under `fixtures/realtime-pb/captured/*.pb`.
 
 ### Identifier mismatch
 
@@ -141,11 +241,11 @@ Realtime trip IDs not present in the active static dataset are **quarantined** a
 
 ### Empty / header-only realtime polls
 
-A successful poll with a fresh feed header but **no** trip updates or alerts is **not** usable realtime. It must not be labeled `live` and must not overwrite last-known-good. `resolveForRouting` retains the prior LKG within the 15/30-minute windows, otherwise falls through to `schedule_only`.
+A successful poll with a fresh feed header but **no** trip updates or alerts is **not** usable realtime. It must not be labeled `live` and must not overwrite last-known-good. `resolveForRouting` retains the prior LKG within the 15/30-minute windows, otherwise falls through to `schedule_only`. Raw protobuf LKG for OTP updaters may still update on successful wire fetch.
 
-### NYCT `trip_replacement_period` (deferred — required before live poller)
+### NYCT `trip_replacement_period` (implemented)
 
-**Deferred risk (explicit):** NYCT GTFS-RT extensions include `trip_replacement_period` on the feed header. Within a replacement window, **scheduled trips that are absent from the feed are cancelled**. The current pipeline only records explicit `scheduleRelationship: CANCELED` entities (see fixture `cancelled-trip.json`). That fixture is **not** complete cancellation coverage — absence-as-cancellation under replacement periods is unimplemented. **Required work before enabling a live poller:** parse NYCT extension `trip_replacement_period`, compute the cancelled-by-absence set against the pinned static trip universe for the window, and surface those cancellations on the snapshot. Until then, do not claim full cancellation fidelity in production.
+NYCT GTFS-RT `trip_replacement_period` on the feed header is parsed and applied: within each route’s replacement window, scheduled trips from the active static dataset that are absent from the feed are derived as cancelled. See §3.1. Explicit `CANCELED` entities remain supported (`fixtures/realtime/cancelled-trip.json`).
 
 ### Mercury / NYCT alert extensions (deferred)
 
@@ -153,7 +253,7 @@ Mercury / NYCT-specific alert extension fields are **not** parsed. Only standard
 
 ### Midnight service-day boundary
 
-**Deferred (with fixture):** GTFS allows `24:xx:xx` / `25:xx:xx` times for post-midnight service on the prior service day. Static parser accepts those times. Full “which service day is now?” resolution for routing queries is deferred to the routing engine / OTP integration, because it depends on agency timezone and router service-day semantics. Fixture: `fixtures/realtime/midnight-boundary.json`. Tests assert ingest preserves `startDate`/`startTime` without inventing a clock policy (ingest-only coverage).
+**Implemented for replacement-period matching** (America/New_York; GTFS times may be ≥24:00:00). Full “which service day is now?” for arbitrary routing queries remains with the routing engine / OTP. Fixture: `fixtures/realtime/midnight-boundary.json` (ingest preserves `startDate`/`startTime`). Gateway tests cover a 00:30 absence-as-cancellation boundary.
 
 ### Consumer note: `dataMode` vs `realtimeSnapshotId`
 
@@ -170,14 +270,20 @@ The canonical static download URL in §1.1 should be **re-verified against curre
 ```text
 services/data/
   package.json          # @bettermta/data — do not use repo-root package.json
+  proto/                # Vendored gtfs-realtime.proto + nyct-subway.proto
   src/                  # TypeScript platform
     static-pipeline/    # Production download → validate → version → activate
+    realtime-live/      # Live GTFS-RT poller, decode, NYCT normalize, manifests
+    internal-server.ts  # /internal/* HTTP for OTP updaters
+    main.ts             # Process entrypoint (poller + server)
   fixtures/             # Recorded static + realtime fixtures (test/dev only)
+    realtime-pb/captured/  # Live-captured .pb regression inputs
+  scripts/capture-live.ts
   tests/                # Vitest
   RUNBOOK.md            # Ops notes
 ```
 
-Public façade: `DataPlatform` in `src/index.ts`.
+Public façade: `DataPlatform` in `src/platform.ts` (re-exported from `src/index.ts`).
 
 ---
 
@@ -270,6 +376,20 @@ Env-gated real-feed integration (optional):
 
 ```bash
 BETTERMTA_REAL_GTFS_ZIP=/path/to/gtfs_subway.zip npm test
+BETTERMTA_LIVE_RT=true npm test   # one live poll cycle across all nine RT feeds
+```
+
+Live capture (writes fixtures; network required):
+
+```bash
+npm run capture:live
+```
+
+Build / run gateway:
+
+```bash
+npm run build
+BETTERMTA_INTERNAL_TOKEN=… npm start
 ```
 
 Contract validation (unchanged conductor package):

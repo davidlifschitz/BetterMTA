@@ -116,6 +116,10 @@ export interface StopTimeUpdate {
   departureTime?: number | null;
   /** GTFS-RT schedule_relationship for this stop */
   scheduleRelationship?: "scheduled" | "skipped" | "no_data" | "unscheduled";
+  /** NYCT extension: planned track */
+  scheduledTrack?: string;
+  /** NYCT extension: actual operating track */
+  actualTrack?: string;
 }
 
 export interface NormalizedTripUpdate {
@@ -133,6 +137,58 @@ export interface NormalizedTripUpdate {
     | "deleted";
   stopTimeUpdates: StopTimeUpdate[];
   feedId: string;
+  /** True when derived from NYCT trip_replacement_period absence-as-cancellation */
+  derivedFromReplacementPeriod?: boolean;
+  /** NYCT extension: operations train id */
+  trainId?: string;
+  /** NYCT extension: NORTH/EAST/SOUTH/WEST */
+  direction?: string;
+  /** NYCT extension: physical train assignment */
+  isAssigned?: boolean;
+}
+
+export type FeedFreshnessStatus =
+  | "fresh"
+  | "stale"
+  | "unavailable"
+  | "never_fetched";
+
+export interface PerFeedStatus {
+  feedId: string;
+  headerTimestamp: string | null;
+  fetchedAt: string | null;
+  ageSeconds: number | null;
+  status: FeedFreshnessStatus;
+  entityCounts: {
+    tripUpdates: number;
+    alerts: number;
+    vehicles: number;
+    quarantined: number;
+  };
+  required: boolean;
+  error?: string;
+}
+
+export interface SnapshotManifestFeed {
+  feedId: string;
+  headerTimestamp: string | null;
+  fetchedAt: string | null;
+  ageSeconds: number | null;
+  status: FeedFreshnessStatus;
+  entityCounts: {
+    tripUpdates: number;
+    alerts: number;
+    vehicles: number;
+    quarantined: number;
+  };
+}
+
+export interface SnapshotManifest {
+  snapshotId: string;
+  createdAt: string;
+  staticVersionId: string | null;
+  dataMode: DataMode;
+  perFeed: Record<string, SnapshotManifestFeed>;
 }
 
 export interface ServiceAlert {
@@ -175,6 +231,8 @@ export interface RealtimeSnapshot {
   synthetic: boolean;
   partialFeeds: string[];
   failedFeeds: Array<{ feedId: string; reason: string }>;
+  /** Per-feed freshness when assembled from live multi-feed polls. */
+  perFeed?: Record<string, PerFeedStatus>;
 }
 
 export interface FreshnessPolicy {
