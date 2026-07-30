@@ -38,6 +38,8 @@
 - `../infra/alpha/HOST.md` — Phase 12A.5 macOS operating requirements + preflight
 - `../infra/alpha/TUNNEL.md` — Phase 12A.6 named Cloudflare Tunnel (interactive; secrets out of repo)
 - `../infra/alpha/ACCESS.md` — Phase 12A.7 Access allowlist + OTP + service token procedures
+- `../deployments/README.md` — Phase 12A.8 immutable release IDs + deploy/rollback
+- `../docker-compose.release.yml` — release image-tag overrides for alpha compose
 - `../infra/alpha/cloudflared/config.template.yml` — tunnel ingress template (placeholders only)
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 

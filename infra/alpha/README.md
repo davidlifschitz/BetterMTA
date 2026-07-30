@@ -4,7 +4,7 @@ Self-hosted macOS + Docker Compose origin for ADR-0021. Cloudflare Tunnel will
 target the loopback edge; secrets, tunnel UUIDs, hostnames, and tester emails
 stay **out of this repo**.
 
-## Index (12A.3–12A.7)
+## Index (12A.3–12A.8)
 
 | Doc / path | Phase | Role |
 |---|---|---|
@@ -12,6 +12,7 @@ stay **out of this repo**.
 | [`HOST.md`](./HOST.md) | **12A.5** | macOS operating requirements |
 | [`TUNNEL.md`](./TUNNEL.md) | **12A.6** | Named Cloudflare Tunnel (interactive CF setup) |
 | [`ACCESS.md`](./ACCESS.md) | **12A.7** | Cloudflare Access allowlist + OTP + service token |
+| [`../../deployments/README.md`](../../deployments/README.md) | **12A.8** | Immutable release IDs + deploy/rollback scripts |
 | [`cloudflared/config.template.yml`](./cloudflared/config.template.yml) | 12A.6 | Safe ingress template (placeholders only) |
 | [`Caddyfile`](./Caddyfile) | 12A.3 | Edge routes to api/web |
 | [`scripts/preflight-host.sh`](./scripts/preflight-host.sh) | 12A.5 | Read-only host / Docker / tunnel / health report |
@@ -19,7 +20,7 @@ stay **out of this repo**.
 | [`scripts/stop-alpha.sh`](./scripts/stop-alpha.sh) | 12A.4 | Compose down (volumes preserved) |
 | [`scripts/smoke-edge.sh`](./scripts/smoke-edge.sh) | 12A.4 | Local edge HTTP smoke (no Cloudflare) |
 
-**Operator order:** `preflight-host.sh` → fix manual host settings → `start-alpha.sh` → configure Tunnel/Access outside Git → remote smoke with Access.
+**Operator order:** `preflight-host.sh` → fix manual host settings → `start-alpha.sh` (or `deployments/scripts/deploy-release.sh`) → configure Tunnel/Access outside Git → remote smoke with Access → use release/rollback scripts for image-tag deploys.
 
 ## Edge bind
 
@@ -130,8 +131,22 @@ docker-compose -f docker-compose.yml -f docker-compose.alpha.yml down
 `stop-alpha.sh` / `down` intentionally omit `-v` so bind-mounted data and OTP
 graph artifacts persist across restarts.
 
+## Release / rollback (12A.8)
+
+Immutable release pointers and scripts live under repo-root [`deployments/`](../../deployments/README.md):
+
+```bash
+./deployments/scripts/deploy-release.sh --retag-only   # disk-safe when free space is tight
+./deployments/scripts/rollback-release.sh              # previous image tags, not source re-edit
+./deployments/scripts/smoke-post-deploy.sh             # local edge + optional Access remote
+```
+
+Uses `docker-compose.release.yml` image env overrides. Real `deployments/current.env` /
+`previous.env` are host-local and gitignored — only `*.env.example` is tracked.
+Full rebuild is refused under ~6Gi free disk (`BLOCKED-for-disk`); prefer `--retag-only`.
+
 ## Related
 
 - Ops pointer: `docs/RUNBOOKS.md` § Controlled alpha
 - Deploy decision: ADR-0021 in `docs/ARCHITECTURE_DECISIONS.md`
-- Gates: `docs/RELEASE_GATE_REPORT.md` (CA02–CA06; Tunnel/Access remote evidence still pending)
+- Gates: `docs/RELEASE_GATE_REPORT.md` (CA02–CA06; Tunnel/Access remote evidence still pending; CA08 rollback drill)

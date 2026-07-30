@@ -162,6 +162,13 @@ ENV/
 env.bak/
 venv.bak/
 
+# Controlled-alpha host release pointers / manifests (Phase 12A.8)
+deployments/*.env
+!deployments/*.env.example
+deployments/failed-*.env
+deployments/manifests/*
+!deployments/manifests/.gitkeep
+
 # Re-include infra environment templates (env/ and ENV/ above would match infra/env/)
 !infra/env/
 !infra/env/**

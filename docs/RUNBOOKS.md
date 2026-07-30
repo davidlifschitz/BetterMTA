@@ -21,6 +21,7 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 | `infra/alpha/HOST.md` | 12A.5 macOS operating requirements |
 | `infra/alpha/TUNNEL.md` | 12A.6 named Cloudflare Tunnel |
 | `infra/alpha/ACCESS.md` | 12A.7 Access allowlist + OTP + service token |
+| `deployments/README.md` | 12A.8 release IDs + deploy/rollback |
 | `infra/alpha/cloudflared/config.template.yml` | placeholders only |
 
 ```bash
@@ -28,6 +29,9 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 ./infra/alpha/scripts/start-alpha.sh      # compose up + wait ready + smoke
 ./infra/alpha/scripts/stop-alpha.sh       # compose down (no -v; volumes kept)
 # Smoke only: ./infra/alpha/scripts/smoke-edge.sh
+# Release / rollback (image tags — not source re-edit):
+./deployments/scripts/deploy-release.sh --retag-only
+./deployments/scripts/rollback-release.sh
 ```
 
 Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`); long-running services `restart: unless-stopped`; API alpha healthcheck uses `/health/ready`. Named tunnel + Access must be completed interactively (`TUNNEL.md` / `ACCESS.md`) before remote gates pass.
