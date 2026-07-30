@@ -1,0 +1,6 @@
+var
+recorded
+scripts
+RUNBOOK.md
+**/*.log
+.git

@@ -1,7 +1,10 @@
-# PLACEHOLDER — ready-to-activate when apps/web exists and ADR-0005 is accepted.
-# App: bettermta-web (Fly.io)
+# PLACEHOLDER — prepared, not activated (Phase 8).
+# App: bettermta-web (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
 #
-# Activate:
+# Entrypoint: apps/web/Dockerfile → next start :3000
+# Build args must bake NEXT_PUBLIC_API_MODE=live and NEXT_PUBLIC_FLAG_FEEDBACK=false.
+#
+# Activate (BLOCKED until flyctl auth + app create):
 #   fly apps create bettermta-web
 #   fly secrets set -a bettermta-web --stage ...
 #   fly deploy -a bettermta-web -c infra/fly/web.fly.toml
@@ -13,14 +16,16 @@ app = 'bettermta-web'
 primary_region = 'ewr'
 
 [build]
-  # PLACEHOLDER: point at apps/web Dockerfile once frontend merges
   dockerfile = 'apps/web/Dockerfile'
+  [build.args]
+    NEXT_PUBLIC_API_MODE = 'live'
+    NEXT_PUBLIC_FLAG_FEEDBACK = 'false'
+    # Set per environment to the public API origin before first deploy:
+    # NEXT_PUBLIC_API_BASE_URL = 'https://bettermta-api.fly.dev'
 
 [env]
   NODE_ENV = 'production'
   PORT = '3000'
-  # Public API base URL set per environment (non-secret)
-  # NEXT_PUBLIC_API_BASE_URL set via fly secrets or [env] per env
 
 [http_service]
   internal_port = 3000

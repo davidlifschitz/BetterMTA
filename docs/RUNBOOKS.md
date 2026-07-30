@@ -1,10 +1,252 @@
 # BetterMTA Runbooks
 
 **Owner:** Infrastructure  
-**Status:** Draft for public-beta ops  
-**Related:** `docs/SLOS.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`
+**Status:** Phase 8 prepared (local compose); Fly cloud **not activated**  
+**Related:** `docs/SLOS.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`
 
-Assume Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data` once activated. Until services merge, treat steps that call live hosts as **PLACEHOLDER**.
+Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 8 cloud status: **prepared, not activated**.
+
+---
+
+## Local compose bring-up
+
+Prod-like stack at repo root (`docker-compose.yml`): `data` (+ `data-proxy` socat), `otp`, `api`, `web`.
+
+### Prerequisites
+
+```bash
+docker info --format 'MemTotal={{.MemTotal}}'
+# OTP serve needs ≳ 4 GiB Docker RAM (2g heap + overhead).
+# Graph present:
+ls services/otp/var/otp/graphs/active.json \
+   services/otp/var/otp/graphs/*/graph.obj
+# Static/realtime volumes (optional but recommended):
+ls services/data/var/data/static/active.json
+```
+
+### Commands
+
+```bash
+cd /path/to/bettermta   # integration-live worktree / repo root
+
+docker compose build
+docker compose up -d
+
+docker compose ps
+docker compose logs -f api data otp web
+```
+
+Compose-only token (documented, **non-prod**): `BETTERMTA_INTERNAL_TOKEN=dev-local-token`.
+
+Internal networking:
+
+| From → To | URL |
+|---|---|
+| API → data | `http://data:8082` (socat; process binds `127.0.0.1:8081`) |
+| OTP updaters → data | `http://data:8082/internal/feeds/*` |
+| API → OTP | `http://otp:8080` |
+| Browser → API | `http://localhost:8080` (`NEXT_PUBLIC_API_BASE_URL`) |
+
+Host ports: web `3000`, api `8080`, data `8081` (→ proxy `:8082`), otp `8090:8080`.
+
+### Tear down
+
+```bash
+docker compose down
+```
+
+---
+
+## Smoke tests
+
+### Against compose (preferred)
+
+```bash
+# Liveness / readiness
+curl -fsS http://localhost:8080/health/live
+curl -fsS http://localhost:8080/health/ready
+
+# Status + lines
+curl -fsS http://localhost:8080/v1/status | jq .
+curl -fsS http://localhost:8080/v1/lines | jq '.lines | length'
+
+# Route search (use live placeIds from /v1/places/search)
+curl -fsS -X POST http://localhost:8080/v1/routes/search \
+  -H 'content-type: application/json' \
+  -d '{
+    "origin": { "placeId": "st:F21" },
+    "destination": { "placeId": "st:D16" },
+    "timing": { "type": "depart_now" },
+    "selectedLineIds": ["F"]
+  }' | jq .
+```
+
+Discover place IDs:
+
+```bash
+curl -fsS 'http://localhost:8080/v1/places/search?q=Carroll' | jq .
+curl -fsS 'http://localhost:8080/v1/places/search?q=Bryant' | jq .
+```
+
+Use `docker-compose` (standalone CLI) if `docker compose` plugin is unavailable.
+
+### Phase 8 smoke results (2026-07-30)
+
+Recorded on `agent/integration-live` after Colima restart to **12 GiB** MemTotal:
+
+| Check | Result | Notes |
+|---|---|---|
+| `docker build` data/api/web/otp | **PASS** | Tags `bettermta-*:local` |
+| `docker-compose up` full stack | **PASS** | data, data-proxy, otp, api, web all **healthy** |
+| `GET /health/live` + `/health/ready` | **PASS** | ready `dataMode=live` |
+| `GET /v1/status` | **PASS** | `dataMode=live`, static `mta-subway-c9c3366cdd16`, live RT snapshot |
+| `GET /v1/lines` | **PASS** | 26 lines |
+| `GET /v1/places/search` | **PASS** | `st:F21` Carroll St, `st:D16` 42 St-Bryant Pk |
+| `POST /v1/routes/search` | **PARTIAL** | Endpoint reachable; returns `404 no_transit_path` for Carroll→Bryant F (OTP GraphQL plan for same OD **succeeds** — API/routing binding deferred) |
+| OTP GraphQL plan (direct :8090) | **PASS** | F subway itinerary ~24m |
+| Web `/` | **PASS** | HTTP 200 |
+| Fly deploy | **BLOCKED** | No `flyctl`, no Fly credentials/apps — **prepared, not activated** |
+
+Earlier attempt with Docker MemTotal ≈1.9 GiB could not host OTP (needs ~3.5 g). After Colima `--memory 12`, full stack boots.
+
+---
+
+## Realtime outage drill
+
+**Goal:** Confirm API labels stale/schedule_only and does not claim live when feeds die.
+
+### Compose / local
+
+```bash
+# Option A — stop data pollers by stopping the data service
+docker compose stop data data-proxy
+
+# Option B — block feed reachability (keep data up, deny egress)
+# e.g. temporarily set an unreachable BETTERMTA_RT_BASE_URL and recreate data:
+#   BETTERMTA_RT_BASE_URL=http://127.0.0.1:9 docker compose up -d data
+
+# Watch age climb
+watch -n 5 'curl -fsS http://localhost:8080/v1/status | jq .'
+
+# Route search should still return (schedule_only / stale labeling) or
+# degrade per readiness policy — never unlabeled "live".
+curl -fsS -X POST http://localhost:8080/v1/routes/search \
+  -H 'content-type: application/json' \
+  -d @- <<'EOF'
+{ "origin": { "placeId": "PLACE_ORIGIN" },
+  "destination": { "placeId": "PLACE_DEST" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["F"] }
+EOF
+
+# Recover
+docker compose start data
+# wait for data-proxy; recreate if needed:
+docker compose up -d data data-proxy
+```
+
+### Fly (PENDING activation)
+
+```bash
+fly apps restart bettermta-data
+# or scale to zero briefly (not recommended in prod) then back to 1
+```
+
+---
+
+## OTP restart drill
+
+```bash
+# Compose
+docker compose restart otp
+docker compose logs -f otp
+curl -fsS http://localhost:8090/otp/actuators/health
+
+# Script-based (non-compose)
+cd services/otp && ./scripts/run-otp.sh
+./scripts/check-ready.sh
+
+# Fly — PENDING
+# fly apps restart bettermta-otp
+```
+
+Expect: graph reload messages, Jetty on 8080; updater poll errors until data is healthy are OK (schedule-only).
+
+---
+
+## Static rollback drill (repoint `active.json`)
+
+Data static pointer: `services/data/var/data/static/active.json`  
+OTP graph pointer: `services/otp/var/otp/graphs/active.json`
+
+```bash
+# OTP graph rollback (must exist under graphs/)
+PRIOR="mta-subway-<old12>+otp2.9.0"
+cd services/otp
+python3 - <<PY
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+root = Path("var/otp/graphs")
+prior = "${PRIOR}"
+manifest = json.loads((root / prior / "manifest.json").read_text())
+active = {
+  "graphVersion": prior,
+  "staticVersionId": manifest["staticVersionId"],
+  "graphPath": str((root / prior / "graph.obj").resolve()),
+  "manifestPath": str((root / prior / "manifest.json").resolve()),
+  "updatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+}
+tmp = root / "active.json.tmp"
+tmp.write_text(json.dumps(active, indent=2) + "\n")
+tmp.replace(root / "active.json")
+print("active ->", prior)
+PY
+docker compose restart otp   # or ./scripts/run-otp.sh
+
+# Data static: repoint static/active.json to a prior versionId directory
+# under var/data/static/versions/, then restart data:
+docker compose restart data
+```
+
+Do **not** activate a partial/corrupt graph. Keep prior version until the new one validates.
+
+---
+
+## Deployment rollback (Fly releases) — PENDING
+
+**Status:** Pending until Fly apps exist and first deploy succeeds (Acceptance Criteria E.4).
+
+```bash
+fly releases rollback -a bettermta-api
+fly releases rollback -a bettermta-web
+fly releases rollback -a bettermta-data
+fly releases rollback -a bettermta-otp
+```
+
+Verify:
+
+```bash
+curl -fsS https://<api-host>/health/live
+curl -fsS https://<api-host>/health/ready
+curl -fsS https://<api-host>/v1/status
+```
+
+---
+
+## Cost estimate (proposed Fly footprint)
+
+Four always-on Machines, no Postgres, single API replica:
+
+| App | Size | Approx $/mo |
+|---|---|---|
+| api | shared-cpu-1x · 1GB | ~$5–7 |
+| web | shared-cpu-1x · 512MB | ~$3–5 |
+| data | shared-cpu-1x · 512MB + vol | ~$3–6 |
+| otp | shared-cpu-2x · 4GB + vol | ~$15–25 |
+| IPv4 / egress | — | ~$2–5 |
+
+**Ballpark: ~$30–50/mo.** OTP dominates. Confirm on current Fly pricing before launch. Managed Postgres deferred until feedback.
 
 ---
 
@@ -143,10 +385,12 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 
 | Item | Status |
 |---|---|
-| Post-first-deploy rollback drill (E.4): after first successful api/web deploy, run `fly releases rollback` once per app and verify `/health/live` + `/health/ready` | **Pending** — services absent |
-| Deploy workflow active (ADR-0005 + apps/services merge) | **Pending** — `.github/workflows/deploy.yml` is PLACEHOLDER / workflow_dispatch-only |
+| Post-first-deploy rollback drill (E.4): after first successful api/web deploy, run `fly releases rollback` once per app and verify `/health/live` + `/health/ready` | **Pending** — Fly not activated |
+| Deploy workflow wired (Dockerfiles + flyctl steps) | **Prepared** — still `workflow_dispatch` + `ACTIVATE` guard; needs `FLY_API_TOKEN` |
+| Local compose Dockerfiles | **Prepared** — `docker-compose.yml` + images |
 | Alerts bound to a manager + Slack webhook | **Pending** |
 | Postgres provisioned only when feedback feature needs it | **Deferred** (recommended) |
+| Data bind `0.0.0.0` for private networking | **Deferred** — compose uses socat sidecar |
 
 ---
 

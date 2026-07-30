@@ -1,32 +1,34 @@
-# PLACEHOLDER — ready-to-activate when apps/api exists and ADR-0005 is accepted.
-# App: bettermta-api (Fly.io)
+# PLACEHOLDER — prepared, not activated (Phase 8).
+# App: bettermta-api (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
 #
 # Health contract (locked):
 #   GET /health/live  — process liveness
 #   GET /health/ready — static OK + realtime OK or permitted degraded
 #
-# Activate:
+# Entrypoint: apps/api/Dockerfile → CMD ["node", "dist/index.js"]
+# Single replica only (in-memory rate limit).
+#
+# Activate (BLOCKED until flyctl auth + app create):
 #   fly apps create bettermta-api
 #   fly secrets set -a bettermta-api --stage ...  # see infra/env/api/.env.example
 #   fly deploy -a bettermta-api -c infra/fly/api.fly.toml
 #
 # One-action rollback:
 #   fly releases rollback -a bettermta-api
-#
-# Staging variant: change app name / primary_region via fly.toml overrides or
-#   fly deploy -a bettermta-api-staging -c infra/fly/api.fly.toml
 
 app = 'bettermta-api'
 primary_region = 'ewr'
 
 [build]
-  # PLACEHOLDER: point at apps/api Dockerfile once backend merges
   dockerfile = 'apps/api/Dockerfile'
 
 [env]
   NODE_ENV = 'production'
   PORT = '8080'
-  # Non-secret defaults only; secrets via `fly secrets`
+  HOST = '0.0.0.0'
+  BETTERMTA_ADAPTER_MODE = 'live'
+  BETTERMTA_TRUST_PROXY = '1'
+  BETTERMTA_CONTRACTS_ROOT = '/repo/contracts'
   FLAG_DEFAULTS_PATH = '/app/config/flags.json'
 
 [http_service]
@@ -41,7 +43,6 @@ primary_region = 'ewr'
     hard_limit = 100
     soft_limit = 50
 
-  # Liveness: process up
   [[http_service.checks]]
     interval = '15s'
     timeout = '2s'
@@ -49,7 +50,6 @@ primary_region = 'ewr'
     method = 'GET'
     path = '/health/live'
 
-  # Readiness: do not route traffic if not ready
   [[http_service.checks]]
     interval = '15s'
     timeout = '5s'

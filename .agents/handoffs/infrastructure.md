@@ -143,3 +143,48 @@ Infra does not ship product fixtures. Use `contracts/fixtures/**` for API/UI. De
 3. Wire backend metrics/log fields to `infra/observability/*` and mount `infra/flags/flags.json`.
 4. Integration workstream: activate `deploy.yml` + synthetic probes + alert routing before public beta go/no-go.
 5. Defer Postgres until feedback feature is scheduled; keep Redis/cache rebuildable-only.
+
+---
+
+## Step 3 Phase 8 — production deployment preparation (2026-07-30)
+
+**Branch / worktree:** `agent/integration-live` @ `/Users/thebiglipper/Developer/bettermta-integration-live`  
+**Cloud status:** **prepared, not activated**
+
+### Implemented
+
+- **Dockerfiles (Node 22 multi-stage):**
+  - `services/data/Dockerfile` → `CMD ["node", "dist/main.js"]`, proto copied, health `/internal/health`
+  - `apps/api/Dockerfile` → emits `dist/`, `CMD ["node", "dist/index.js"]`, contracts + `@bettermta/routing` path layout
+  - `apps/web/Dockerfile` → `NEXT_PUBLIC_API_MODE=live`, `FLAG_FEEDBACK=false`, `next start :3000`
+  - `services/otp/Dockerfile` → `FROM opentripplanner/opentripplanner:2.9.0`, copies router/build configs; graph via volume; bash healthcheck
+- **`docker-compose.yml`** at repo root: data + socat `data-proxy` + otp + api + web; graph/static volumes; compose-only token `dev-local-token`
+- **`infra/compose/README.md`** documents socat bridge (data binds `127.0.0.1`)
+- **Fly TOMLs** updated to real entrypoints; added `infra/fly/otp.fly.toml`; `DEPLOY.md` marks Fly blocked
+- **`infra/env/*/.env.example`** aligned to `BETTERMTA_*` / `NEXT_PUBLIC_*`
+- **`.github/workflows/deploy.yml`** still `workflow_dispatch` + `ACTIVATE` guard; wired real `flyctl deploy` steps (fail closed without `FLY_API_TOKEN`)
+- **`docs/RUNBOOKS.md`** local compose, smoke, drills, cost estimate, Phase 8 results table
+
+### Validation
+
+| Check | Result |
+|---|---|
+| `docker build` data/api/web/otp | **PASS** (`bettermta-*:local`) |
+| `docker-compose up` (Colima MemTotal ≈12 GiB) | **PASS** — all services healthy |
+| `GET /v1/status` | **PASS** `dataMode=live` |
+| `POST /v1/routes/search` | **PARTIAL** — `no_transit_path` while OTP GraphQL plan succeeds (binding deferred) |
+| `npm --prefix contracts run validate` | run before finish (must stay green) |
+| Fly deploy | **BLOCKED** — no `flyctl`, no credentials/apps |
+
+### Deferred / blocked
+
+1. **Fly activation** — install `flyctl`, auth, create apps/volumes, set secrets, first deploy + E.4 rollback drill.
+2. **Data bind host** — process listens on `127.0.0.1`; compose uses socat on `:8082`. Data workstream should add `0.0.0.0` / `BETTERMTA_INTERNAL_HOST` before Fly private networking.
+3. **API live route search → OTP** — compose stack boots; `/v1/routes/search` returns `no_transit_path` for known-good OD that OTP GraphQL plans successfully. Backend/routing to investigate provider URL/query wiring.
+4. **Postgres** — still deferred (no feedback).
+5. Host disk pressure during first build attempt required cache cleanup + Colima restart.
+
+### Suggested next skills
+
+- `verification-before-completion` before declaring API route-search fixed
+- `handoff` when cutting over to Fly activation session
