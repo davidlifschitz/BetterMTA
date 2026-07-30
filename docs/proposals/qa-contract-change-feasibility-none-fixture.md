@@ -1,5 +1,7 @@
 # Contract change proposal: feasibility-none route fixture
 
+> **Disposition (2026-07-30):** **ACCEPTED** — fixture added at `contracts/fixtures/routes/feasibility-none.json`.
+
 **From:** Benchmark / QA  
 **Date:** 2026-07-30  
 **Impacted:** Conductor, Frontend, Backend

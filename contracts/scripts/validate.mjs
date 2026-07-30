@@ -87,6 +87,10 @@ async function main() {
       schema: "route-search-response.schema.json",
     },
     {
+      file: "fixtures/routes/feasibility-none.json",
+      schema: "route-search-response.schema.json",
+    },
+    {
       file: "fixtures/lines/subway-lines.json",
       schema: "lines-response.schema.json",
     },
@@ -139,6 +143,7 @@ async function main() {
     "fixtures/routes/complete-match.json",
     "fixtures/routes/partial-match.json",
     "fixtures/routes/degraded-realtime.json",
+    "fixtures/routes/feasibility-none.json",
   ]) {
     const payload = loadJson(join(root, file));
     for (const itin of payload.constrained.itineraries) {

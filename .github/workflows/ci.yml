@@ -166,22 +166,20 @@ jobs:
       - name: Run benchmarks (if present)
         run: |
           set -euo pipefail
-          if [ ! -d benchmarks ]; then
-            echo "PLACEHOLDER: benchmarks not present — skipping (awaiting QA merge)"
+          if [ ! -f benchmarks/runner/package.json ]; then
+            echo "PLACEHOLDER: benchmarks/runner not present — skipping (awaiting QA merge)"
             exit 0
           fi
-          if [ -f benchmarks/package-lock.json ]; then
-            npm --prefix benchmarks ci
-          elif [ -f benchmarks/package.json ]; then
-            npm --prefix benchmarks install
-          fi
-          if [ -f benchmarks/package.json ] && npm --prefix benchmarks run | grep -qE '^  test'; then
-            npm --prefix benchmarks test
-          elif [ -f benchmarks/package.json ] && npm --prefix benchmarks run | grep -qE '^  gate'; then
-            npm --prefix benchmarks run gate
+          if [ -f benchmarks/runner/package-lock.json ]; then
+            npm --prefix benchmarks/runner ci
           else
-            echo "benchmarks/ present but no test/gate script yet — listing only"
-            ls -la benchmarks
+            npm --prefix benchmarks/runner install
+          fi
+          npm --prefix benchmarks/runner run validate-cases
+          npm --prefix benchmarks/runner run self-test
+          npm --prefix benchmarks/runner run gate
+          if npm --prefix benchmarks/runner run | grep -qE '^  run-benchmarks'; then
+            npm --prefix benchmarks/runner run run-benchmarks
           fi
 
   audit:

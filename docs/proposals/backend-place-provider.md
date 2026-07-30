@@ -1,8 +1,10 @@
 # Proposal: Place / geocoding provider for `/v1/places/search`
 
+> **Disposition (2026-07-30):** **ACCEPTED** — station-index-first for public beta (full static-GTFS station / station-complex autocomplete + browser geolocation). Third-party address/POI geocoding deferred. Recorded as ADR-0013.
+
 **From:** Backend (`agent/backend`)  
 **Date:** 2026-07-30  
-**Status:** Proposal — continue against locked contract until approved  
+**Status:** Accepted (see disposition)  
 **Impacts:** Backend, Frontend, Infrastructure, Data (station catalog alignment)
 
 ## Problem

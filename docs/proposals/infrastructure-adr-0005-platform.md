@@ -1,9 +1,11 @@
 # Proposal: ADR-0005 — Deployment platform
 
-**Status:** Proposal (does not edit `docs/ARCHITECTURE_DECISIONS.md`)  
+> **Disposition (2026-07-30):** **ACCEPTED** for Fly.io + api/web PR previews; Postgres deferred (create on first feedback feature); staging shared for data poller. Recorded as ADR-0012 / ADR-0016.
+
+**Status:** Accepted (see disposition)  
 **Owner:** Infrastructure (`agent/infrastructure`)  
 **Date:** 2026-07-30  
-**Related:** ADR-0005 (Open), `docs/SYSTEM_ARCHITECTURE.md` §8, Acceptance Criteria E
+**Related:** ADR-0005 (closed by ADR-0012), `docs/SYSTEM_ARCHITECTURE.md` §8, Acceptance Criteria E
 
 ## Context
 
