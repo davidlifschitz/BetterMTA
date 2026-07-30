@@ -1,0 +1,14 @@
+stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station
+A31,Penn Station,40.750373,-73.991057,1,
+A31N,Penn Station - Northbound,40.750373,-73.991057,0,A31
+A31S,Penn Station - Southbound,40.750373,-73.991057,0,A31
+A32,34 St - Herald Sq,40.749719,-73.987823,1,
+A32N,34 St - Herald Sq - Northbound,40.749719,-73.987823,0,A32
+A32S,34 St - Herald Sq - Southbound,40.749719,-73.987823,0,A32
+D14,7 Av,40.762862,-73.981637,1,
+D14N,7 Av - Northbound,40.762862,-73.981637,0,D14
+D14S,7 Av - Southbound,40.762862,-73.981637,0,D14
+GS01,Times Sq - 42 St,40.755983,-73.986229,1,
+GS01N,Times Sq - 42 St - Shuttle,40.755983,-73.986229,0,GS01
+GS02,Grand Central - 42 St,40.751776,-73.976848,1,
+GS02S,Grand Central - 42 St - Shuttle,40.751776,-73.976848,0,GS02

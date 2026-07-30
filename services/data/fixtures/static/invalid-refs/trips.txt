@@ -1,0 +1,6 @@
+route_id,service_id,trip_id,trip_headsign,direction_id
+A,WEEKDAY,A_UP_001,Inwood - 207 St,0
+A,WEEKDAY,A_DN_001,Far Rockaway,1
+D,WEEKDAY,D_UP_001,Norwood - 205 St,0
+GS,WEEKDAY,GS_EB_001,Grand Central,0
+GS,WEEKDAY,GS_WB_001,Times Sq,1

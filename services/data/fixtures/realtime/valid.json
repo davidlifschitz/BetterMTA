@@ -1,0 +1,53 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1753876800,
+    "incrementality": "FULL_DATASET"
+  },
+  "_fixtureMeta": {
+    "feedId": "nyct-ace",
+    "feedTimestampIso": "2026-07-30T12:00:00.000Z"
+  },
+  "entity": [
+    {
+      "id": "tu_A_UP_001",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "A_UP_001",
+          "routeId": "A",
+          "startDate": "20260730",
+          "scheduleRelationship": "SCHEDULED"
+        },
+        "stopTimeUpdate": [
+          {
+            "stopId": "A31N",
+            "stopSequence": 1,
+            "arrival": { "delay": 30, "time": 1753876830 },
+            "departure": { "delay": 30, "time": 1753876830 },
+            "scheduleRelationship": "SCHEDULED"
+          },
+          {
+            "stopId": "A32N",
+            "stopSequence": 2,
+            "arrival": { "delay": 45, "time": 1753877025 },
+            "departure": { "delay": 45, "time": 1753877025 },
+            "scheduleRelationship": "SCHEDULED"
+          }
+        ]
+      }
+    },
+    {
+      "id": "alert_1",
+      "alert": {
+        "headerText": {
+          "translation": [{ "text": "A train delays" }]
+        },
+        "descriptionText": {
+          "translation": [{ "text": "Trains running with delays in both directions." }]
+        },
+        "severityLevel": "WARNING",
+        "informedEntity": [{ "routeId": "A" }]
+      }
+    }
+  ]
+}

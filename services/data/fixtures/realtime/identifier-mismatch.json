@@ -1,0 +1,51 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1753876800,
+    "incrementality": "FULL_DATASET"
+  },
+  "_fixtureMeta": {
+    "feedId": "nyct-ace",
+    "feedTimestampIso": "2026-07-30T12:00:00.000Z"
+  },
+  "entity": [
+    {
+      "id": "tu_unknown",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "DOES_NOT_EXIST_999",
+          "routeId": "A",
+          "startDate": "20260730",
+          "scheduleRelationship": "SCHEDULED"
+        },
+        "stopTimeUpdate": [
+          {
+            "stopId": "A31N",
+            "stopSequence": 1,
+            "arrival": { "delay": 10 },
+            "scheduleRelationship": "SCHEDULED"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tu_known",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "A_UP_001",
+          "routeId": "A",
+          "startDate": "20260730",
+          "scheduleRelationship": "SCHEDULED"
+        },
+        "stopTimeUpdate": [
+          {
+            "stopId": "A31N",
+            "stopSequence": 1,
+            "arrival": { "delay": 5 },
+            "scheduleRelationship": "SCHEDULED"
+          }
+        ]
+      }
+    }
+  ]
+}

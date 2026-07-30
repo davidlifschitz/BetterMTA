@@ -1,0 +1,45 @@
+{
+  "feeds": [
+    {
+      "feedId": "nyct-ace",
+      "payload": {
+        "header": {
+          "gtfsRealtimeVersion": "2.0",
+          "timestamp": 1753876800
+        },
+        "_fixtureMeta": {
+          "feedId": "nyct-ace",
+          "feedTimestampIso": "2026-07-30T12:00:00.000Z"
+        },
+        "entity": [
+          {
+            "id": "tu_A",
+            "tripUpdate": {
+              "trip": {
+                "tripId": "A_UP_001",
+                "routeId": "A",
+                "scheduleRelationship": "SCHEDULED"
+              },
+              "stopTimeUpdate": [
+                {
+                  "stopId": "A31N",
+                  "arrival": { "delay": 20 },
+                  "scheduleRelationship": "SCHEDULED"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "feedId": "nyct-bdfm",
+      "payload": {
+        "_fixtureMeta": {
+          "feedId": "nyct-bdfm",
+          "simulatedError": "timeout"
+        }
+      }
+    }
+  ]
+}
