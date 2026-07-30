@@ -89,7 +89,7 @@ Assumptions: US region, low traffic (~thousands of searches/day), always-on api+
 
 If Fly Managed Postgres Basic is preferred immediately: add ≈ **+$30–40** → **≈ $55–85 / month**.
 
-**Cost guardrails:** max 2 replicas on api; no multi-region; poller single instance; Redis memory cap; monthly spend alert at $75; escalate to Render Managed stack only if ops pain exceeds savings.
+**Cost guardrails:** API exactly 1 replica until shared rate-limit store (in-memory limiter); web max 2; no multi-region; poller single instance; Redis deferred for search path; monthly spend alert at $75; escalate to Render Managed stack only if ops pain exceeds savings.
 
 ## Consequences if accepted
 

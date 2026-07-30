@@ -219,12 +219,17 @@ export function createInternalServer(options: InternalServerOptions): Server {
 export async function listenInternalServer(
   server: Server,
   port: number,
+  /**
+   * Bind host. Defaults to loopback for compose (socat bridges the Docker net).
+   * On Fly activate set BETTERMTA_DATA_BIND_HOST=0.0.0.0 for private networking.
+   */
+  host: string = process.env.BETTERMTA_DATA_BIND_HOST ?? "127.0.0.1",
 ): Promise<Server> {
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
-    server.listen(port, "127.0.0.1", () => resolve());
+    server.listen(port, host, () => resolve());
   });
-  safeLog("info", "internal_server_listening", { port });
+  safeLog("info", "internal_server_listening", { port, host });
   return server;
 }
 

@@ -5,13 +5,14 @@
 # Health: GET /internal/health (Bearer) — private; not public HTTP-routed.
 # Freshness observed via apps/api GET /v1/status and GET /health/ready.
 #
-# BIND WARNING: process listens on 127.0.0.1 today. Before Fly private networking,
-# data must bind 0.0.0.0 (or BETTERMTA_INTERNAL_HOST) — see infra/compose/README.md.
+# Bind: BETTERMTA_DATA_BIND_HOST defaults to 127.0.0.1 (compose + socat).
+# On Fly activate set 0.0.0.0 so other Machines can reach :8081 privately.
 #
-# Activate (BLOCKED until flyctl auth + app create + bind fix):
+# Activate (BLOCKED until flyctl auth + app create):
 #   fly apps create bettermta-data
 #   fly secrets set -a bettermta-data --stage ...
 #   fly deploy -a bettermta-data -c infra/fly/data.fly.toml
+
 #
 # One-action rollback:
 #   fly releases rollback -a bettermta-data
@@ -27,6 +28,8 @@ primary_region = 'ewr'
 [env]
   NODE_ENV = 'production'
   BETTERMTA_INTERNAL_PORT = '8081'
+  # Required for Fly private networking (compose keeps default 127.0.0.1 + socat)
+  BETTERMTA_DATA_BIND_HOST = '0.0.0.0'
   BETTERMTA_INTERNAL_ALLOW_ANON = 'false'
   BETTERMTA_STATIC_REFRESH_ON_BOOT = 'true'
   BETTERMTA_DATA_DIR = '/var/bettermta/data'

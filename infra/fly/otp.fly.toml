@@ -9,7 +9,10 @@
 #   fly volumes create bettermta_otp_graphs -a bettermta-otp --region ewr --size 5
 #   # copy graph artifacts onto volume, then:
 #   fly secrets set -a bettermta-otp BETTERMTA_INTERNAL_TOKEN=... BETTERMTA_DATA_HOST=bettermta-data.internal:8081
-#   fly deploy -a bettermta-otp -c infra/fly/otp.fly.toml
+#   # Build context MUST be services/otp (Dockerfile COPY config/ + docker/ are relative).
+#   # fly.toml has no build.context — pass the directory as the first fly deploy arg.
+#   # --config/--dockerfile paths are then relative to that context:
+#   fly deploy services/otp -a bettermta-otp -c ../infra/fly/otp.fly.toml
 #
 # One-action rollback:
 #   fly releases rollback -a bettermta-otp
@@ -18,8 +21,9 @@ app = 'bettermta-otp'
 primary_region = 'ewr'
 
 [build]
-  dockerfile = 'services/otp/Dockerfile'
-  # build context should be services/otp (set via fly deploy --dockerfile / context)
+  # Relative to deploy working directory / Docker context = services/otp
+  # (compose: context ./services/otp; Fly: `fly deploy services/otp ...`)
+  dockerfile = 'Dockerfile'
 
 [env]
   JAVA_XMX = '2g'

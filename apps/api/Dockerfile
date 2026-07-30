@@ -51,6 +51,8 @@ RUN apt-get update \
 COPY --from=build --chown=bettermta:bettermta /repo/services/routing /repo/services/routing
 COPY --from=build --chown=bettermta:bettermta /repo/apps/api /repo/apps/api
 COPY --from=build --chown=bettermta:bettermta /repo/contracts /repo/contracts
+# Stable path for FLAG_DEFAULTS_PATH (infra/fly/api.fly.toml + env templates)
+COPY --chown=bettermta:bettermta infra/flags/flags.json /app/config/flags.json
 
 WORKDIR /repo/apps/api
 
@@ -59,7 +61,8 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     BETTERMTA_ADAPTER_MODE=live \
     BETTERMTA_CONTRACTS_ROOT=/repo/contracts \
-    BETTERMTA_TRUST_PROXY=1
+    BETTERMTA_TRUST_PROXY=1 \
+    FLAG_DEFAULTS_PATH=/app/config/flags.json
 
 EXPOSE 8080
 

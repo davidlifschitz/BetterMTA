@@ -6,6 +6,7 @@
 # Entrypoint stages active graph.obj + configs into /var/opentripplanner.
 #
 #   docker build -f services/otp/Dockerfile -t bettermta-otp ./services/otp
+#   # Compose: context ./services/otp. Fly: fly deploy services/otp -c ../infra/fly/otp.fly.toml
 #
 # Memory: serve needs ~2g heap / ~3.5g container (see services/otp/RUNBOOK.md).
 # Note: avoid apt (arm64 ports hash mismatches) and alpine curl (wrong libc).

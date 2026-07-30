@@ -6,12 +6,16 @@
 #   GET /health/ready — static OK + realtime OK or permitted degraded
 #
 # Entrypoint: apps/api/Dockerfile → CMD ["node", "dist/index.js"]
-# Single replica only (in-memory rate limit).
+# Single replica only — in-memory rate limiter. Do NOT scale >1 until a shared
+# rate-limit store exists (GUARDRAILS.md / DEPLOY.md).
+# FLAG_DEFAULTS_PATH=/app/config/flags.json is copied into the API image
+# from infra/flags/flags.json (apps/api/Dockerfile).
 #
 # Activate (BLOCKED until flyctl auth + app create):
 #   fly apps create bettermta-api
 #   fly secrets set -a bettermta-api --stage ...  # see infra/env/api/.env.example
 #   fly deploy -a bettermta-api -c infra/fly/api.fly.toml
+#   fly scale count 1 -a bettermta-api
 #
 # One-action rollback:
 #   fly releases rollback -a bettermta-api

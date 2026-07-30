@@ -236,7 +236,7 @@ curl -fsS https://<api-host>/v1/status
 
 ## Cost estimate (proposed Fly footprint)
 
-Four always-on Machines, no Postgres, single API replica:
+Four always-on Machines, no Postgres, **API exactly 1 replica** (in-memory rate limiter — do not scale API >1 until a shared store exists):
 
 | App | Size | Approx $/mo |
 |---|---|---|
@@ -390,7 +390,9 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 | Local compose Dockerfiles | **Prepared** — `docker-compose.yml` + images |
 | Alerts bound to a manager + Slack webhook | **Pending** |
 | Postgres provisioned only when feedback feature needs it | **Deferred** (recommended) |
-| Data bind `0.0.0.0` for private networking | **Deferred** — compose uses socat sidecar |
+| Data bind `0.0.0.0` for private networking | **Prepared** — `BETTERMTA_DATA_BIND_HOST` (default `127.0.0.1` + compose socat; Fly toml sets `0.0.0.0`) |
+| Web bake-time `NEXT_PUBLIC_API_BASE_URL` | **Prepared** — deploy.yml requires non-localhost `public_api_base_url`; see `infra/fly/DEPLOY.md` |
+| OTP Fly build context `services/otp` | **Prepared** — `fly deploy services/otp -c ../infra/fly/otp.fly.toml` |
 
 ---
 

@@ -4,7 +4,7 @@
 # - Dockerfiles exist at apps/api, apps/web, services/data, services/otp
 # - Fly apps / FLY_API_TOKEN are NOT provisioned in this environment
 # - Refuses unless confirm_placeholder=ACTIVATE AND FLY_API_TOKEN is set
-# - Fail closed on missing secrets or health gate failure
+# - Fail closed on missing secrets, missing public API URL, or health gate failure
 
 name: deploy
 
@@ -23,6 +23,10 @@ on:
         description: "Type ACTIVATE only when Fly apps + FLY_API_TOKEN are ready"
         required: true
         default: "NO"
+        type: string
+      public_api_base_url:
+        description: "Public API origin baked into web (NEXT_PUBLIC_API_BASE_URL). Required; must not be localhost."
+        required: true
         type: string
       skip_otp:
         description: "Skip OTP deploy (graph volume not ready)"
@@ -58,7 +62,8 @@ jobs:
             infra/fly/api.fly.toml \
             infra/fly/web.fly.toml \
             infra/fly/data.fly.toml \
-            infra/fly/otp.fly.toml
+            infra/fly/otp.fly.toml \
+            infra/flags/flags.json
           do
             if [ ! -f "$f" ]; then
               echo "Missing required file: $f"
@@ -70,6 +75,32 @@ jobs:
             exit 1
           fi
 
+      - name: Require non-localhost public API URL (web bake-time)
+        env:
+          PUBLIC_API_BASE_URL: ${{ inputs.public_api_base_url }}
+        run: |
+          set -euo pipefail
+          url="${PUBLIC_API_BASE_URL:-}"
+          if [ -z "$url" ]; then
+            echo "Fail closed: public_api_base_url input is required."
+            echo "NEXT_PUBLIC_API_BASE_URL is baked at image build; localhost default must not ship to Fly."
+            exit 1
+          fi
+          case "$url" in
+            http://localhost*|https://localhost*|http://127.0.0.1*|https://127.0.0.1*)
+              echo "Fail closed: public_api_base_url must not be localhost/127.0.0.1 (got: $url)."
+              exit 1
+              ;;
+          esac
+          case "$url" in
+            http://*|https://*) ;;
+            *)
+              echo "Fail closed: public_api_base_url must start with http:// or https:// (got: $url)."
+              exit 1
+              ;;
+          esac
+          echo "Web will bake NEXT_PUBLIC_API_BASE_URL=${url}"
+
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master
 
@@ -78,6 +109,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           SKIP_OTP: ${{ inputs.skip_otp }}
           TARGET_ENV: ${{ inputs.environment }}
+          PUBLIC_API_BASE_URL: ${{ inputs.public_api_base_url }}
         run: |
           set -euo pipefail
           if [ -z "${FLY_API_TOKEN:-}" ]; then
@@ -90,12 +122,15 @@ jobs:
 
           flyctl deploy -a bettermta-data -c infra/fly/data.fly.toml
           if [ "${SKIP_OTP}" != "true" ]; then
-            flyctl deploy -a bettermta-otp -c infra/fly/otp.fly.toml
+            # Context = services/otp so Dockerfile COPY config/ + docker/ resolve
+            # (compose uses the same context). --config path is relative to context.
+            flyctl deploy services/otp -a bettermta-otp -c ../infra/fly/otp.fly.toml
           else
             echo "Skipping OTP deploy (skip_otp=true)"
           fi
           flyctl deploy -a bettermta-api -c infra/fly/api.fly.toml
-          flyctl deploy -a bettermta-web -c infra/fly/web.fly.toml
+          flyctl deploy -a bettermta-web -c infra/fly/web.fly.toml \
+            --build-arg "NEXT_PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}"
 
           API_HOST="${BETTERMTA_API_HOST:-}"
           if [ -z "${API_HOST}" ]; then

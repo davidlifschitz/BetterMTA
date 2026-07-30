@@ -51,15 +51,19 @@ Secret scanning: rely on GitHub push protection + never commit `.env` (see `infr
 
 | Control | Setting |
 |---|---|
-| API replicas | max 2 Machines at beta |
+| API replicas | **exactly 1** until a shared rate-limit store exists (in-memory limiter; see compose + `api.fly.toml`) |
 | Web replicas | max 2 |
 | Data poller | **exactly 1** instance |
+| OTP | **exactly 1** shared instance |
 | Autoscaling | off until measured need (Render/Fly horizontal caps documented when enabled) |
 | Poll interval | `REALTIME_POLL_INTERVAL_MS` default 15s, hard max 60s |
 | Static import concurrency | `1` |
 | Monthly spend alert | $75 (human-configured in Fly billing) |
 | Hard rethink threshold | $150/mo sustained without traffic justification |
 | Preview apps | api+web only; do not run duplicate production pollers per PR |
+
+Do **not** scale the API above 1 Machine in public beta. Multi-replica API would
+partition rate-limit buckets and under-enforce Acceptance Criteria E.5.
 
 ## Admin access
 

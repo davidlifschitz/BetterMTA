@@ -112,6 +112,7 @@ services:
       BETTERMTA_TRUST_PROXY: "1"
       BETTERMTA_CONTRACTS_ROOT: /repo/contracts
       BETTERMTA_LOG_LEVEL: info
+      FLAG_DEFAULTS_PATH: /app/config/flags.json
       # Single replica — in-memory rate limit (do not scale api > 1 without shared store)
     ports:
       - "8080:8080"
