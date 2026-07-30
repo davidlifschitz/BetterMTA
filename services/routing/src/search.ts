@@ -1,6 +1,7 @@
 import type { CandidateProvider } from "./candidate-provider.ts";
 import { fingerprintItinerary } from "./fingerprint.ts";
 import { buildExplanation } from "./explanation.ts";
+import { OtpProviderError } from "./otp-provider/errors.ts";
 import {
   rankBaseline,
   rankConstrained,
@@ -58,6 +59,11 @@ export type RouteSearchOutcome =
     }
   | {
       kind: "data_unavailable";
+      requestedCount: number;
+      reason: string;
+    }
+  | {
+      kind: "timeout";
       requestedCount: number;
       reason: string;
     };
@@ -214,6 +220,21 @@ export async function runRouteSearch(
   try {
     drafts = await provider.generateCandidates(normalizedRequest);
   } catch (err) {
+    if (err instanceof OtpProviderError) {
+      if (err.kind === "timeout") {
+        return {
+          kind: "timeout",
+          requestedCount,
+          reason: err.message,
+        };
+      }
+      // unavailable + bad_response → data_unavailable (no fabricated itineraries)
+      return {
+        kind: "data_unavailable",
+        requestedCount,
+        reason: err.message,
+      };
+    }
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes("INSUFFICIENT_CANDIDATE_COVERAGE")) {
       return {

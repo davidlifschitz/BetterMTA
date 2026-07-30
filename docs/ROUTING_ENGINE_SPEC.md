@@ -155,7 +155,8 @@ Baseline pool: steps 2–6 only. Complete matches always outrank partials.
 | Success (complete / partial) | ≥1 trustworthy constrained and/or baseline itinerary after ranking | `200`; partials still success |
 | `no_transit_path` | No transit path even without selected-line constraints | `404` |
 | `insufficient_candidate_coverage` | Candidate/time budget exhausted without trustworthy candidates | `503` |
-| `data_unavailable` | Snapshot `dataMode: unavailable` — no itineraries fabricated | `503` / `data_unavailable` |
+| `data_unavailable` | Snapshot `dataMode: unavailable`, or OTP provider `unavailable`/`bad_response` — no itineraries fabricated | `503` / `data_unavailable` |
+| `timeout` | OTP provider AbortController budget exceeded (`OtpProviderError` kind `timeout`) | `504` / `timeout` |
 | Constraint infeasible (true) | Selected set cannot be fully satisfied; **partials still returned when they exist** | `200` with `feasibility: partial` or empty constrained only if no partial exists **and** baseline proves the network is reachable |
 
 Soft degradation (still `ok`): `dataMode: schedule_only` forces `realtimeConfidence: none` and sets `dataDegradation: schedule_only`; `dataMode: stale` caps confidence at `low` and sets `dataDegradation: stale`.
@@ -174,6 +175,7 @@ Path: `services/routing/`
 |---|---|
 | `candidate-provider` | Abstraction over engine/fixture candidate generation |
 | `fixture-provider` | Deterministic offline provider; `dataMode: synthetic` |
+| `otp-provider` | Production OTP 2.9 GraphQL `CandidateProvider` (candidate generation only) |
 | `satisfaction` | Exact selected-line accounting + `TooManySelectedLinesError` + `computePerLineRideSeconds` |
 | `fingerprint` | Stable content-derived fingerprint (always recomputed) |
 | `validate` | Draft validity gate before enrichment |
@@ -181,9 +183,82 @@ Path: `services/routing/`
 | `explanation` | Structured `Explanation` builder |
 | `search` | Orchestrates validate → normalize → account → explain → rank → outcomes |
 
-Live OTP adapter is **deferred** (requires data snapshot wiring + infra process). Arrive-by search strategy remains **deferred** (DOMAIN_MODEL unresolved).
+Package build: `npm run build` emits `dist/` (`.js` + `.d.ts`) for backend `file:` consumption. Tests continue to run against `src/`.
 
-## 7. Performance characteristics (measured, offline)
+Arrive-by search strategy remains **deferred** (ADR-0014).
+
+## 6.1 Production OTP candidate provider (ADR-0011)
+
+`createOtpCandidateProvider(opts)` implements `CandidateProvider`. **Satisfaction, ranking, explanations, and top-3 stay outside OTP.** The provider only generates `RawCandidateDraft[]`.
+
+### Query shape
+
+- Endpoint: `{otpBaseUrl}/otp/gtfs/v1` (OTP 2.9 GTFS GraphQL).
+- Operation: legacy `plan` (matches Phase 4 recorded fixtures), `transportModes: SUBWAY + WALK` only.
+- OD: origin/destination as `{ lat, lon }` (not stop IDs).
+- `numItineraries`: from options (default **8**).
+- `searchWindow`: default **2700 seconds (45 minutes)** — OTP `Long` seconds; overridable via `searchWindowSeconds`.
+- Departure instant: request `timing` ISO instants → **epoch millis** (`variables.dateTime`). OTP `plan` still requires String `date`/`time`; those are **UTC components derived from the epoch** (never local-naive wall-clock strings). Assertable in tests via the GraphQL variables payload.
+- Per-call budget: `AbortController` at `timeoutMs` (default **4000**).
+
+### Mapping rules (OTP itinerary → `RawCandidateDraft`)
+
+| OTP field | Draft field |
+|---|---|
+| itinerary `duration` | `durationSeconds` |
+| itinerary `end` / `endTime` | `arrivalTime` (ISO UTC) |
+| `numberOfTransfers` | `transferCount` |
+| sum of WALK leg durations | `walkingSeconds` |
+| `duration − walk − transit` (floored at 0) | `waitingSeconds` |
+| WALK legs | `kind: "walk"`; `outOfSystem` false when either place has a stop gtfsId |
+| SUBWAY (transit) legs | `kind: "transit"`; `lineId` via injected `routeIdToLineId(route.gtfsId)` |
+| leg times (`scheduledTime` / epoch) | `departTime` / `arriveTime` as **ISO UTC** (`Date` parse → `toISOString()`; no local arithmetic) |
+| `trip.gtfsId` list | stamped into `sourceEngineIds.otpTripIds` (JSON string; contract is `Record<string, string>`) |
+
+`sourceEngineIds` on each transit leg:
+
+```text
+{ engine: "otp", graphVersion, queryId, itineraryIndex, otpTripIds }
+```
+
+- `queryId`: UUID per plan call.
+- `graphVersion`: from options; `null`/omitted → `"unknown"`.
+- `candidateFamily`: `"baseline"` for this single-query Phase 5 adapter (family orchestration remains future work).
+- `realtimeConfidence`: `"none"` while OTP runs schedule-only / without RT confidence mapping.
+
+### Malformed rejection (never throw per itinerary)
+
+Skip and count (provider `rejectionCounts` / `onQuery` hook):
+
+| Reason | When |
+|---|---|
+| `empty_legs` | Missing/empty legs |
+| `unmappable_route` | Missing route gtfsId or `routeIdToLineId` returns null |
+| `zero_duration_transit` | Transit duration ≤ 0 |
+| `non_chronological` | Transit depart/arrive ordering violated |
+| `missing_times` | Unparseable leg or itinerary times |
+
+Zero itineraries from OTP → empty candidate set → `runRouteSearch` yields `no_transit_path` (existing contract).
+
+### Failure taxonomy → `runRouteSearch` outcomes
+
+| Provider (`OtpProviderError.kind`) | `RouteSearchOutcome.kind` |
+|---|---|
+| `timeout` (AbortController) | `timeout` |
+| `unavailable` (ECONNREFUSED, 5xx, GraphQL `errors`) | `data_unavailable` |
+| `bad_response` (non-JSON / missing `data.plan`) | `data_unavailable` |
+
+Latency: each plan call records `durationMs` on `lastQueryStats` and optional `onQuery` callback for backend metrics.
+
+### What stays outside OTP (ADR-0011)
+
+- Exact selected-line satisfaction accounting
+- Lexicographic ranking + fingerprint tie-break
+- Structured explanations + top-3 truncation
+- Soft preference / targeted combination **family orchestration** (future; this provider is one baseline plan call)
+- `routeIdToLineId` mapping (owned by data service; injected here)
+
+Offline fixtures: `tests/fixtures/otp/*.json` are **copies** of `services/otp/recorded/` (see that folder’s README for provenance).
 
 Measured on the ranking pure function only (no OTP), Node 20+, synthetic candidates (`dataMode: synthetic`):
 
@@ -196,11 +271,12 @@ These numbers characterize the **BetterMTA layer**, not OTP query latency. Produ
 
 ## 8. Limits and risks
 
-1. Soft OTP preferences can miss combination covers → targeted family + budget required.
-2. Arrive-by search strategy (reverse vs iterative depart) remains open (DOMAIN_MODEL unresolved #2); propose addendum after OTP wiring.
+1. Soft OTP preferences can miss combination covers → targeted family + budget required (Phase 5 provider is a single baseline plan call).
+2. Arrive-by search strategy remains deferred (ADR-0014).
 3. Fixture provider is synthetic — never label as `live` in production.
 4. Engine choice should be confirmed by a short MOTIS bake-off on the same MTA GTFS extract before irreversible infra lock-in.
+5. OTP GraphQL legacy `plan` is deprecated in favor of `planConnection`; migrate when family orchestration needs cursor paging.
 
 ## 9. Next integration step
 
-Backend adapter calls `runRouteSearch` with a real `CandidateProvider` once data exposes `RoutingSnapshotHandle` + static graph for OTP. Until then, FE/BE continue against `contracts/fixtures/**` with `dataMode: synthetic`.
+Backend (Phase 6) imports `@bettermta/routing` via `file:` dependency, constructs `createOtpCandidateProvider` with data-service `routeIdToLineId` + graphVersion, and maps `RouteSearchOutcome` (`ok` / `no_transit_path` / `insufficient_candidate_coverage` / `data_unavailable` / `timeout`) onto `/v1/routes/search`.

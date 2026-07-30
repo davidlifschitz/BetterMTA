@@ -1,0 +1,277 @@
+{
+  "data": {
+    "plan": {
+      "from": {
+        "name": "Atlantic Av-Barclays Ctr",
+        "stop": {
+          "gtfsId": "nyct-gtfs:D24N",
+          "name": "Atlantic Av-Barclays Ctr"
+        }
+      },
+      "to": {
+        "name": "Jackson Hts-Roosevelt Av",
+        "stop": {
+          "gtfsId": "nyct-gtfs:G14N",
+          "name": "Jackson Hts-Roosevelt Av"
+        }
+      },
+      "itineraries": [
+        {
+          "duration": 2340,
+          "startTime": "2026-07-30T12:30:30-04:00",
+          "endTime": "2026-07-30T13:09:30-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 1,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:30:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T12:49:30-04:00",
+                "estimated": null
+              },
+              "duration": 1140.0,
+              "from": {
+                "name": "Atlantic Av-Barclays Ctr",
+                "lat": 40.68446,
+                "lon": -73.97689,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D24N",
+                  "name": "Atlantic Av-Barclays Ctr",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "34 St-Herald Sq",
+                "lat": 40.749719,
+                "lon": -73.987823,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D17N",
+                  "name": "34 St-Herald Sq",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:B",
+                "shortName": "B",
+                "longName": "6 Avenue Express",
+                "mode": "SUBWAY"
+              }
+            },
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:51:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:09:30-04:00",
+                "estimated": null
+              },
+              "duration": 1080.0,
+              "from": {
+                "name": "34 St-Herald Sq",
+                "lat": 40.749719,
+                "lon": -73.987823,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D17N",
+                  "name": "34 St-Herald Sq",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "Jackson Hts-Roosevelt Av",
+                "lat": 40.746644,
+                "lon": -73.891338,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:G14N",
+                  "name": "Jackson Hts-Roosevelt Av",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 2670,
+          "startTime": "2026-07-30T12:38:30-04:00",
+          "endTime": "2026-07-30T13:23:00-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 1,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:38:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T12:57:30-04:00",
+                "estimated": null
+              },
+              "duration": 1140.0,
+              "from": {
+                "name": "Atlantic Av-Barclays Ctr",
+                "lat": 40.68446,
+                "lon": -73.97689,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D24N",
+                  "name": "Atlantic Av-Barclays Ctr",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "34 St-Herald Sq",
+                "lat": 40.749719,
+                "lon": -73.987823,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D17N",
+                  "name": "34 St-Herald Sq",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:B",
+                "shortName": "B",
+                "longName": "6 Avenue Express",
+                "mode": "SUBWAY"
+              }
+            },
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T13:05:00-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:23:00-04:00",
+                "estimated": null
+              },
+              "duration": 1080.0,
+              "from": {
+                "name": "34 St-Herald Sq",
+                "lat": 40.749719,
+                "lon": -73.987823,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D17N",
+                  "name": "34 St-Herald Sq",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "Jackson Hts-Roosevelt Av",
+                "lat": 40.746644,
+                "lon": -73.891338,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:G14N",
+                  "name": "Jackson Hts-Roosevelt Av",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 2490,
+          "startTime": "2026-07-30T12:47:00-04:00",
+          "endTime": "2026-07-30T13:28:30-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 1,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:47:00-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:06:00-04:00",
+                "estimated": null
+              },
+              "duration": 1140.0,
+              "from": {
+                "name": "Atlantic Av-Barclays Ctr",
+                "lat": 40.68446,
+                "lon": -73.97689,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D24N",
+                  "name": "Atlantic Av-Barclays Ctr",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "34 St-Herald Sq",
+                "lat": 40.749719,
+                "lon": -73.987823,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D17N",
+                  "name": "34 St-Herald Sq",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:B",
+                "shortName": "B",
+                "longName": "6 Avenue Express",
+                "mode": "SUBWAY"
+              }
+            },
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T13:10:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:28:30-04:00",
+                "estimated": null
+              },
+              "duration": 1080.0,
+              "from": {
+                "name": "34 St-Herald Sq",
+                "lat": 40.749719,
+                "lon": -73.987823,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D17N",
+                  "name": "34 St-Herald Sq",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "Jackson Hts-Roosevelt Av",
+                "lat": 40.746644,
+                "lon": -73.891338,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:G14N",
+                  "name": "Jackson Hts-Roosevelt Av",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

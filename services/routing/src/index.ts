@@ -35,6 +35,16 @@ export {
   type RankedItinerary,
   type RouteSearchOutcome,
 } from "./search.ts";
+export {
+  createOtpCandidateProvider,
+  OtpProviderError,
+  DEFAULT_SEARCH_WINDOW_SECONDS,
+  type OtpCandidateProvider,
+  type OtpCandidateProviderOptions,
+  type OtpProviderErrorKind,
+  type OtpQueryStats,
+  type OtpRejectReason,
+} from "./otp-provider/index.ts";
 export type {
   CandidateItinerary,
   CandidateSearchRequest,

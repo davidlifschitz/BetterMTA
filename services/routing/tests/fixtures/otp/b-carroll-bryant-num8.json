@@ -1,0 +1,398 @@
+{
+  "data": {
+    "plan": {
+      "from": {
+        "name": "Carroll St",
+        "stop": {
+          "gtfsId": "nyct-gtfs:F21N",
+          "name": "Carroll St"
+        }
+      },
+      "to": {
+        "name": "42 St-Bryant Pk",
+        "stop": {
+          "gtfsId": "nyct-gtfs:D16N",
+          "name": "42 St-Bryant Pk"
+        }
+      },
+      "itineraries": [
+        {
+          "duration": 1530,
+          "startTime": "2026-07-30T12:27:30-04:00",
+          "endTime": "2026-07-30T12:53:00-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:27:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T12:53:00-04:00",
+                "estimated": null
+              },
+              "duration": 1530.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1530,
+          "startTime": "2026-07-30T12:34:00-04:00",
+          "endTime": "2026-07-30T12:59:30-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:34:00-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T12:59:30-04:00",
+                "estimated": null
+              },
+              "duration": 1530.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1590,
+          "startTime": "2026-07-30T12:40:00-04:00",
+          "endTime": "2026-07-30T13:06:30-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:40:00-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:06:30-04:00",
+                "estimated": null
+              },
+              "duration": 1590.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1530,
+          "startTime": "2026-07-30T12:46:30-04:00",
+          "endTime": "2026-07-30T13:12:00-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:46:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:12:00-04:00",
+                "estimated": null
+              },
+              "duration": 1530.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1530,
+          "startTime": "2026-07-30T12:51:30-04:00",
+          "endTime": "2026-07-30T13:17:00-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:51:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:17:00-04:00",
+                "estimated": null
+              },
+              "duration": 1530.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1500,
+          "startTime": "2026-07-30T12:58:00-04:00",
+          "endTime": "2026-07-30T13:23:00-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T12:58:00-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:23:00-04:00",
+                "estimated": null
+              },
+              "duration": 1500.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1590,
+          "startTime": "2026-07-30T13:05:00-04:00",
+          "endTime": "2026-07-30T13:31:30-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T13:05:00-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:31:30-04:00",
+                "estimated": null
+              },
+              "duration": 1590.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        },
+        {
+          "duration": 1500,
+          "startTime": "2026-07-30T13:11:30-04:00",
+          "endTime": "2026-07-30T13:36:30-04:00",
+          "walkDistance": 0.0,
+          "numberOfTransfers": 0,
+          "legs": [
+            {
+              "mode": "SUBWAY",
+              "startTime": {
+                "scheduledTime": "2026-07-30T13:11:30-04:00",
+                "estimated": null
+              },
+              "endTime": {
+                "scheduledTime": "2026-07-30T13:36:30-04:00",
+                "estimated": null
+              },
+              "duration": 1500.0,
+              "from": {
+                "name": "Carroll St",
+                "lat": 40.680303,
+                "lon": -73.995048,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:F21N",
+                  "name": "Carroll St",
+                  "code": null
+                }
+              },
+              "to": {
+                "name": "42 St-Bryant Pk",
+                "lat": 40.754222,
+                "lon": -73.984569,
+                "stop": {
+                  "gtfsId": "nyct-gtfs:D16N",
+                  "name": "42 St-Bryant Pk",
+                  "code": null
+                }
+              },
+              "route": {
+                "gtfsId": "nyct-gtfs:F",
+                "shortName": "F",
+                "longName": "Queens Blvd Express/6 Av Local",
+                "mode": "SUBWAY"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
