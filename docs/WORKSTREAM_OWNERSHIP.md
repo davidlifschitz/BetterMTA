@@ -17,7 +17,7 @@ This map defines which workstream owns which paths after the conductor package i
 | Frontend | `agent/frontend` | `.agents/mobile-web.md` | Mobile web UI |
 | Infrastructure | `agent/infrastructure` | `.agents/infrastructure.md` | Deploy, CI/CD, observability, flags |
 | Benchmark/QA | `agent/benchmark-qa` | `.agents/benchmark-qa.md` | Benchmark corpus, release gates |
-| Integration | *(after parallel merge)* | `.agents/integration-launch.md` | Wire systems, beta launch |
+| Integration | `agent/integration-live` | `.agents/integration-launch.md` | Wire systems, beta launch — handoff: `.agents/handoffs/integration-live.md` |
 
 ## Shared / conductor-owned (do not edit without approval)
 

@@ -32,9 +32,12 @@
 ## Engineering and readiness
 - `TECHNICAL_DESIGN.md` — directional design; API paths superseded by `API_CONTRACT.md`
 - `PRODUCTION_CHECKLIST.md`
+- `RUNBOOKS.md` — local compose bring-up, drills, cost, Phase 11 go/no-go pointer
+- `RELEASE_GATE_REPORT.md` — G01–G20 honest summary + final status (`BLOCKED` as of Phase 11)
+- `../.agents/handoffs/integration-live.md` — integration-live completion package
 
 ## Agent prompts
-The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts.
+The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts. Workstream handoffs live under `../.agents/handoffs/`.
 
 ## Binary backups
 The previously generated DOCX and PDF product packages are intentionally not committed through the GitHub text-file connector. Their source content is represented in the Markdown files above.

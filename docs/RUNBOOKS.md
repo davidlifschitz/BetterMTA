@@ -1,10 +1,10 @@
 # BetterMTA Runbooks
 
-**Owner:** Infrastructure  
-**Status:** Phase 8 prepared (local compose); Fly cloud **not activated**  
-**Related:** `docs/SLOS.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`
+**Owner:** Infrastructure (+ Integration Phase 11 inventory)  
+**Status:** Local compose live path proven (Phases 8–10); Fly cloud **not activated**  
+**Related:** `docs/SLOS.md`, `docs/RELEASE_GATE_REPORT.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`, `.agents/handoffs/integration-live.md`
 
-Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 8 cloud status: **prepared, not activated**.
+Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 11 go/no-go: **`BLOCKED`** (not ready for Fly private/public beta).
 
 ---
 
@@ -26,14 +26,18 @@ ls services/data/var/data/static/active.json
 
 ### Commands
 
+Prefer the Compose V2 plugin when available; otherwise use the standalone CLI (common on Colima/Homebrew):
+
 ```bash
 cd /path/to/bettermta   # integration-live worktree / repo root
 
-docker compose build
-docker compose up -d
+# Plugin form:
+docker compose build && docker compose up -d
+# Standalone form (if `docker compose` is unknown):
+docker-compose build && docker-compose up -d
 
-docker compose ps
-docker compose logs -f api data otp web
+docker-compose ps
+docker-compose logs -f api data otp web
 ```
 
 Compose-only token (documented, **non-prod**): `BETTERMTA_INTERNAL_TOKEN=dev-local-token`.
@@ -52,7 +56,8 @@ Host ports: web `3000`, api `8080`, data `8081` (→ proxy `:8082`), otp `8090:8
 ### Tear down
 
 ```bash
-docker compose down
+docker-compose down
+# or: docker compose down
 ```
 
 ---
@@ -90,20 +95,30 @@ curl -fsS 'http://localhost:8080/v1/places/search?q=Bryant' | jq .
 
 Use `docker-compose` (standalone CLI) if `docker compose` plugin is unavailable.
 
-### Phase 8 smoke results (2026-07-30)
+### Health-check inventory (actual)
 
-Recorded on `agent/integration-live` after Colima restart to **12 GiB** MemTotal:
+| Endpoint | Expected | Notes |
+|---|---|---|
+| `GET http://localhost:8080/health/live` | 200 | API process up |
+| `GET http://localhost:8080/health/ready` | 200 when data+OTP adapters ready | Reflects graph pin / data mode |
+| `GET http://localhost:8080/v1/status` | JSON with `dataMode`, static + RT versions | Never unlabeled live when stale |
+| `GET http://localhost:8090/otp/actuators/health` | OTP actuator | Direct OTP container |
+| Web `http://localhost:3000/` | 200 | `NEXT_PUBLIC_API_BASE_URL` → `:8080` |
+
+### Phase 8–9 smoke results (2026-07-30)
+
+Recorded on `agent/integration-live` after Colima restart to **12 GiB** MemTotal. Phase 8 had a Carroll→Bryant API miss; **Phase 9 live smoke fixed the end-to-end path** (feed-prefixed route IDs + graph version match + later Phase 10 NY TZ / timeout remediations).
 
 | Check | Result | Notes |
 |---|---|---|
 | `docker build` data/api/web/otp | **PASS** | Tags `bettermta-*:local` |
 | `docker-compose up` full stack | **PASS** | data, data-proxy, otp, api, web all **healthy** |
-| `GET /health/live` + `/health/ready` | **PASS** | ready `dataMode=live` |
-| `GET /v1/status` | **PASS** | `dataMode=live`, static `mta-subway-c9c3366cdd16`, live RT snapshot |
+| `GET /health/live` + `/health/ready` | **PASS** | ready with honest data mode |
+| `GET /v1/status` | **PASS** | static `mta-subway-c9c3366cdd16`; RT snapshot present |
 | `GET /v1/lines` | **PASS** | 26 lines |
 | `GET /v1/places/search` | **PASS** | `st:F21` Carroll St, `st:D16` 42 St-Bryant Pk |
-| `POST /v1/routes/search` | **PARTIAL** | Endpoint reachable; returns `404 no_transit_path` for Carroll→Bryant F (OTP GraphQL plan for same OD **succeeds** — API/routing binding deferred) |
-| OTP GraphQL plan (direct :8090) | **PASS** | F subway itinerary ~24m |
+| `POST /v1/routes/search` Carroll→Bryant F | **PASS** (Phase 9) | Live smoke ~2107 ms; complete/stale; see `benchmarks/reports/live-shadow-2026-07-30T19-22-40-758Z.txt` |
+| OTP GraphQL plan (direct :8090) | **PASS** | F subway itinerary |
 | Web `/` | **PASS** | HTTP 200 |
 | Fly deploy | **BLOCKED** | No `flyctl`, no Fly credentials/apps — **prepared, not activated** |
 
@@ -246,7 +261,7 @@ Four always-on Machines, no Postgres, **API exactly 1 replica** (in-memory rate 
 | otp | shared-cpu-2x · 4GB + vol | ~$15–25 |
 | IPv4 / egress | — | ~$2–5 |
 
-**Ballpark: ~$30–50/mo.** OTP dominates. Confirm on current Fly pricing before launch. Managed Postgres deferred until feedback.
+**Ballpark: ~$30–50/mo** (Phase 11 confirmation; aligns with ADR-0005 proposal ≈ $25–45/mo). OTP dominates. Confirm on current Fly pricing before launch. Managed Postgres deferred until feedback (≈ $55–85/mo if added). Local compose cost is host/Colima only.
 
 ---
 
@@ -393,6 +408,27 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 | Data bind `0.0.0.0` for private networking | **Prepared** — `BETTERMTA_DATA_BIND_HOST` (default `127.0.0.1` + compose socat; Fly toml sets `0.0.0.0`) |
 | Web bake-time `NEXT_PUBLIC_API_BASE_URL` | **Prepared** — deploy.yml requires non-localhost `public_api_base_url`; see `infra/fly/DEPLOY.md` |
 | OTP Fly build context `services/otp` | **Prepared** — `fly deploy services/otp -c ../infra/fly/otp.fly.toml` |
+
+---
+
+## Phase 11 go/no-go (release gates)
+
+**Final status:** `BLOCKED` — see `docs/RELEASE_GATE_REPORT.md` and `.agents/handoffs/integration-live.md`.
+
+| Track | Verdict |
+|---|---|
+| Local compose (data+OTP+API+web) + fixture CI gates | Proven; Critical Phase 10 remediations landed |
+| Fly private beta (intended cloud cohort) | **BLOCKED** — no `flyctl`/creds/apps, no domain/TLS, no rollback drill |
+| Public beta | **BLOCKED** (same + a11y/p95/Google non-claim) |
+
+Regenerate machine checklist:
+
+```bash
+npm --prefix benchmarks/runner run gate
+# → benchmarks/reports/release-gate-latest.md (G01–G20)
+```
+
+Rollback pointers: this doc § Deployment rollback / § Rollback; `infra/fly/DEPLOY.md` (Fly pending activation).
 
 ---
 
