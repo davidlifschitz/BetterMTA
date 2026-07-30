@@ -1,0 +1,35 @@
+{
+  "configVersion": "bettermta-otp-2.9.0",
+  "transitModelTimeZone": "America/New_York",
+  "subwayAccessTime": 2.0,
+  "maxTransferDuration": "PT30M",
+  "staticParkAndRide": false,
+  "staticBikeParkAndRide": false,
+  "dataImportReport": true,
+  "embedRouterConfig": false,
+  "osmDefaults": {
+    "osmTagMapping": "default",
+    "timeZone": "America/New_York",
+    "includeOsmSubwayEntrances": true
+  },
+  "gtfsDefaults": {
+    "discardMinTransferTimes": false,
+    "blockBasedInterlining": true,
+    "stationTransferPreference": "allowed"
+  },
+  "osm": [
+    {
+      "source": "nyc.osm.pbf",
+      "osmTagMapping": "default",
+      "timeZone": "America/New_York",
+      "includeOsmSubwayEntrances": true
+    }
+  ],
+  "transitFeeds": [
+    {
+      "type": "gtfs",
+      "feedId": "nyct-gtfs",
+      "source": "gtfs_subway.zip"
+    }
+  ]
+}
