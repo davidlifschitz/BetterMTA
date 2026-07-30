@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { isDataUnavailableError } from "../adapters/live/errors.js";
 import { ApiError } from "../errors/apiError.js";
 import { assignExplanationVariant } from "../experiments/assign.js";
 import { buildRouteCacheKey } from "../cache/routeCacheKey.js";
@@ -18,59 +19,76 @@ export async function executeRouteSearch(input: {
 }): Promise<RouteSearchResponse> {
   const { body, requestId, data, routing, routeCache, signal } = input;
 
-  const readiness = await data.getReadiness();
-  if (!readiness.staticOk) {
-    throw new ApiError(
-      "data_unavailable",
-      "Static transit dataset is not available.",
+  try {
+    // ADR-0014: arrive-by deferred for beta — reject with clear 400 (invalid_input).
+    if (body.timing?.type === "arrive_by") {
+      throw new ApiError(
+        "invalid_input",
+        "Arrive-by search is not supported in this beta. Use depart_now or depart_at.",
+        requestId,
+        { field: "timing.type", value: "arrive_by" },
+      );
+    }
+
+    const readiness = await data.getReadiness();
+    if (!readiness.staticOk) {
+      throw new ApiError(
+        "data_unavailable",
+        "Static transit dataset is not available.",
+        requestId,
+        { reasons: readiness.reasons },
+      );
+    }
+
+    const selected = normalizeSelectedLines(body.selectedLineIds);
+    if (selected.length > MAX_SELECTED_LINES) {
+      throw new ApiError(
+        "invalid_input",
+        `At most ${MAX_SELECTED_LINES} selected lines are allowed.`,
+        requestId,
+        { maxSelectedLines: MAX_SELECTED_LINES },
+      );
+    }
+
+    await assertKnownPlaces(body, data, requestId);
+    await assertKnownLines(selected, data, requestId);
+
+    const snapshot = await data.getSnapshotHandle();
+    const explanationVariant = assignExplanationVariant(
       requestId,
-      { reasons: readiness.reasons },
+      input.experimentSeed,
     );
-  }
 
-  const selected = normalizeSelectedLines(body.selectedLineIds);
-  if (selected.length > MAX_SELECTED_LINES) {
-    throw new ApiError(
-      "invalid_input",
-      `At most ${MAX_SELECTED_LINES} selected lines are allowed.`,
+    const cacheKey = buildRouteCacheKey({
+      request: body,
+      selectedLineIds: selected,
+      staticDatasetVersion: snapshot.staticDatasetVersion,
+      realtimeSnapshotId: snapshot.realtimeSnapshotId,
+      explanationVariant,
+    });
+
+    const cached = routeCache.get(cacheKey);
+    if (cached) {
+      return { ...cached, requestId };
+    }
+
+    const response = await routing.searchRoutes({
+      request: { ...body, selectedLineIds: selected },
+      selectedLineIds: selected,
+      snapshot,
       requestId,
-      { maxSelectedLines: MAX_SELECTED_LINES },
-    );
+      explanationVariant,
+      signal,
+    });
+
+    routeCache.set(cacheKey, response);
+    return response;
+  } catch (err) {
+    if (isDataUnavailableError(err)) {
+      throw new ApiError("data_unavailable", err.message, requestId);
+    }
+    throw err;
   }
-
-  await assertKnownPlaces(body, data, requestId);
-  await assertKnownLines(selected, data, requestId);
-
-  const snapshot = await data.getSnapshotHandle();
-  const explanationVariant = assignExplanationVariant(
-    requestId,
-    input.experimentSeed,
-  );
-
-  const cacheKey = buildRouteCacheKey({
-    request: body,
-    selectedLineIds: selected,
-    staticDatasetVersion: snapshot.staticDatasetVersion,
-    realtimeSnapshotId: snapshot.realtimeSnapshotId,
-    explanationVariant,
-  });
-
-  const cached = routeCache.get(cacheKey);
-  if (cached) {
-    return { ...cached, requestId };
-  }
-
-  const response = await routing.searchRoutes({
-    request: { ...body, selectedLineIds: selected },
-    selectedLineIds: selected,
-    snapshot,
-    requestId,
-    explanationVariant,
-    signal,
-  });
-
-  routeCache.set(cacheKey, response);
-  return response;
 }
 
 function normalizeSelectedLines(ids: string[] | undefined): string[] {

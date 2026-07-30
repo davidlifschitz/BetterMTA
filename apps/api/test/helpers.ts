@@ -10,6 +10,8 @@ export async function createTestApp(
 ): Promise<{ app: FastifyInstance; deps: AppDeps }> {
   return buildApp({
     config: {
+      // Existing fixture suite runs under NODE_ENV=test in fixture mode.
+      adapterMode: "fixture",
       logLevel: "silent",
       rateLimitMax: 1000,
       requestTimeoutMs: 500,

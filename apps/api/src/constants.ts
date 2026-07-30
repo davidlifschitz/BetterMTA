@@ -9,3 +9,13 @@ export const RATE_LIMIT_WINDOW_MS_DEFAULT = 60_000;
 export const RATE_LIMIT_MAX_DEFAULT = 120;
 /** Larger bucket for cheap GETs (/v1/lines, /v1/status). */
 export const CHEAP_RATE_LIMIT_MAX_DEFAULT = 600;
+
+/** Live data-service status poll TTL. */
+export const DATA_STATUS_TTL_MS_DEFAULT = 5_000;
+/** Live line/station catalog TTL. */
+export const DATA_CATALOG_TTL_MS_DEFAULT = 60_000;
+/** OTP reachability probe cache TTL for /health/ready. */
+export const OTP_PROBE_TTL_MS_DEFAULT = 10_000;
+export const OTP_TIMEOUT_MS_DEFAULT = 4_000;
+export const DATA_INTERNAL_URL_DEFAULT = "http://localhost:8081";
+export const OTP_URL_DEFAULT = "http://localhost:8090";

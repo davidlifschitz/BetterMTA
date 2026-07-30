@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { isDataUnavailableError } from "../../adapters/live/errors.js";
 import { ApiError } from "../../errors/apiError.js";
 import { newRequestId } from "../../services/routeSearch.js";
 import {
@@ -40,6 +41,14 @@ export async function registerLinesRoute(
       });
       return reply.status(200).send(lines);
     } catch (err) {
+      if (isDataUnavailableError(err)) {
+        sendApiError(
+          reply,
+          new ApiError("data_unavailable", err.message, requestId),
+          deps.logger,
+        );
+        return;
+      }
       if (err instanceof ApiError) {
         sendApiError(reply, err, deps.logger);
         return;

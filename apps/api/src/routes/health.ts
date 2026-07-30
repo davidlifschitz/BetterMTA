@@ -19,9 +19,24 @@ export async function registerHealthRoutes(
     setContractHeaders(reply, requestId);
 
     const readiness = await deps.data.getReadiness();
+    const reasons = [...readiness.reasons];
+
+    let dependencyOk = true;
+    if (
+      deps.config.adapterMode === "live" &&
+      typeof deps.routing.getDependencyReadiness === "function"
+    ) {
+      const dep = await deps.routing.getDependencyReadiness();
+      dependencyOk = dep.ok;
+      for (const r of dep.reasons) {
+        if (!reasons.includes(r)) reasons.push(r);
+      }
+    }
+
     const ready =
       readiness.staticOk &&
-      (readiness.realtimeOk || readiness.degradedPermitted);
+      (readiness.realtimeOk || readiness.degradedPermitted) &&
+      dependencyOk;
 
     if (ready) {
       return reply.status(200).send({
@@ -32,10 +47,7 @@ export async function registerHealthRoutes(
 
     return reply.status(503).send({
       status: "not_ready",
-      reasons:
-        readiness.reasons.length > 0
-          ? readiness.reasons
-          : ["dependency_not_ready"],
+      reasons: reasons.length > 0 ? reasons : ["dependency_not_ready"],
     });
   });
 }

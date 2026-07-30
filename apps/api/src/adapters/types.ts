@@ -36,6 +36,13 @@ export interface RoutingSearchInput {
   signal?: AbortSignal;
 }
 
+export interface RoutingDependencyReadiness {
+  ok: boolean;
+  reasons: string[];
+}
+
 export interface RoutingAdapter {
   searchRoutes(input: RoutingSearchInput): Promise<RouteSearchResponse>;
+  /** Optional; live adapter reports OTP reachability for /health/ready. */
+  getDependencyReadiness?(): Promise<RoutingDependencyReadiness>;
 }

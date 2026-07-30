@@ -72,9 +72,11 @@ npm --prefix contracts run validate
 
 | Command | Result |
 |---|---|
-| `npm --prefix apps/api test` | **PASS** — 6 files, **50/50** tests |
+| `npm --prefix apps/api test` | **PASS** — 8 files, **73/73** tests (+ 1 skipped live-stack gate) |
 | `npm --prefix apps/api run typecheck` | **PASS** |
 | `npm --prefix contracts run validate` | **PASS** (unchanged conductor package) |
+
+Phase 6 live adapters (2026-07-30): `LiveDataAdapter` + `LiveRoutingAdapter` under `apps/api/src/adapters/live/`; default `BETTERMTA_ADAPTER_MODE=live`; fixture mode retained for tests via `createTestApp`.
 
 ## 7. Fixture or sample-data instructions
 
@@ -109,13 +111,15 @@ Example complete-match request: `contracts/fixtures/routes/request-depart-now.js
 
 ## 9. Known limitations
 
-- **Mocked:** all routing results and most place/status data (fixture adapters).
-- No production geocoder, OTP/routing client, or live GTFS snapshot store.
-- In-memory rate limit and caches are single-process only (not multi-instance safe).
+- Fixture adapters remain available for `BETTERMTA_ADAPTER_MODE=fixture` (dev/test only; ADR-0018 lockout in production).
+- Live OTP provider factory (`createOtpCandidateProvider`) is **feature-detected** — until `@bettermta/routing` exports it and has a usable dist/build, live searches without an injected provider return `data_unavailable`.
+- ENV-gated live-stack test (`BETTERMTA_LIVE_STACK=1`) requires real data internal server + OTP at `:8090` and the OTP provider export; skipped by default.
+- No third-party geocoder — live place search is station-catalog only (prefix/substring + proximity bias).
+- In-memory rate limit and caches are single-process only (startup logs `rate_limit_scope=single_replica_in_memory`).
 - Latency histogram is in-process only (not scraped/exported to a metrics backend yet).
 - Experiment assignment only covers `explanationVariant` (not line-picker / result-count variants).
-- Fixture partial/complete itinerary bodies are not re-ranked by the API (ranking stays in routing workstream).
 - `incomplete_selected_line_satisfaction` and `stale_realtime` appear as successful/soft metadata, not HTTP error bodies (per contract).
+- Arrive-by is rejected with `400 invalid_input` (ADR-0014; ADR text says `invalid_request`, contract code is `invalid_input`).
 
 ## 10. Decisions requiring conductor approval
 
@@ -124,11 +128,10 @@ Example complete-match request: `contracts/fixtures/routes/request-depart-now.js
 
 ## 11. Exact next integration step
 
-1. Orchestrator commits `apps/api/**` + proposal + this handoff on `agent/backend`.
-2. After routing exposes a `RoutingAdapter`-compatible client and data exposes snapshot handles, replace fixture adapters in `buildApp` with production adapters **without** changing HTTP paths or response schemas.
-3. Frontend may already call these paths against fixture mode; wire preview deploy via infrastructure to `apps/api` start script.
-4. Infra must set `BETTERMTA_TRUST_PROXY` to the Fly edge hop count before relying on IP-based rate limiting in production.
-5. QA should add load probes against `/v1/routes/search` p95 once a non-fixture routing adapter exists (API now records in-process latency buckets).
+1. Routing workstream ships `createOtpCandidateProvider` on `@bettermta/routing` (dist + types) matching the binding in `apps/api/src/adapters/live/routingBinding.ts`.
+2. With data internal server + OTP running locally, set `BETTERMTA_LIVE_STACK=1` and run `npm --prefix apps/api test` to exercise the real-stack integration test.
+3. Infra sets `BETTERMTA_ADAPTER_MODE=live`, data/OTP URLs + tokens, `BETTERMTA_TRUST_PROXY` hop count, and never ships `fixture` under `NODE_ENV=production`.
+4. QA load-probes `/v1/routes/search` p95 against live adapters (API latency histogram already records in-process buckets).
 
 ### Implemented vs mocked vs deferred vs blocked
 
@@ -139,10 +142,15 @@ Example complete-match request: `contracts/fixtures/routes/request-depart-now.js
 | Ajv request validation + contract response tests | **Implemented + tested** |
 | Rate limit (incl. lines/status), hard timeout, caches, experiments, readiness | **Implemented + tested** |
 | Latency histogram (p50/p95/p99-capable) | **Implemented + tested** |
-| Privacy-safe structured logging | **Implemented** |
+| Privacy-safe structured logging (coords + raw query redacted) | **Implemented + tested** |
 | RoutingAdapter / DataAdapter interfaces | **Implemented** |
-| Fixture adapters + fixture selection | **Mocked (intentional)** |
-| Live routing / live GTFS / geocoder | **Deferred** |
+| Fixture adapters + fixture selection | **Implemented (dev/test; production lockout)** |
+| LiveDataAdapter (data `/internal/*` HTTP + SWR caches) | **Implemented + tested** |
+| LiveRoutingAdapter (`runRouteSearch` + OTP provider binding) | **Implemented + tested** (OTP factory feature-detected) |
+| ADR-0014 arrive-by rejection | **Implemented + tested** |
+| ADR-0018 production fixture lockout | **Implemented + tested** |
+| Live-stack ENV-gated integration test | **Present; skipped unless `BETTERMTA_LIVE_STACK=1`** |
 | Multi-instance rate limit / Redis cache / metrics export | **Deferred** |
+| Third-party geocoder / address POI search | **Deferred** |
 | `/v1/feedback` | **Deferred** (reserved, not implemented) |
 | Contract changes | **Blocked on conductor** (proposals only) |

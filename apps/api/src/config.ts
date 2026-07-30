@@ -2,7 +2,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CHEAP_RATE_LIMIT_MAX_DEFAULT,
+  DATA_CATALOG_TTL_MS_DEFAULT,
+  DATA_INTERNAL_URL_DEFAULT,
+  DATA_STATUS_TTL_MS_DEFAULT,
   LINES_CACHE_TTL_MS_DEFAULT,
+  OTP_PROBE_TTL_MS_DEFAULT,
+  OTP_TIMEOUT_MS_DEFAULT,
+  OTP_URL_DEFAULT,
   RATE_LIMIT_MAX_DEFAULT,
   RATE_LIMIT_WINDOW_MS_DEFAULT,
   REQUEST_TIMEOUT_MS_DEFAULT,
@@ -18,6 +24,8 @@ export type AdapterReadyMode =
   | "not_ready_static"
   | "not_ready_realtime";
 
+export type AdapterMode = "fixture" | "live";
+
 export interface ApiConfig {
   port: number;
   host: string;
@@ -30,6 +38,8 @@ export interface ApiConfig {
   linesCacheTtlMs: number;
   routeCacheTtlMs: number;
   adapterReadyMode: AdapterReadyMode;
+  /** fixture = contracts fixtures (dev/test only); live = data service + OTP. */
+  adapterMode: AdapterMode;
   permitDegradedReady: boolean;
   /** When false, Fastify ignores X-Forwarded-* for client IP. Number = hop count. */
   trustProxy: boolean | number;
@@ -44,6 +54,21 @@ export interface ApiConfig {
    */
   allowExperimentSeed: boolean;
   logLevel: "debug" | "info" | "warn" | "error" | "silent";
+  /** Base URL for services/data internal HTTP API. */
+  dataInternalUrl: string;
+  /** Bearer token for data internal API (optional in anon-dev). */
+  dataInternalToken: string | null;
+  dataStatusTtlMs: number;
+  dataCatalogTtlMs: number;
+  /** OTP HTTP base URL. */
+  otpUrl: string;
+  otpTimeoutMs: number;
+  otpProbeTtlMs: number;
+  /**
+   * Optional OTP graph version pin. When set, must share a prefix with the
+   * active staticDatasetVersion or searches fail closed as data_unavailable.
+   */
+  otpGraphVersion: string | null;
 }
 
 function envInt(name: string, fallback: number): number {
@@ -80,6 +105,33 @@ function testOrFlag(envName: string): boolean {
   return envBool(envName, false);
 }
 
+export function envAdapterMode(
+  raw = process.env.BETTERMTA_ADAPTER_MODE,
+): AdapterMode {
+  if (raw === "fixture" || raw === "live") return raw;
+  if (raw !== undefined && raw !== "") {
+    throw new Error(
+      `Invalid BETTERMTA_ADAPTER_MODE=${raw}; expected fixture|live`,
+    );
+  }
+  return "live";
+}
+
+/**
+ * ADR-0018: production must never boot in fixture mode.
+ * Call before listen (and from buildApp so tests can assert throw).
+ */
+export function assertProductionAdapterLockout(
+  adapterMode: AdapterMode,
+  nodeEnv = process.env.NODE_ENV,
+): void {
+  if (nodeEnv === "production" && adapterMode === "fixture") {
+    throw new Error(
+      "Refusing to start: BETTERMTA_ADAPTER_MODE=fixture is forbidden when NODE_ENV=production (ADR-0018).",
+    );
+  }
+}
+
 export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
   const readyRaw = process.env.BETTERMTA_ADAPTER_READY_MODE ?? "healthy";
   const adapterReadyMode = (
@@ -87,6 +139,9 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
   ).includes(readyRaw as AdapterReadyMode)
     ? (readyRaw as AdapterReadyMode)
     : "healthy";
+
+  const tokenRaw = process.env.BETTERMTA_DATA_INTERNAL_TOKEN;
+  const graphRaw = process.env.BETTERMTA_OTP_GRAPH_VERSION;
 
   const base: ApiConfig = {
     port: envInt("PORT", 3080),
@@ -118,11 +173,32 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
       ROUTE_CACHE_TTL_MS_DEFAULT,
     ),
     adapterReadyMode,
+    adapterMode: envAdapterMode(),
     permitDegradedReady: envBool("BETTERMTA_PERMIT_DEGRADED_READY", true),
     trustProxy: envTrustProxy(),
     allowRateLimitKey: testOrFlag("BETTERMTA_ALLOW_RATE_LIMIT_KEY"),
     allowExperimentSeed: testOrFlag("BETTERMTA_ALLOW_EXPERIMENT_SEED"),
     logLevel: (process.env.BETTERMTA_LOG_LEVEL as ApiConfig["logLevel"]) ?? "info",
+    dataInternalUrl:
+      process.env.BETTERMTA_DATA_INTERNAL_URL ?? DATA_INTERNAL_URL_DEFAULT,
+    dataInternalToken:
+      tokenRaw !== undefined && tokenRaw !== "" ? tokenRaw : null,
+    dataStatusTtlMs: envInt(
+      "BETTERMTA_DATA_STATUS_TTL_MS",
+      DATA_STATUS_TTL_MS_DEFAULT,
+    ),
+    dataCatalogTtlMs: envInt(
+      "BETTERMTA_DATA_CATALOG_TTL_MS",
+      DATA_CATALOG_TTL_MS_DEFAULT,
+    ),
+    otpUrl: process.env.BETTERMTA_OTP_URL ?? OTP_URL_DEFAULT,
+    otpTimeoutMs: envInt("BETTERMTA_OTP_TIMEOUT_MS", OTP_TIMEOUT_MS_DEFAULT),
+    otpProbeTtlMs: envInt(
+      "BETTERMTA_OTP_PROBE_TTL_MS",
+      OTP_PROBE_TTL_MS_DEFAULT,
+    ),
+    otpGraphVersion:
+      graphRaw !== undefined && graphRaw !== "" ? graphRaw : null,
   };
 
   return { ...base, ...overrides };

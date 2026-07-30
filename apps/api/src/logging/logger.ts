@@ -18,7 +18,8 @@ export interface LogFields {
 }
 
 /**
- * Structured JSON logger. Never pass precise lat/lon — callers must redact.
+ * Structured JSON logger.
+ * Never logs precise lat/lon or raw place-search query text.
  */
 export function createLogger(level: LogLevel = "info") {
   function shouldLog(at: Exclude<LogLevel, "silent">): boolean {
@@ -28,7 +29,7 @@ export function createLogger(level: LogLevel = "info") {
 
   function write(at: Exclude<LogLevel, "silent">, msg: string, fields: LogFields = {}) {
     if (!shouldLog(at)) return;
-    const safe = redactCoordinates(fields);
+    const safe = redactSensitive(fields);
     const line = JSON.stringify({
       level: at,
       msg,
@@ -54,7 +55,8 @@ export function createLogger(level: LogLevel = "info") {
 
 export type Logger = ReturnType<typeof createLogger>;
 
-function redactCoordinates(fields: LogFields): LogFields {
+/** Testable redaction used by createLogger. */
+export function redactSensitive(fields: LogFields): LogFields {
   const out: LogFields = {};
   for (const [k, v] of Object.entries(fields)) {
     const key = k.toLowerCase();
@@ -67,8 +69,19 @@ function redactCoordinates(fields: LogFields): LogFields {
       out[k] = "[redacted]";
       continue;
     }
+    // Raw place-search / free-text query must never appear in logs.
+    if (
+      key === "query" ||
+      key === "q" ||
+      key === "rawquery" ||
+      key === "searchquery" ||
+      key === "querytext"
+    ) {
+      out[k] = "[redacted]";
+      continue;
+    }
     if (v && typeof v === "object" && !Array.isArray(v)) {
-      out[k] = redactCoordinates(v as LogFields);
+      out[k] = redactSensitive(v as LogFields);
       continue;
     }
     out[k] = v;

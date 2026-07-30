@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { isDataUnavailableError } from "../../adapters/live/errors.js";
 import { ApiError } from "../../errors/apiError.js";
 import { newRequestId } from "../../services/routeSearch.js";
 import {
@@ -76,7 +77,7 @@ export async function registerPlacesRoute(
         }
       }
 
-      // Do not log proximity coordinates.
+      // Do not log proximity coordinates or raw query text.
       const result = await deps.data.searchPlaces({
         query: q,
         limit,
@@ -97,6 +98,14 @@ export async function registerPlacesRoute(
 
       return reply.status(200).send(result);
     } catch (err) {
+      if (isDataUnavailableError(err)) {
+        sendApiError(
+          reply,
+          new ApiError("data_unavailable", err.message, requestId),
+          deps.logger,
+        );
+        return;
+      }
       if (err instanceof ApiError) {
         sendApiError(reply, err, deps.logger);
         return;
