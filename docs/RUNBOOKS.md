@@ -1,10 +1,23 @@
 # BetterMTA Runbooks
 
 **Owner:** Infrastructure (+ Integration Phase 11 inventory)  
-**Status:** Local compose live path proven (Phases 8–10); Fly cloud **not activated**  
+**Status:** Local compose live path proven (Phases 8–10); controlled alpha target ADR-0021 (**not** ready); Fly cloud **not activated**  
 **Related:** `docs/SLOS.md`, `docs/RELEASE_GATE_REPORT.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`, `.agents/handoffs/integration-live.md`
 
-Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 11 go/no-go: **`BLOCKED`** (not ready for Fly private/public beta).
+Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 11 go/no-go: **`BLOCKED`** (not ready for Fly private/public beta). Phase 12A controlled alpha: **not** `READY_FOR_CONTROLLED_ALPHA` until remote gates pass (ADR-0021).
+
+---
+
+## Controlled alpha (Phase 12A) — pointer
+
+**Deploy decision:** ADR-0021 — self-hosted macOS + Docker Compose origin; Cloudflare Tunnel transport; Cloudflare Access auth; **no** router port forwarding.
+
+Detailed ops runbook (bring-up, Access allowlist ops, tunnel restart, host-awake checklist, remote smoke) will land under `infra/alpha/` (or equivalent) in Phase 12A.5–7. Until then:
+
+- Local origin: this doc § Local compose bring-up  
+- Gates / status: `docs/RELEASE_GATE_REPORT.md` (CA01–CA07 + vocabulary)  
+- Risks: `docs/RISK_REGISTER.md` R19–R23  
+- Do not commit secrets, tunnel UUIDs, hostnames, or tester emails  
 
 ---
 
@@ -411,13 +424,15 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 
 ---
 
-## Phase 11 go/no-go (release gates)
+## Phase 11 / 12A go/no-go (release gates)
 
-**Final status:** `BLOCKED` — see `docs/RELEASE_GATE_REPORT.md` and `.agents/handoffs/integration-live.md`.
+**Final status:** `BLOCKED` — see `docs/RELEASE_GATE_REPORT.md` and `.agents/handoffs/integration-live.md`.  
+**Not** `READY_FOR_CONTROLLED_ALPHA` (remote CA gates pending). **Not** Fly private/public beta.
 
 | Track | Verdict |
 |---|---|
 | Local compose (data+OTP+API+web) + fixture CI gates | Proven; Critical Phase 10 remediations landed |
+| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge proxy / CF / remote smoke pending |
 | Fly private beta (intended cloud cohort) | **BLOCKED** — no `flyctl`/creds/apps, no domain/TLS, no rollback drill |
 | Public beta | **BLOCKED** (same + a11y/p95/Google non-claim) |
 

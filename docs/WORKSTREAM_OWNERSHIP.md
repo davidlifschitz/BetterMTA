@@ -29,7 +29,7 @@ These files are the shared contract surface. Implementation workstreams may **co
 | `docs/DOMAIN_MODEL.md` | Canonical entities |
 | `docs/API_CONTRACT.md` | Human API contract |
 | `docs/DATA_CONTRACT.md` | Data freshness and snapshot contracts |
-| `docs/ARCHITECTURE_DECISIONS.md` | Locked ADRs |
+| `docs/ARCHITECTURE_DECISIONS.md` | Locked ADRs (ADR-0021 = controlled-alpha deploy target; Fly beta still ADR-0012) |
 | `docs/INTEGRATION_SEQUENCE.md` | Integration order |
 | `docs/ACCEPTANCE_CRITERIA.md` | Public-beta gates |
 | `docs/RISK_REGISTER.md` | Known risks |

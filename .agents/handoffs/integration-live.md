@@ -1,11 +1,11 @@
 # Integration / Live workstream handoff
 
-**Workstream:** Integration / Launch (Step 3 Phases 3–11)  
+**Workstream:** Integration / Launch (Step 3 Phases 3–12A)  
 **Branch:** `agent/integration-live`  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
 **Date:** 2026-07-30  
 **Contract version consumed:** `2026-07-30`  
-**Phase:** Step 3 Phase 11 — completion package and go/no-go
+**Phase:** Step 3 Phase 12A — self-hosted Cloudflare controlled alpha (docs/ADR started; remote gates pending)
 
 Distinguish: **implemented** / **tested** / **mocked** / **deferred** / **blocked**.
 
@@ -17,10 +17,20 @@ Distinguish: **implemented** / **tested** / **mocked** / **deferred** / **blocke
 BLOCKED
 ```
 
+**Not** `READY_FOR_CONTROLLED_ALPHA` — Phase 12A remote gates (edge proxy, Tunnel, Access, remote smoke) not yet evidenced.  
 **Not** `READY_FOR_PUBLIC_BETA` (no Fly activation, no production domain/TLS, no Fly rollback drill).  
-**Not** `READY_FOR_PRIVATE_BETA` when that label means the intended Fly private-beta cohort (ADR-0012). Local compose / self-hosted dogfood is a viable **validation path** with ops gaps labeled below — do not equate that path with cloud private beta readiness.
+**Not** `READY_FOR_PRIVATE_BETA` when that label means the intended Fly private-beta cohort (ADR-0012).  
 
-See also: `docs/RELEASE_GATE_REPORT.md`, `docs/RUNBOOKS.md` (Phase 11 section).
+**Phase 12A started.** Deploy decision: ADR-0021 — self-hosted macOS + Compose origin; Cloudflare Tunnel transport; Cloudflare Access auth; no router port forwarding. Hosted private/public beta remains a separate later phase.
+
+### Local stack evidence (12A.1) — cite briefly
+
+- HEAD `3ceb6f5`, clean working tree, all suites green  
+- Carroll→Bryant F: complete/`stale` ~3.3s cold  
+- Static pin `mta-subway-c9c3366cdd16`; graph `…+otp2.9.0`  
+- Watch: data ~6 GiB / ~100% CPU; host disk ~98%  
+
+See also: `docs/RELEASE_GATE_REPORT.md` (CA01–CA07 + vocabulary), `docs/RUNBOOKS.md` (controlled-alpha pointer).
 
 ---
 
@@ -77,11 +87,13 @@ No new public beta claims beyond honest `dataMode` labeling.
 
 ## 4. Assumptions
 
-- Private/public beta **target platform** is Fly.io (ADR-0012); local compose is integration/dogfood, not the cloud beta.
+- **Current** remote cohort target is self-hosted controlled alpha (ADR-0021); hosted private/public beta remains Fly.io (ADR-0012) as a **separate later phase**.
+- Local compose is the controlled-alpha origin; availability depends on home power, internet, Docker Desktop, and host awake — not cloud-grade.
 - Compose token `BETTERMTA_INTERNAL_TOKEN=dev-local-token` is **non-prod**.
 - OTP needs ≳4 GiB Docker RAM (Colima ~12 GiB used successfully).
 - Prefer `docker-compose` CLI when `docker compose` plugin is absent.
 - Shadow reports require human review before treating live smoke as accepted evidence.
+- No secrets, tunnel UUIDs, hostnames, or tester emails in the repo.
 
 ---
 
@@ -205,8 +217,12 @@ Internal networking and smoke curls: `docs/RUNBOOKS.md` § Local compose bring-u
 
 | Item | Status |
 |---|---|
-| Fly activation (`flyctl` + creds + apps) | **BLOCKED** |
-| Production domain + TLS | **BLOCKED** / not started |
+| Controlled alpha edge proxy (12A.3) | **PENDING** |
+| Cloudflare Tunnel + Access configs | **PENDING** (later 12A; no secrets in repo) |
+| Remote Access smoke / `READY_FOR_CONTROLLED_ALPHA` | **PENDING** — final status blocked on remote gates |
+| Home power / internet / sleep / Docker Desktop HA | **Accepted limitation** (ADR-0021; risks R19–R21) |
+| Fly activation (`flyctl` + creds + apps) | **BLOCKED** (separate hosted-beta phase) |
+| Production domain + TLS (Fly) | **BLOCKED** / not started |
 | Fly one-action rollback drill (E.4) | **PENDING** (blocked on activation) |
 | Production alerts + pager binding | **PENDING** |
 | Google/Apple/Citymapper comparison | **NOT_CLAIMED** |
@@ -221,20 +237,20 @@ Internal networking and smoke curls: `docs/RUNBOOKS.md` § Local compose bring-u
 
 ## 10. Decisions requiring conductor / human approval
 
-1. Whether to label a **local/compose dogfood cohort** as an official “private beta” despite Fly BLOCKED (this handoff recommends **no** — keep status `BLOCKED`).
-2. When to activate Fly (`ACTIVATE` deploy workflow + secrets) and run E.4 rollback drill.
+1. Controlled-alpha tester allowlist and Access policy (emails stay out of repo) — when CA gates are ready.
+2. When to activate Fly (`ACTIVATE` deploy workflow + secrets) for **hosted** private beta (separate from ADR-0021).
 3. Accept/reject live shadow reports (`humanValidity`).
-4. Whether multi-line diversity gaps block invite rollout even after Fly is up.
+4. Whether multi-line diversity gaps block invite rollout for controlled alpha or later hosted beta.
 
 ---
 
 ## 11. Exact next integration step
 
-1. Install/auth `flyctl`, create apps from `infra/fly/*.toml`, set secrets, deploy with explicit public API URL.
-2. Run Fly rollback drill once per app; bind alerts.
-3. Human-review shadow reports; expand live/recorded corpus for multi-line ODs.
-4. Re-run release gate + live smoke against Fly URL; only then reconsider `READY_FOR_PRIVATE_BETA`.
-5. Do **not** claim public beta or competitive superiority without G13/G15/G17/G18/G20 closure.
+1. **Next (12A.3+):** edge proxy in front of compose origin; then Cloudflare Tunnel + Access (deny-by-default, email OTP/PIN); no router port forward.
+2. Remote smoke via Access; complete CA02–CA05; only then reconsider `READY_FOR_CONTROLLED_ALPHA`.
+3. Land controlled-alpha runbook under `infra/alpha/` (12A.5–7); keep host-awake / disk watch documented.
+4. Hosted Fly private/public beta remains later — do not conflate with controlled alpha.
+5. Do **not** claim `READY_FOR_CONTROLLED_ALPHA`, public beta, or competitive superiority without remote evidence + existing gate discipline.
 
 ---
 

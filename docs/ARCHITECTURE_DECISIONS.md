@@ -383,3 +383,37 @@ SI/ferry-adjacent QA corpus membership is **deferred** out of the public-beta Mu
 ### Consequences
 
 Narrower Must-set gates; SIR/ferry scenarios stay informative rather than release-blocking until product scope expands.
+
+---
+
+## ADR-0021 — Self-hosted Cloudflare controlled alpha
+
+**Status:** Accepted  
+**Date:** 2026-07-30
+
+### Context
+
+Phase 11 left Fly.io private/public beta **BLOCKED** (ADR-0012 not activated). A small remote dogfood cohort needs a controlled path without claiming cloud-grade or public-beta readiness. Router port forwarding is not acceptable.
+
+### Decision
+
+**Current deployment target** for Phase 12A is a **self-hosted controlled alpha** on the existing macOS computer running the Docker Compose stack:
+
+| Layer | Choice |
+|---|---|
+| Origin | Existing macOS host + Docker Compose (`data` / `otp` / `api` / `web`) |
+| External transport | Cloudflare Tunnel (no router port forwarding) |
+| Authentication | Cloudflare Access — deny-by-default, exact email allowlist, email OTP/PIN |
+
+Hard constraints:
+
+- **No router port forwarding** permitted.
+- Availability depends on home power, home internet, Docker Desktop, and the host remaining awake — **not** cloud-grade HA.
+- This path is **not** public-beta ready and does **not** replace hosted private/public beta (still a separate later phase under ADR-0012).
+- Existing correctness, security, privacy, data-honesty, fixture-exclusion, and rollback gates are **not** waived.
+
+Go/no-go vocabulary: status value `READY_FOR_CONTROLLED_ALPHA` is a Phase 12A outcome. It must **not** be marked until remote controlled-alpha gates pass (Access + tunnel + origin evidence). Do not equate it with `READY_FOR_PRIVATE_BETA` or `READY_FOR_PUBLIC_BETA`.
+
+### Consequences
+
+Infra/docs proceed with Tunnel + Access + compose origin; edge proxy and ops runbooks land in later 12A slices. Secrets, tunnel UUIDs, hostnames, and tester emails stay out of the repo. Fly activation remains the path for hosted beta when chosen.
