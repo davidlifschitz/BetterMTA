@@ -1,0 +1,146 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_qa_order_complete_partial",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": { "itineraries": [] },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_qa_complete",
+        "fingerprint": "fp_qa_complete_ac",
+        "durationSeconds": 2400,
+        "arrivalTime": "2026-07-30T18:40:00.000Z",
+        "walkingSeconds": 300,
+        "waitingSeconds": 240,
+        "transferCount": 1,
+        "lineSequence": ["A", "C"],
+        "legs": [
+          {
+            "legId": "leg_qc_w1",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_qc_a",
+            "kind": "transit",
+            "lineId": "A",
+            "from": { "name": "Far Rockaway-Mott Av", "stationId": "st_far_rock" },
+            "to": { "name": "Jay St-MetroTech", "stationId": "st_jay" },
+            "departTime": "2026-07-30T18:05:00.000Z",
+            "arriveTime": "2026-07-30T18:25:00.000Z",
+            "durationSeconds": 1200
+          },
+          {
+            "legId": "leg_qc_t",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": false
+          },
+          {
+            "legId": "leg_qc_c",
+            "kind": "transit",
+            "lineId": "C",
+            "from": { "name": "Jay St-MetroTech", "stationId": "st_jay" },
+            "to": { "name": "14 St", "stationId": "st_14ac" },
+            "departTime": "2026-07-30T18:28:00.000Z",
+            "arriveTime": "2026-07-30T18:38:00.000Z",
+            "durationSeconds": 600
+          },
+          {
+            "legId": "leg_qc_w2",
+            "kind": "walk",
+            "durationSeconds": 60,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["A", "C"],
+          "satisfiedLineIds": ["A", "C"],
+          "omittedLineIds": [],
+          "satisfactionCount": 2,
+          "requestedCount": 2,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "medium",
+        "alerts": [],
+        "explanation": {
+          "summary": "Uses both selected lines A and C.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the A train.", "lineId": "A" },
+            { "type": "line_used", "message": "Uses the C train.", "lineId": "C" }
+          ],
+          "baselineDeltaSeconds": 300
+        },
+        "candidateFamily": "constrained"
+      },
+      {
+        "itineraryId": "itin_qa_partial_faster",
+        "fingerprint": "fp_qa_partial_a",
+        "durationSeconds": 1500,
+        "arrivalTime": "2026-07-30T18:25:00.000Z",
+        "walkingSeconds": 180,
+        "waitingSeconds": 120,
+        "transferCount": 0,
+        "lineSequence": ["A"],
+        "legs": [
+          {
+            "legId": "leg_qp_w1",
+            "kind": "walk",
+            "durationSeconds": 90,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_qp_a",
+            "kind": "transit",
+            "lineId": "A",
+            "from": { "name": "Far Rockaway-Mott Av", "stationId": "st_far_rock" },
+            "to": { "name": "14 St", "stationId": "st_14ac" },
+            "departTime": "2026-07-30T18:05:00.000Z",
+            "arriveTime": "2026-07-30T18:23:00.000Z",
+            "durationSeconds": 1080
+          },
+          {
+            "legId": "leg_qp_w2",
+            "kind": "walk",
+            "durationSeconds": 90,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["A", "C"],
+          "satisfiedLineIds": ["A"],
+          "omittedLineIds": ["C"],
+          "satisfactionCount": 1,
+          "requestedCount": 2,
+          "isComplete": false,
+          "feasibility": "partial"
+        },
+        "realtimeConfidence": "high",
+        "alerts": [],
+        "explanation": {
+          "summary": "Faster A-only option omits the C; ranked below complete match.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the A train.", "lineId": "A" },
+            { "type": "line_omitted", "message": "Could not include the C train on this option.", "lineId": "C" }
+          ],
+          "baselineDeltaSeconds": 0
+        },
+        "candidateFamily": "constrained"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 2,
+      "requestedCount": 2,
+      "completeMatchFound": true
+    }
+  }
+}

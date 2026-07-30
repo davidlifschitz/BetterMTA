@@ -1,0 +1,150 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_qa_order_sat_time",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": { "itineraries": [] },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_qa_sat2_later",
+        "fingerprint": "fp_qa_sat2_nqr",
+        "durationSeconds": 2700,
+        "arrivalTime": "2026-07-30T09:45:00.000Z",
+        "walkingSeconds": 360,
+        "waitingSeconds": 300,
+        "transferCount": 1,
+        "lineSequence": ["N", "R"],
+        "legs": [
+          {
+            "legId": "leg_s2_w1",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_s2_n",
+            "kind": "transit",
+            "lineId": "N",
+            "from": { "name": "Astoria-Ditmars Blvd", "stationId": "st_ditmars" },
+            "to": { "name": "Times Sq-42 St", "stationId": "st_times" },
+            "departTime": "2026-07-30T09:05:00.000Z",
+            "arriveTime": "2026-07-30T09:25:00.000Z",
+            "durationSeconds": 1200
+          },
+          {
+            "legId": "leg_s2_t",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": false,
+            "instruction": "Transfer within Times Square complex"
+          },
+          {
+            "legId": "leg_s2_r",
+            "kind": "transit",
+            "lineId": "R",
+            "from": { "name": "Times Sq-42 St", "stationId": "st_times" },
+            "to": { "name": "Union St", "stationId": "st_union_st" },
+            "departTime": "2026-07-30T09:30:00.000Z",
+            "arriveTime": "2026-07-30T09:42:00.000Z",
+            "durationSeconds": 720
+          },
+          {
+            "legId": "leg_s2_w2",
+            "kind": "walk",
+            "durationSeconds": 60,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["N", "R", "W"],
+          "satisfiedLineIds": ["N", "R"],
+          "omittedLineIds": ["W"],
+          "satisfactionCount": 2,
+          "requestedCount": 3,
+          "isComplete": false,
+          "feasibility": "partial"
+        },
+        "realtimeConfidence": "medium",
+        "alerts": [],
+        "explanation": {
+          "summary": "Best partial uses N and R; W omitted.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the N train.", "lineId": "N" },
+            { "type": "line_used", "message": "Uses the R train.", "lineId": "R" },
+            { "type": "line_omitted", "message": "Could not include the W train.", "lineId": "W" },
+            { "type": "transfer", "message": "Transfer at Times Square complex." }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "constrained"
+      },
+      {
+        "itineraryId": "itin_qa_sat1_earlier",
+        "fingerprint": "fp_qa_sat1_n",
+        "durationSeconds": 1800,
+        "arrivalTime": "2026-07-30T09:30:00.000Z",
+        "walkingSeconds": 240,
+        "waitingSeconds": 180,
+        "transferCount": 0,
+        "lineSequence": ["N"],
+        "legs": [
+          {
+            "legId": "leg_s1_w1",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_s1_n",
+            "kind": "transit",
+            "lineId": "N",
+            "from": { "name": "Astoria-Ditmars Blvd", "stationId": "st_ditmars" },
+            "to": { "name": "Union St", "stationId": "st_union_st" },
+            "departTime": "2026-07-30T09:05:00.000Z",
+            "arriveTime": "2026-07-30T09:28:00.000Z",
+            "durationSeconds": 1380
+          },
+          {
+            "legId": "leg_s1_w2",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["N", "R", "W"],
+          "satisfiedLineIds": ["N"],
+          "omittedLineIds": ["R", "W"],
+          "satisfactionCount": 1,
+          "requestedCount": 3,
+          "isComplete": false,
+          "feasibility": "partial"
+        },
+        "realtimeConfidence": "high",
+        "alerts": [],
+        "explanation": {
+          "summary": "Earlier N-only option ranks below higher satisfaction.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the N train.", "lineId": "N" },
+            { "type": "line_omitted", "message": "Could not include the R train.", "lineId": "R" },
+            { "type": "line_omitted", "message": "Could not include the W train.", "lineId": "W" }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "constrained"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 2,
+      "requestedCount": 3,
+      "completeMatchFound": false
+    }
+  }
+}

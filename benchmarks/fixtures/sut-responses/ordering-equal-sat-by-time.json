@@ -1,0 +1,128 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_qa_equal_sat_time",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": { "itineraries": [] },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_qa_eq_earlier",
+        "fingerprint": "fp_qa_eq_a",
+        "durationSeconds": 1800,
+        "arrivalTime": "2026-07-30T08:30:00.000Z",
+        "walkingSeconds": 200,
+        "waitingSeconds": 120,
+        "transferCount": 0,
+        "lineSequence": ["6"],
+        "legs": [
+          {
+            "legId": "leg_eq1_w1",
+            "kind": "walk",
+            "durationSeconds": 100,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_eq1_6",
+            "kind": "transit",
+            "lineId": "6",
+            "from": { "name": "Brooklyn Bridge-City Hall", "stationId": "st_bb" },
+            "to": { "name": "59 St", "stationId": "st_59_lex" },
+            "departTime": "2026-07-30T08:05:00.000Z",
+            "arriveTime": "2026-07-30T08:28:00.000Z",
+            "durationSeconds": 1380
+          },
+          {
+            "legId": "leg_eq1_w2",
+            "kind": "walk",
+            "durationSeconds": 100,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["6"],
+          "satisfiedLineIds": ["6"],
+          "omittedLineIds": [],
+          "satisfactionCount": 1,
+          "requestedCount": 1,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "high",
+        "alerts": [],
+        "explanation": {
+          "summary": "Uses the selected 6; earlier arrival.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the 6 train.", "lineId": "6" }
+          ],
+          "baselineDeltaSeconds": 0
+        },
+        "candidateFamily": "constrained"
+      },
+      {
+        "itineraryId": "itin_qa_eq_later",
+        "fingerprint": "fp_qa_eq_b",
+        "durationSeconds": 2100,
+        "arrivalTime": "2026-07-30T08:35:00.000Z",
+        "walkingSeconds": 240,
+        "waitingSeconds": 180,
+        "transferCount": 0,
+        "lineSequence": ["6"],
+        "legs": [
+          {
+            "legId": "leg_eq2_w1",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_eq2_6",
+            "kind": "transit",
+            "lineId": "6",
+            "from": { "name": "Brooklyn Bridge-City Hall", "stationId": "st_bb" },
+            "to": { "name": "59 St", "stationId": "st_59_lex" },
+            "departTime": "2026-07-30T08:10:00.000Z",
+            "arriveTime": "2026-07-30T08:33:00.000Z",
+            "durationSeconds": 1380
+          },
+          {
+            "legId": "leg_eq2_w2",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["6"],
+          "satisfiedLineIds": ["6"],
+          "omittedLineIds": [],
+          "satisfactionCount": 1,
+          "requestedCount": 1,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "medium",
+        "alerts": [],
+        "explanation": {
+          "summary": "Same satisfaction; later arrival ranks second.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the 6 train.", "lineId": "6" }
+          ],
+          "baselineDeltaSeconds": 300
+        },
+        "candidateFamily": "constrained"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 1,
+      "requestedCount": 1,
+      "completeMatchFound": true
+    }
+  }
+}

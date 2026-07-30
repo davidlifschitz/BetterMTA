@@ -1,0 +1,51 @@
+{
+  "caseId": "bmc-pending-bronx-2-5-peak",
+  "title": "PENDING: Wakefield → Bowling Green peak with 2+5",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_bronx",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_2",
+    "local_express",
+    "od_on_selected_lines"
+  ],
+  "origin": {
+    "placeId": "pl_wakefield_241"
+  },
+  "destination": {
+    "placeId": "pl_bowling_green"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T08:15:00-04:00"
+  },
+  "selectedLineIds": [
+    "2",
+    "5"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Placeholder OD for corpus growth. Structural checks use schedule-only fixture until live routing; do not treat as verified.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "none",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "baseline-only"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

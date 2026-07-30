@@ -1,0 +1,57 @@
+{
+  "caseId": "bmc-ordering-max-sat-before-earlier",
+  "title": "N+R partial (sat=2) outranks earlier N-only (sat=1)",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_queens",
+    "borough_brooklyn",
+    "cross_borough",
+    "peak",
+    "lines_3",
+    "ordering",
+    "transfer",
+    "station_complex",
+    "impossible_constraint"
+  ],
+  "origin": {
+    "stationId": "st_ditmars"
+  },
+  "destination": {
+    "stationId": "st_union_st"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T09:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "N",
+    "R",
+    "W"
+  ],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_ditmars",
+  "expectedDestinationStationId": "st_union_st",
+  "humanReviewNotes": "QA synthetic: max satisfaction before time; Times Sq complex transfer. W omission explained.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "qa_fixture",
+    "responseId": "ordering-max-satisfaction"
+  },
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

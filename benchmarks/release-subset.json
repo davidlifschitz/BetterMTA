@@ -1,0 +1,17 @@
+{
+  "$comment": "Active §D release subset for fixture-backed CI. Soft/placeholder cases are intentionally excluded. Expand when live SUT lands.",
+  "caseIds": [
+    "bmc-brooklyn-baseline-schedule-only",
+    "bmc-brooklyn-partial-agl",
+    "bmc-duplicate-line-selection-fb",
+    "bmc-impossible-sir-z-brooklyn",
+    "bmc-manhattan-peak-fb-complete",
+    "bmc-ordering-complete-beats-faster-partial",
+    "bmc-ordering-equal-sat-by-arrival",
+    "bmc-ordering-max-sat-before-earlier",
+    "bmc-queens-stale-7-complete",
+    "bmc-synthetic-depart-now-request-shape",
+    "bmc-synthetic-od-on-selected-f-only-path",
+    "bmc-synthetic-partial-explanation-required"
+  ]
+}
