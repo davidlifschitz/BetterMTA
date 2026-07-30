@@ -1,0 +1,35 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1753919940,
+    "incrementality": "FULL_DATASET"
+  },
+  "_fixtureMeta": {
+    "feedId": "nyct-ace",
+    "feedTimestampIso": "2026-07-30T23:59:00.000Z",
+    "notes": "Midnight service-day boundary fixture. GTFS times may use 24:xx:xx / 25:xx:xx for post-midnight service on the prior service day. Full service-day resolution is deferred to routing engine integration (see DATA_SPEC)."
+  },
+  "entity": [
+    {
+      "id": "tu_late_night",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "A_UP_001",
+          "routeId": "A",
+          "startDate": "20260730",
+          "startTime": "23:50:00",
+          "scheduleRelationship": "SCHEDULED"
+        },
+        "stopTimeUpdate": [
+          {
+            "stopId": "A31N",
+            "stopSequence": 1,
+            "arrival": { "time": 1753920000 },
+            "departure": { "time": 1753920000 },
+            "scheduleRelationship": "SCHEDULED"
+          }
+        ]
+      }
+    }
+  ]
+}

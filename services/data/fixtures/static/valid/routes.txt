@@ -1,0 +1,8 @@
+route_id,agency_id,route_short_name,route_long_name,route_type,route_color,route_text_color
+A,MTA NYCT,A,8 Avenue Express,1,0039A6,FFFFFF
+D,MTA NYCT,D,6 Avenue Express,1,FF6319,FFFFFF
+GS,MTA NYCT,S,42 St Shuttle,1,6D6E71,FFFFFF
+FS,MTA NYCT,FS,Franklin Avenue Shuttle,1,6D6E71,FFFFFF
+H,MTA NYCT,H,Rockaway Park Shuttle,1,6D6E71,FFFFFF
+SI,MTA NYCT,SIR,Staten Island Railway,1,0039A6,FFFFFF
+XXZ,MTA NYCT,XXZ,Unknown Experimental,1,000000,FFFFFF

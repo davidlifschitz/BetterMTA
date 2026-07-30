@@ -1,0 +1,32 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1753875000,
+    "incrementality": "FULL_DATASET"
+  },
+  "_fixtureMeta": {
+    "feedId": "nyct-ace",
+    "feedTimestampIso": "2026-07-30T11:30:00.000Z"
+  },
+  "entity": [
+    {
+      "id": "tu_stale_A",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "A_UP_001",
+          "routeId": "A",
+          "startDate": "20260730",
+          "scheduleRelationship": "SCHEDULED"
+        },
+        "stopTimeUpdate": [
+          {
+            "stopId": "A31N",
+            "stopSequence": 1,
+            "arrival": { "delay": 120 },
+            "scheduleRelationship": "SCHEDULED"
+          }
+        ]
+      }
+    }
+  ]
+}

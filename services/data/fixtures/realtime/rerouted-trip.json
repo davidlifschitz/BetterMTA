@@ -1,0 +1,44 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1753876800,
+    "incrementality": "FULL_DATASET"
+  },
+  "_fixtureMeta": {
+    "feedId": "nyct-bdfm",
+    "feedTimestampIso": "2026-07-30T12:00:00.000Z"
+  },
+  "entity": [
+    {
+      "id": "tu_reroute_D",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "D_UP_001",
+          "routeId": "D",
+          "startDate": "20260730",
+          "scheduleRelationship": "SCHEDULED"
+        },
+        "stopTimeUpdate": [
+          {
+            "stopId": "D14N",
+            "stopSequence": 1,
+            "arrival": { "delay": 0 },
+            "scheduleRelationship": "SCHEDULED"
+          },
+          {
+            "stopId": "A32N",
+            "stopSequence": 2,
+            "scheduleRelationship": "SKIPPED"
+          },
+          {
+            "stopId": "A31N",
+            "stopSequence": 3,
+            "arrival": { "delay": 600 },
+            "departure": { "delay": 600 },
+            "scheduleRelationship": "SCHEDULED"
+          }
+        ]
+      }
+    }
+  ]
+}
