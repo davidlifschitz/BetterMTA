@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "no_transit_path",
+    "message": "No subway path was found between these places.",
+    "requestId": "req_fixture_nopath",
+    "details": {}
+  }
+}

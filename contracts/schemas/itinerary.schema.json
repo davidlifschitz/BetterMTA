@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/itinerary.schema.json",
+  "title": "Itinerary",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "itineraryId",
+    "fingerprint",
+    "durationSeconds",
+    "arrivalTime",
+    "walkingSeconds",
+    "waitingSeconds",
+    "transferCount",
+    "lineSequence",
+    "legs",
+    "satisfaction",
+    "realtimeConfidence",
+    "alerts",
+    "explanation"
+  ],
+  "properties": {
+    "itineraryId": { "type": "string", "minLength": 1 },
+    "fingerprint": { "type": "string", "minLength": 1 },
+    "durationSeconds": { "type": "integer", "minimum": 0 },
+    "arrivalTime": { "type": "string", "format": "date-time" },
+    "walkingSeconds": { "type": "integer", "minimum": 0 },
+    "waitingSeconds": { "type": "integer", "minimum": 0 },
+    "transferCount": { "type": "integer", "minimum": 0 },
+    "lineSequence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "legs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "legId",
+              "kind",
+              "lineId",
+              "from",
+              "to",
+              "departTime",
+              "arriveTime"
+            ],
+            "properties": {
+              "legId": { "type": "string" },
+              "kind": { "const": "transit" },
+              "lineId": { "type": "string" },
+              "tripId": { "type": ["string", "null"] },
+              "headsign": { "type": "string" },
+              "from": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "stationId": { "type": "string" },
+                  "stopId": { "type": "string" }
+                }
+              },
+              "to": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "stationId": { "type": "string" },
+                  "stopId": { "type": "string" }
+                }
+              },
+              "departTime": { "type": "string", "format": "date-time" },
+              "arriveTime": { "type": "string", "format": "date-time" },
+              "durationSeconds": { "type": "integer", "minimum": 0 },
+              "sourceEngineIds": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["legId", "kind", "durationSeconds", "outOfSystem"],
+            "properties": {
+              "legId": { "type": "string" },
+              "kind": { "const": "walk" },
+              "durationSeconds": { "type": "integer", "minimum": 0 },
+              "distanceMeters": { "type": "number", "minimum": 0 },
+              "outOfSystem": { "type": "boolean" },
+              "instruction": { "type": "string" }
+            }
+          }
+        ]
+      }
+    },
+    "satisfaction": {
+      "$ref": "satisfaction.schema.json"
+    },
+    "realtimeConfidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "none"]
+    },
+    "alerts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alertId", "header"],
+        "properties": {
+          "alertId": { "type": "string" },
+          "header": { "type": "string" },
+          "description": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "warning", "severe", "unknown"]
+          },
+          "affectedLineIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "explanation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "facts"],
+      "properties": {
+        "summary": { "type": "string" },
+        "facts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "message"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "line_used",
+                  "line_omitted",
+                  "transfer",
+                  "walk",
+                  "wait",
+                  "realtime",
+                  "baseline_delta",
+                  "alert"
+                ]
+              },
+              "message": { "type": "string" },
+              "lineId": { "type": "string" },
+              "seconds": { "type": "integer" }
+            }
+          }
+        },
+        "baselineDeltaSeconds": { "type": ["integer", "null"] }
+      }
+    },
+    "reliability": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["level", "basis", "displayEligible"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["high", "medium", "low", "unknown"]
+        },
+        "basis": { "type": "string" },
+        "displayEligible": { "type": "boolean" }
+      }
+    },
+    "candidateFamily": {
+      "type": "string",
+      "enum": [
+        "baseline",
+        "constrained",
+        "preference_biased",
+        "targeted_combination"
+      ]
+    }
+  }
+}

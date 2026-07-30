@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/route-search-request.schema.json",
+  "title": "RouteSearchRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["origin", "destination", "timing"],
+  "properties": {
+    "origin": { "$ref": "#/$defs/placeRef" },
+    "destination": { "$ref": "#/$defs/placeRef" },
+    "timing": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "depart_now" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "time"],
+          "properties": {
+            "type": { "enum": ["depart_at", "arrive_by"] },
+            "time": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    },
+    "selectedLineIds": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "clientContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "viewport": { "enum": ["mobile", "desktop"] },
+        "experimentOptIn": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "placeRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["placeId"],
+          "properties": {
+            "placeId": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stationId"],
+          "properties": {
+            "stationId": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["coordinate"],
+          "properties": {
+            "coordinate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["lat", "lon"],
+              "properties": {
+                "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+                "lon": { "type": "number", "minimum": -180, "maximum": 180 }
+              }
+            },
+            "label": { "type": "string" }
+          }
+        }
+      ]
+    }
+  }
+}

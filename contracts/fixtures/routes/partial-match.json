@@ -1,0 +1,98 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_fixture_partial",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": {
+    "itineraries": []
+  },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_partial_1",
+        "fingerprint": "fp_partial_a_only",
+        "durationSeconds": 2100,
+        "arrivalTime": "2026-07-30T15:10:00.000Z",
+        "walkingSeconds": 360,
+        "waitingSeconds": 300,
+        "transferCount": 1,
+        "lineSequence": ["A", "L"],
+        "legs": [
+          {
+            "legId": "leg_p_w1",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_p_a",
+            "kind": "transit",
+            "lineId": "A",
+            "from": { "name": "Hoyt-Schermerhorn", "stationId": "st_hoyt" },
+            "to": { "name": "14 St", "stationId": "st_14a" },
+            "departTime": "2026-07-30T14:40:00.000Z",
+            "arriveTime": "2026-07-30T14:55:00.000Z",
+            "durationSeconds": 900
+          },
+          {
+            "legId": "leg_p_t",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": false
+          },
+          {
+            "legId": "leg_p_l",
+            "kind": "transit",
+            "lineId": "L",
+            "from": { "name": "6 Av", "stationId": "st_6av" },
+            "to": { "name": "1 Av", "stationId": "st_1av" },
+            "departTime": "2026-07-30T15:00:00.000Z",
+            "arriveTime": "2026-07-30T15:07:00.000Z",
+            "durationSeconds": 420
+          },
+          {
+            "legId": "leg_p_w2",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["A", "G", "L"],
+          "satisfiedLineIds": ["A", "L"],
+          "omittedLineIds": ["G"],
+          "satisfactionCount": 2,
+          "requestedCount": 3,
+          "isComplete": false,
+          "feasibility": "partial"
+        },
+        "realtimeConfidence": "low",
+        "alerts": [],
+        "explanation": {
+          "summary": "No sensible route uses all 3 selected lines; this option uses A and L.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the A train.", "lineId": "A" },
+            { "type": "line_used", "message": "Uses the L train.", "lineId": "L" },
+            { "type": "line_omitted", "message": "Could not include the G train.", "lineId": "G" }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "constrained"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 2,
+      "requestedCount": 3,
+      "completeMatchFound": false
+    }
+  },
+  "experiment": {
+    "explanationVariant": "detailed"
+  }
+}

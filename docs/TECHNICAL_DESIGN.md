@@ -37,15 +37,18 @@ The application cannot rely on human review per request. Production implementati
 - Display degraded mode to users.
 
 ## 6. API
-POST `/api/v1/routes`
-Request: origin, destination, datetime, mode, requiredLines, clientContext.
-Response: baselineRoutes, constrainedRoutes, freshness, warnings, requestId.
+**Superseded by** `API_CONTRACT.md` and `contracts/openapi/bettermta-v1.yaml` (contract version `2026-07-30`).
 
-GET `/api/v1/lines`
-Returns active service labels and display metadata.
+Locked minimum endpoints:
 
-POST `/api/v1/feedback`
-Captures route correctness and user-submitted alternative.
+- `POST /v1/routes/search`
+- `GET /v1/lines`
+- `GET /v1/places/search`
+- `GET /v1/status`
+- `GET /health/live`
+- `GET /health/ready`
+
+`POST /v1/feedback` is reserved/optional for later beta, not required to unblock parallel work.
 
 ## 7. Reliability and operations
 - Structured logs with request IDs.

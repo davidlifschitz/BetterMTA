@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/status-response.schema.json",
+  "title": "StatusResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "dataMode",
+    "staticDatasetVersion",
+    "degraded",
+    "messages"
+  ],
+  "properties": {
+    "contractVersion": { "const": "2026-07-30" },
+    "dataMode": {
+      "type": "string",
+      "enum": ["live", "schedule_only", "stale", "synthetic", "unavailable"]
+    },
+    "staticDatasetVersion": { "type": "string" },
+    "realtimeSnapshotId": { "type": ["string", "null"] },
+    "realtimeAgeSeconds": { "type": ["integer", "null"], "minimum": 0 },
+    "degraded": { "type": "boolean" },
+    "messages": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

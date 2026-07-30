@@ -1,0 +1,87 @@
+{
+  "contractVersion": "2026-07-30",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "lines": [
+    {
+      "lineId": "1",
+      "label": "1",
+      "displayName": "1 train",
+      "color": "#EE352E",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["1"]
+    },
+    {
+      "lineId": "2",
+      "label": "2",
+      "displayName": "2 train",
+      "color": "#EE352E",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["2"]
+    },
+    {
+      "lineId": "7",
+      "label": "7",
+      "displayName": "7 train",
+      "color": "#B933AD",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["7"]
+    },
+    {
+      "lineId": "A",
+      "label": "A",
+      "displayName": "A train",
+      "color": "#0039A6",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["A"]
+    },
+    {
+      "lineId": "B",
+      "label": "B",
+      "displayName": "B train",
+      "color": "#FF6319",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["B"]
+    },
+    {
+      "lineId": "D",
+      "label": "D",
+      "displayName": "D train",
+      "color": "#FF6319",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["D"]
+    },
+    {
+      "lineId": "F",
+      "label": "F",
+      "displayName": "F train",
+      "color": "#FF6319",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["F"]
+    },
+    {
+      "lineId": "G",
+      "label": "G",
+      "displayName": "G train",
+      "color": "#6CBE45",
+      "textColor": "#FFFFFF",
+      "isActive": true,
+      "gtfsRouteIds": ["G"]
+    },
+    {
+      "lineId": "L",
+      "label": "L",
+      "displayName": "L train",
+      "color": "#A7A9AC",
+      "textColor": "#000000",
+      "isActive": true,
+      "gtfsRouteIds": ["L"]
+    }
+  ]
+}

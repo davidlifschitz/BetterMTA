@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/api-error.schema.json",
+  "title": "ApiError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["error"],
+  "properties": {
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "requestId"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "invalid_input",
+            "unknown_place",
+            "unknown_line",
+            "no_transit_path",
+            "incomplete_selected_line_satisfaction",
+            "insufficient_candidate_coverage",
+            "timeout",
+            "data_unavailable",
+            "stale_realtime",
+            "rate_limited",
+            "internal_error"
+          ]
+        },
+        "message": { "type": "string" },
+        "requestId": { "type": "string" },
+        "details": { "type": "object" }
+      }
+    }
+  }
+}

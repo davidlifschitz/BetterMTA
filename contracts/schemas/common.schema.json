@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/common.schema.json",
+  "title": "BetterMTACommon",
+  "type": "object",
+  "$defs": {
+    "contractVersion": {
+      "type": "string",
+      "const": "2026-07-30"
+    },
+    "dataMode": {
+      "type": "string",
+      "enum": ["live", "schedule_only", "stale", "synthetic", "unavailable"]
+    },
+    "realtimeConfidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low", "none"]
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

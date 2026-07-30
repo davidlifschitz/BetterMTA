@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "unknown_line",
+    "message": "One or more selected lines are not recognized.",
+    "requestId": "req_fixture_error",
+    "details": { "unknownLineIds": ["Z9"] }
+  }
+}

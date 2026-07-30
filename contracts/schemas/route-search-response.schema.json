@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/route-search-response.schema.json",
+  "title": "RouteSearchResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "requestId",
+    "staticDatasetVersion",
+    "dataMode",
+    "freshness",
+    "baseline",
+    "constrained"
+  ],
+  "properties": {
+    "contractVersion": { "const": "2026-07-30" },
+    "requestId": { "type": "string", "minLength": 1 },
+    "staticDatasetVersion": { "type": "string", "minLength": 1 },
+    "realtimeSnapshotId": { "type": ["string", "null"] },
+    "dataMode": {
+      "type": "string",
+      "enum": ["live", "schedule_only", "stale", "synthetic", "unavailable"]
+    },
+    "freshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["warnings"],
+      "properties": {
+        "realtimeAgeSeconds": { "type": ["integer", "null"], "minimum": 0 },
+        "staticActivatedAt": { "type": ["string", "null"], "format": "date-time" },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "message"],
+            "properties": {
+              "code": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["itineraries"],
+      "properties": {
+        "itineraries": {
+          "type": "array",
+          "maxItems": 3,
+          "items": { "$ref": "itinerary.schema.json" }
+        }
+      }
+    },
+    "constrained": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["itineraries", "satisfactionSummary"],
+      "properties": {
+        "itineraries": {
+          "type": "array",
+          "maxItems": 3,
+          "items": { "$ref": "itinerary.schema.json" }
+        },
+        "satisfactionSummary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bestSatisfactionCount",
+            "requestedCount",
+            "completeMatchFound"
+          ],
+          "properties": {
+            "bestSatisfactionCount": { "type": "integer", "minimum": 0 },
+            "requestedCount": { "type": "integer", "minimum": 0 },
+            "completeMatchFound": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "experiment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "explanationVariant": { "enum": ["concise", "detailed"] }
+      }
+    }
+  }
+}

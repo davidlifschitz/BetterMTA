@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/satisfaction.schema.json",
+  "title": "SatisfactionResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "requestedLineIds",
+    "satisfiedLineIds",
+    "omittedLineIds",
+    "satisfactionCount",
+    "requestedCount",
+    "isComplete",
+    "feasibility"
+  ],
+  "properties": {
+    "requestedLineIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "satisfiedLineIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "omittedLineIds": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "satisfactionCount": { "type": "integer", "minimum": 0 },
+    "requestedCount": { "type": "integer", "minimum": 0 },
+    "isComplete": { "type": "boolean" },
+    "feasibility": {
+      "type": "string",
+      "enum": ["complete", "partial", "none", "not_applicable"]
+    }
+  }
+}

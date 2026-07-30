@@ -39,17 +39,22 @@ A mobile-first prototype has been designed with origin/destination entry, line s
 - `ROADMAP.md`
 - `PRODUCTION_CHECKLIST.md`
 
+## Conductor lock status
+Shared architecture and contracts are defined in the conductor package (`docs/CONDUCTOR_PACKAGE.md`, `docs/*CONTRACT*`, `contracts/**`, contract version `2026-07-30`). Implementation workstreams must consume those artifacts and must not silently fork them.
+
 ## Most important unresolved work
-1. Routing engine specification.
-2. GTFS and GTFS-Realtime data specification.
-3. Canonical domain model.
-4. Versioned API contract.
+1. Routing engine selection evidence + `ROUTING_ENGINE_SPEC.md` (domain/API contracts are locked).
+2. GTFS and GTFS-Realtime implementation + `DATA_SPEC.md` (data contract surface is locked).
+3. ~~Canonical domain model.~~ Locked in `DOMAIN_MODEL.md`.
+4. ~~Versioned API contract.~~ Locked in `API_CONTRACT.md` + `contracts/openapi/bettermta-v1.yaml`.
 5. Route-quality benchmark corpus.
 6. Detailed interaction and design system.
-7. Location-data privacy model.
-8. Observability, SLOs, incident response, and runbooks.
+7. Location-data privacy model (baseline rules locked; detailed threat model open).
+8. Observability, SLOs, incident response, and runbooks (requirements sketched; implementation open).
 9. Beta launch and user-research plan.
 10. Live-data implementation and production validation.
+11. Deploy platform vendor (ADR-0005 open).
+12. Geocoding / place provider.
 
 ## Parallel-chat rule
 Each chat should own one document or implementation workstream, read this file and the relevant source documents, avoid silently changing confirmed decisions, and explicitly propose any conflicting change.

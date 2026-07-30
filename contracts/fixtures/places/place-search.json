@@ -1,0 +1,24 @@
+{
+  "contractVersion": "2026-07-30",
+  "query": "union",
+  "places": [
+    {
+      "placeId": "pl_union_sq",
+      "label": "Union Square",
+      "kind": "station",
+      "stationId": "st_union_sq",
+      "borough": "Manhattan",
+      "lat": 40.7359,
+      "lon": -73.9911
+    },
+    {
+      "placeId": "pl_union_st_bk",
+      "label": "Union St",
+      "kind": "station",
+      "stationId": "st_union_st",
+      "borough": "Brooklyn",
+      "lat": 40.6773,
+      "lon": -73.9831
+    }
+  ]
+}

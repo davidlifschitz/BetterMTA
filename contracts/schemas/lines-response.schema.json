@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/lines-response.schema.json",
+  "title": "LinesResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "staticDatasetVersion", "lines"],
+  "properties": {
+    "contractVersion": { "const": "2026-07-30" },
+    "staticDatasetVersion": { "type": "string" },
+    "lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "lineId",
+          "label",
+          "displayName",
+          "color",
+          "textColor",
+          "isActive",
+          "gtfsRouteIds"
+        ],
+        "properties": {
+          "lineId": { "type": "string" },
+          "label": { "type": "string" },
+          "displayName": { "type": "string" },
+          "color": { "type": "string" },
+          "textColor": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "gtfsRouteIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

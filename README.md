@@ -6,18 +6,21 @@ A rider enters an origin and destination, selects one or more subway lines, and 
 
 ## Current status
 
-This repository currently contains the product specification, productionization plan, and agent workstream prompts. The route logic described in the documents is prototype-only and is not yet connected to MTA GTFS or GTFS-Realtime data.
+This repository contains product specs, a conductor-locked architecture/contract package, and agent workstream prompts. Live MTA GTFS / GTFS-Realtime routing is not implemented yet. Use `contracts/fixtures/**` for synthetic API shapes during parallel development, and never present them as live navigation.
 
 ## Start here
 
-1. Read [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
-2. Read [`docs/PRD.md`](docs/PRD.md).
-3. Read [`AGENTS.md`](AGENTS.md).
-4. Choose the appropriate workstream from [`.agents/README.md`](.agents/README.md).
+1. Read [`docs/CONDUCTOR_PACKAGE.md`](docs/CONDUCTOR_PACKAGE.md) (shared contracts index).
+2. Read [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md).
+3. Read [`docs/PRD.md`](docs/PRD.md).
+4. Read [`AGENTS.md`](AGENTS.md).
+5. Read [`docs/WORKSTREAM_OWNERSHIP.md`](docs/WORKSTREAM_OWNERSHIP.md).
+6. Choose the appropriate workstream from [`.agents/README.md`](.agents/README.md).
 
 ## Repository structure
 
-- `docs/` — product, technical, UX, roadmap, and production-readiness documents.
+- `docs/` — product, architecture, contracts, UX, roadmap, and production-readiness documents.
+- `contracts/` — OpenAPI, JSON Schema, TypeScript types, and fixtures (`@bettermta/contracts`).
 - `.agents/` — reusable prompts for parallel implementation workstreams.
 - `AGENTS.md` — root instructions for coding agents and contributors.
 
