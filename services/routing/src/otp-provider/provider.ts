@@ -5,7 +5,7 @@ import { mapOtpItineraries } from "./map.ts";
 import {
   buildPlanRequestBody,
   DEFAULT_SEARCH_WINDOW_SECONDS,
-  epochToUtcDateTimeParts,
+  epochToNyDateTimeParts,
   isoToEpochMs,
   otpGraphqlUrl,
 } from "./query.ts";
@@ -112,7 +112,7 @@ export function createOtpCandidateProvider(
       const started = now();
       const queryId = randomUUID();
       const dateTime = resolveDepartureEpochMs(request, now);
-      const { date, time } = epochToUtcDateTimeParts(dateTime);
+      const { date, time } = epochToNyDateTimeParts(dateTime);
 
       const body = buildPlanRequestBody({
         fromLat: request.origin.lat,

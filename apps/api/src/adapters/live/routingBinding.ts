@@ -46,6 +46,11 @@ export type RouteSearchOutcome =
       kind: "data_unavailable";
       requestedCount: number;
       reason: string;
+    }
+  | {
+      kind: "timeout";
+      requestedCount: number;
+      reason: string;
     };
 
 export type RunRouteSearch = (

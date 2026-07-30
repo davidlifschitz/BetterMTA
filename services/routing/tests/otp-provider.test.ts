@@ -17,7 +17,7 @@ import {
   type RoutingSnapshotHandle,
 } from "../src/index.ts";
 import {
-  epochToUtcDateTimeParts,
+  epochToNyDateTimeParts,
   isoToEpochMs,
   mapOtpItineraries,
 } from "../src/otp-provider/index.ts";
@@ -356,11 +356,29 @@ describe("OTP provider failure taxonomy", () => {
 });
 
 describe("OTP timezone honesty", () => {
-  it("fixed ISO instant maps to exact epoch in outgoing query variables", async () => {
+  it("maps a known UTC instant to America/New_York wall-clock under EDT", () => {
+    // 2026-07-30 16:27 UTC = 12:27 EDT (UTC-4)
+    const epoch = isoToEpochMs("2026-07-30T16:27:00.000Z");
+    expect(epochToNyDateTimeParts(epoch)).toEqual({
+      date: "2026-07-30",
+      time: "12:27:00",
+    });
+  });
+
+  it("maps a known UTC instant to America/New_York wall-clock under EST", () => {
+    // 2026-01-15 16:27 UTC = 11:27 EST (UTC-5)
+    const epoch = isoToEpochMs("2026-01-15T16:27:00.000Z");
+    expect(epochToNyDateTimeParts(epoch)).toEqual({
+      date: "2026-01-15",
+      time: "11:27:00",
+    });
+  });
+
+  it("fixed ISO instant maps to NY date/time (+ epoch) in outgoing query variables", async () => {
     const iso = "2026-07-30T16:27:00.000Z";
     const expectedEpoch = isoToEpochMs(iso);
-    const parts = epochToUtcDateTimeParts(expectedEpoch);
-    expect(parts).toEqual({ date: "2026-07-30", time: "16:27:00" });
+    const parts = epochToNyDateTimeParts(expectedEpoch);
+    expect(parts).toEqual({ date: "2026-07-30", time: "12:27:00" });
 
     let captured: {
       query?: string;
@@ -381,7 +399,34 @@ describe("OTP timezone honesty", () => {
     expect(captured).not.toBeNull();
     expect(captured!.variables?.dateTime).toBe(expectedEpoch);
     expect(captured!.variables?.date).toBe("2026-07-30");
-    expect(captured!.variables?.time).toBe("16:27:00");
+    expect(captured!.variables?.time).toBe("12:27:00");
+  });
+
+  it("depart_now uses NY wall-clock from provider now()", async () => {
+    // Fixed "now" in EDT: 2026-07-30 16:27 UTC → 12:27 NY
+    const nowMs = isoToEpochMs("2026-07-30T16:27:00.000Z");
+    let captured: {
+      variables?: { dateTime?: number; date?: string; time?: string };
+    } | null = null;
+    const provider = createOtpCandidateProvider({
+      otpBaseUrl: "http://otp.test",
+      routeIdToLineId: nycRouteIdToLineId,
+      now: () => nowMs,
+      fetch: async (_url, init) => {
+        captured = JSON.parse(String(init?.body)) as {
+          variables?: { dateTime?: number; date?: string; time?: string };
+        };
+        return jsonResponse({ data: { plan: { itineraries: [] } } });
+      },
+    });
+
+    await provider.generateCandidates(
+      baseOtpRequest(["F"], { timing: { type: "depart_now" } }),
+    );
+
+    expect(captured?.variables?.dateTime).toBe(nowMs);
+    expect(captured?.variables?.date).toBe("2026-07-30");
+    expect(captured?.variables?.time).toBe("12:27:00");
   });
 });
 

@@ -341,7 +341,7 @@ describe("LiveRoutingAdapter", () => {
       }),
     ).rejects.toMatchObject({ code: "data_unavailable" });
 
-    const timed = new LiveRoutingAdapter({
+    const timedThrown = new LiveRoutingAdapter({
       data,
       otpBaseUrl: "http://127.0.0.1:9",
       otpTimeoutMs: 1000,
@@ -354,7 +354,7 @@ describe("LiveRoutingAdapter", () => {
       },
     });
     await expect(
-      timed.searchRoutes({
+      timedThrown.searchRoutes({
         request: {
           origin: { stationId: "A42" },
           destination: { stationId: "D14" },
@@ -365,7 +365,37 @@ describe("LiveRoutingAdapter", () => {
         requestId: "req_to",
         explanationVariant: "concise",
       }),
-    ).rejects.toMatchObject({ code: "timeout" });
+    ).rejects.toMatchObject({ code: "timeout", httpStatus: 504 });
+
+    const timedOutcome = new LiveRoutingAdapter({
+      data,
+      otpBaseUrl: "http://127.0.0.1:9",
+      otpTimeoutMs: 1000,
+      otpProbeTtlMs: 10_000,
+      candidateProvider: stubProvider([]),
+      runRouteSearch: async () => ({
+        kind: "timeout",
+        requestedCount: 1,
+        reason: "OTP plan query timed out",
+      }),
+    });
+    await expect(
+      timedOutcome.searchRoutes({
+        request: {
+          origin: { stationId: "A42" },
+          destination: { stationId: "D14" },
+          timing: { type: "depart_now" },
+        },
+        selectedLineIds: [],
+        snapshot,
+        requestId: "req_to_outcome",
+        explanationVariant: "concise",
+      }),
+    ).rejects.toMatchObject({
+      code: "timeout",
+      httpStatus: 504,
+      message: "OTP plan query timed out",
+    });
   });
 
   it("resolves coordinate place refs as passthrough", async () => {
@@ -432,6 +462,46 @@ describe("LiveRoutingAdapter", () => {
         selectedLineIds: [],
         snapshot,
         requestId: "req_mismatch",
+        explanationVariant: "concise",
+      }),
+    ).rejects.toMatchObject({ code: "data_unavailable" });
+  });
+
+  it("production without otpGraphVersion => data_unavailable", async () => {
+    const data = makeData();
+    const snapshot = await data.getSnapshotHandle();
+    const routing = new LiveRoutingAdapter({
+      data,
+      otpBaseUrl: "http://127.0.0.1:9",
+      otpTimeoutMs: 1000,
+      otpProbeTtlMs: 10_000,
+      otpGraphVersion: null,
+      nodeEnv: "production",
+      candidateProvider: stubProvider([]),
+      runRouteSearch: async () => ({
+        kind: "ok",
+        baseline: [],
+        constrained: [],
+        satisfactionSummary: {
+          bestSatisfactionCount: 0,
+          requestedCount: 0,
+          completeMatchFound: true,
+        },
+        constraintInfeasible: false,
+        dataDegradation: null,
+        invalidDraftRejectionCounts: {},
+      }),
+    });
+    await expect(
+      routing.searchRoutes({
+        request: {
+          origin: { stationId: "A42" },
+          destination: { stationId: "D14" },
+          timing: { type: "depart_now" },
+        },
+        selectedLineIds: [],
+        snapshot,
+        requestId: "req_graph_unset",
         explanationVariant: "concise",
       }),
     ).rejects.toMatchObject({ code: "data_unavailable" });

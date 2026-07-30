@@ -26,6 +26,11 @@ export interface LiveRoutingAdapterOptions {
   otpTimeoutMs: number;
   otpProbeTtlMs: number;
   otpGraphVersion?: string | null;
+  /**
+   * Defaults to `process.env.NODE_ENV`. When `"production"` and
+   * `otpGraphVersion` is unset, searches fail closed as `data_unavailable`.
+   */
+  nodeEnv?: string;
   logger?: Logger;
   /** Injected for unit tests — bypasses OTP provider factory. */
   candidateProvider?: CandidateProvider;
@@ -47,6 +52,7 @@ export class LiveRoutingAdapter implements RoutingAdapter {
   private readonly otpBaseUrl: string;
   private readonly otpTimeoutMs: number;
   private readonly otpGraphVersion: string | null;
+  private readonly nodeEnv: string;
   private readonly logger?: Logger;
   private readonly fetchImpl: typeof fetch;
   private readonly now: () => number;
@@ -61,6 +67,7 @@ export class LiveRoutingAdapter implements RoutingAdapter {
     this.otpBaseUrl = opts.otpBaseUrl.replace(/\/$/, "");
     this.otpTimeoutMs = opts.otpTimeoutMs;
     this.otpGraphVersion = opts.otpGraphVersion ?? null;
+    this.nodeEnv = opts.nodeEnv ?? process.env.NODE_ENV ?? "development";
     this.logger = opts.logger;
     this.fetchImpl = opts.fetchImpl ?? fetch;
     this.now = opts.now ?? (() => Date.now());
@@ -163,15 +170,28 @@ export class LiveRoutingAdapter implements RoutingAdapter {
 
   /**
    * Graph/static coherence (ADR / Phase 6 choice):
-   * When BETTERMTA_OTP_GRAPH_VERSION is set, its prefix must equal the active
-   * staticDatasetVersion. Mismatch means OTP schedule may differ from the
-   * catalog → data_unavailable (fail closed), not a soft schedule_only claim.
+   * In production, BETTERMTA_OTP_GRAPH_VERSION must be set (fail closed).
+   * When set, its prefix must equal the active staticDatasetVersion.
+   * Mismatch means OTP schedule may differ from the catalog →
+   * data_unavailable (fail closed), not a soft schedule_only claim.
    */
   private assertGraphStaticCoherence(
     snapshot: RoutingSnapshotHandle,
     requestId: string,
   ): void {
-    if (!this.otpGraphVersion) return;
+    if (!this.otpGraphVersion) {
+      if (this.nodeEnv === "production") {
+        this.logger?.warn("otp_graph_version_unset", {
+          nodeEnv: this.nodeEnv,
+        });
+        throw new ApiError(
+          "data_unavailable",
+          "OTP graph version is not configured; refusing to route without a graph pin in production.",
+          requestId,
+        );
+      }
+      return;
+    }
     const staticId = snapshot.staticDatasetVersion;
     if (graphVersionMatchesStatic(this.otpGraphVersion, staticId)) return;
 
@@ -343,6 +363,13 @@ function mapOutcomeToResponse(
       throw new ApiError(
         "data_unavailable",
         outcome.reason,
+        input.requestId,
+        { requestedCount: outcome.requestedCount },
+      );
+    case "timeout":
+      throw new ApiError(
+        "timeout",
+        outcome.reason || "Route search timed out.",
         input.requestId,
         { requestedCount: outcome.requestedCount },
       );

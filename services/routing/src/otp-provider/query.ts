@@ -1,12 +1,15 @@
 /** Default OTP plan searchWindow: 45 minutes (seconds). */
 export const DEFAULT_SEARCH_WINDOW_SECONDS = 45 * 60;
 
+/** OTP graph `transitModelTimeZone` — plan String date/time are wall-clock in this zone. */
+export const OTP_GRAPH_TIME_ZONE = "America/New_York";
+
 /**
  * GraphQL plan query modeled on services/otp/recorded captures.
  *
- * Request timing: we derive a timezone-safe UTC date + time from an epoch-millis
- * `dateTime` variable (never local-naive wall-clock strings). The epoch is
- * included in the variables payload for observability and tests.
+ * Request timing: we derive America/New_York wall-clock date + time from an
+ * epoch-millis `dateTime` variable (matching OTP's transitModelTimeZone).
+ * The epoch is included in the variables payload for observability and tests.
  *
  * Response times: request unaliased `start`/`end` (Itinerary) and LegTime
  * `scheduledTime` so the mapper can accept epoch millis or OffsetDateTime.
@@ -77,23 +80,44 @@ export function isoToEpochMs(iso: string): number {
   return ms;
 }
 
+const nyDateTimeFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: OTP_GRAPH_TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
 /**
- * Derive UTC date (YYYY-MM-DD) and time (HH:mm:ss) from epoch millis.
- * OTP's legacy `plan` args take String date/time; we always send UTC components
- * derived from the absolute instant (never a local-naive wall clock).
+ * Derive America/New_York wall-clock date (YYYY-MM-DD) and time (HH:mm:ss)
+ * from epoch millis. OTP's legacy `plan` args take String date/time interpreted
+ * in the graph's `transitModelTimeZone` (America/New_York) — never UTC components
+ * from `toISOString()`, which skew departure by the NY offset (~4h EDT / ~5h EST).
  */
-export function epochToUtcDateTimeParts(epochMs: number): {
+export function epochToNyDateTimeParts(epochMs: number): {
   date: string;
   time: string;
 } {
+  if (!Number.isFinite(epochMs)) {
+    throw new Error(`Invalid epoch millis: ${epochMs}`);
+  }
   const d = new Date(epochMs);
   if (!Number.isFinite(d.getTime())) {
     throw new Error(`Invalid epoch millis: ${epochMs}`);
   }
-  const date = d.toISOString().slice(0, 10);
-  const time = d.toISOString().slice(11, 19);
+  const parts = Object.fromEntries(
+    nyDateTimeFormatter.formatToParts(d).map((p) => [p.type, p.value]),
+  ) as Record<string, string>;
+  const date = `${parts.year}-${parts.month}-${parts.day}`;
+  const time = `${parts.hour}:${parts.minute}:${parts.second}`;
   return { date, time };
 }
+
+/** @deprecated Use {@link epochToNyDateTimeParts}; kept as an alias for callers. */
+export const epochToUtcDateTimeParts = epochToNyDateTimeParts;
 
 export function buildPlanRequestBody(vars: PlanQueryVariables): {
   query: string;

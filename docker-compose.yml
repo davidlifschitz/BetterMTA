@@ -107,8 +107,8 @@ services:
       BETTERMTA_OTP_URL: http://otp:8080
       BETTERMTA_OTP_TIMEOUT_MS: "10000"
       BETTERMTA_REQUEST_TIMEOUT_MS: "15000"
-      # Optional coherence pin — leave unset to skip fail-closed mismatch until graph rebuild automation wires it.
-      # BETTERMTA_OTP_GRAPH_VERSION: mta-subway-c9c3366cdd16+otp2.9.0
+      # Required in NODE_ENV=production — pin must match active OTP graph / static prefix.
+      BETTERMTA_OTP_GRAPH_VERSION: mta-subway-c9c3366cdd16+otp2.9.0
       BETTERMTA_TRUST_PROXY: "1"
       BETTERMTA_CONTRACTS_ROOT: /repo/contracts
       BETTERMTA_LOG_LEVEL: info

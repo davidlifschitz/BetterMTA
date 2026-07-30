@@ -198,7 +198,7 @@ Arrive-by search strategy remains **deferred** (ADR-0014).
 - OD: origin/destination as `{ lat, lon }` (not stop IDs).
 - `numItineraries`: from options (default **8**).
 - `searchWindow`: default **2700 seconds (45 minutes)** — OTP `Long` seconds; overridable via `searchWindowSeconds`.
-- Departure instant: request `timing` ISO instants → **epoch millis** (`variables.dateTime`). OTP `plan` still requires String `date`/`time`; those are **UTC components derived from the epoch** (never local-naive wall-clock strings). Assertable in tests via the GraphQL variables payload.
+- Departure instant: request `timing` ISO instants → **epoch millis** (`variables.dateTime`). OTP `plan` still requires String `date`/`time`; those are **America/New_York wall-clock components** derived from the epoch via `Intl.DateTimeFormat` (matching the graph `transitModelTimeZone`). Sending UTC `toISOString()` slices skews departure by the NY offset. Assertable in tests via the GraphQL variables payload. Same path for `depart_now` (epoch = provider `now()`).
 - Per-call budget: `AbortController` at `timeoutMs` (default **4000**).
 
 ### Mapping rules (OTP itinerary → `RawCandidateDraft`)

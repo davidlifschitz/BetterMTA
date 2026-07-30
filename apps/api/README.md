@@ -25,7 +25,7 @@ npm run typecheck
 | `BETTERMTA_OTP_URL` | `http://localhost:8090` | OpenTripPlanner base URL |
 | `BETTERMTA_OTP_TIMEOUT_MS` | `4000` | OTP candidate-provider timeout |
 | `BETTERMTA_OTP_PROBE_TTL_MS` | `10000` | Cached OTP reachability probe for `/health/ready` |
-| `BETTERMTA_OTP_GRAPH_VERSION` | _(empty)_ | Optional graph pin; prefix must match `staticDatasetVersion` or searches return `data_unavailable` |
+| `BETTERMTA_OTP_GRAPH_VERSION` | _(empty in non-prod)_ | Graph pin; **required in production** (unset → `data_unavailable`). Prefix must match `staticDatasetVersion` or searches return `data_unavailable` |
 | `BETTERMTA_REQUEST_TIMEOUT_MS` | `2000` | Soft abort + hard Promise.race timeout for route search |
 | `BETTERMTA_RATE_LIMIT_MAX` | `120` | Max requests per window (search + places) |
 | `BETTERMTA_CHEAP_RATE_LIMIT_MAX` | `600` | Max requests per window for `/v1/lines` + `/v1/status` |
