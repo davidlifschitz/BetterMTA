@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/data-snapshot.schema.json",
+  "title": "RoutingSnapshotHandle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["staticDatasetVersion", "dataMode"],
+  "properties": {
+    "staticDatasetVersion": { "type": "string", "minLength": 1 },
+    "realtimeSnapshotId": { "type": ["string", "null"] },
+    "dataMode": {
+      "type": "string",
+      "enum": ["live", "schedule_only", "stale", "synthetic", "unavailable"]
+    },
+    "realtimeAgeSeconds": { "type": ["integer", "null"], "minimum": 0 },
+    "staticActivatedAt": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

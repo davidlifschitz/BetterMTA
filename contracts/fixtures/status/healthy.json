@@ -1,0 +1,9 @@
+{
+  "contractVersion": "2026-07-30",
+  "dataMode": "synthetic",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "realtimeAgeSeconds": 0,
+  "degraded": false,
+  "messages": ["Fixture status — not live data."]
+}

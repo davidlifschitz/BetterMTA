@@ -1,0 +1,25 @@
+{
+  "name": "@bettermta/contracts",
+  "version": "2026.7.30",
+  "private": true,
+  "description": "Implementation-neutral BetterMTA shared contracts (conductor-owned)",
+  "type": "module",
+  "exports": {
+    ".": "./typescript/index.ts",
+    "./openapi/bettermta-v1.yaml": "./openapi/bettermta-v1.yaml",
+    "./schemas/*": "./schemas/*",
+    "./fixtures/*": "./fixtures/*"
+  },
+  "scripts": {
+    "validate": "node ./scripts/validate.mjs",
+    "test": "npm run validate"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "js-yaml": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -53,11 +53,10 @@ Define cohort, recruitment, onboarding, feedback, support, rollout stages, go/no
 **Deliverable:** `LAUNCH_PLAN.md`.
 
 ## Suggested integration order
-1. Domain model.
-2. Routing and data specifications in parallel.
-3. API contract.
-4. Benchmark and testing strategy.
-5. UX/design and architecture/operations in parallel.
-6. Privacy and analytics.
-7. Implementation.
-8. Beta launch and production-readiness review.
+1. ~~Domain model / API / data contracts / system architecture.~~ Delivered by conductor package — see `CONDUCTOR_PACKAGE.md`.
+2. After conductor merge to `main`: routing, data, backend, frontend, infrastructure, and QA in **parallel** (separate worktrees).
+3. Specialist specs in parallel with implementation where needed (`ROUTING_ENGINE_SPEC.md`, `DATA_SPEC.md`, etc.).
+4. Pairwise integration per `INTEGRATION_SEQUENCE.md`.
+5. Benchmark gates + UX polish.
+6. Privacy/analytics hardening.
+7. Integration/launch workstream and public-beta go/no-go.

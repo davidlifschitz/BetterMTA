@@ -1,11 +1,26 @@
 # BetterMTA Project File Index
 
 ## Start here
+- `CONDUCTOR_PACKAGE.md` — locked contracts index for parallel workstreams (after merge).
 - `PROJECT_CONTEXT.md` — persistent product context and confirmed decisions.
 - `PRD.md` — current product requirements.
+- `WORKSTREAM_OWNERSHIP.md` — who owns which files.
 - `PARALLEL_WORKSTREAMS.md` — recommended parallel workstreams and deliverables.
 - `../AGENTS.md` — root rules for coding agents.
 - `../.agents/README.md` — specialist prompt index.
+
+## Conductor-locked contracts
+- `SYSTEM_ARCHITECTURE.md`
+- `DOMAIN_MODEL.md`
+- `API_CONTRACT.md`
+- `DATA_CONTRACT.md`
+- `ARCHITECTURE_DECISIONS.md`
+- `INTEGRATION_SEQUENCE.md`
+- `ACCEPTANCE_CRITERIA.md`
+- `RISK_REGISTER.md`
+- `WORKSTREAM_OWNERSHIP.md`
+- `CONDUCTOR_PACKAGE.md`
+- `../contracts/**` — OpenAPI, JSON Schema, TypeScript types, fixtures
 
 ## Product documents
 - `VISION.md`
@@ -15,7 +30,7 @@
 - `ROADMAP.md`
 
 ## Engineering and readiness
-- `TECHNICAL_DESIGN.md`
+- `TECHNICAL_DESIGN.md` — directional design; API paths superseded by `API_CONTRACT.md`
 - `PRODUCTION_CHECKLIST.md`
 
 ## Agent prompts

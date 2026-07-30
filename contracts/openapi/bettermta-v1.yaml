@@ -1,0 +1,639 @@
+openapi: 3.0.3
+info:
+  title: BetterMTA Application API
+  version: "2026-07-30"
+  description: |
+    Locked v1 contract for BetterMTA public-beta experiment.
+    Implementation-neutral. Owned by the conductor workstream.
+servers:
+  - url: /
+    description: Relative to API host
+tags:
+  - name: routes
+  - name: lines
+  - name: places
+  - name: status
+  - name: health
+paths:
+  /v1/routes/search:
+    post:
+      tags: [routes]
+      operationId: searchRoutes
+      summary: Search baseline and selected-line constrained routes
+      parameters:
+        - $ref: "#/components/parameters/RequestIdHeader"
+        - $ref: "#/components/parameters/ClientHeader"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RouteSearchRequest"
+            examples:
+              departNow:
+                $ref: "#/components/examples/RouteSearchRequestDepartNow"
+      responses:
+        "200":
+          description: Ranked routes with freshness metadata
+          headers:
+            X-Request-Id:
+              schema: { type: string }
+            X-Contract-Version:
+              schema: { type: string, example: "2026-07-30" }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RouteSearchResponse"
+              examples:
+                completeMatch:
+                  $ref: "#/components/examples/RouteSearchCompleteMatch"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+        "504":
+          $ref: "#/components/responses/Timeout"
+  /v1/lines:
+    get:
+      tags: [lines]
+      operationId: listLines
+      summary: List active subway lines for the picker
+      responses:
+        "200":
+          description: Active lines
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinesResponse"
+  /v1/places/search:
+    get:
+      tags: [places]
+      operationId: searchPlaces
+      summary: Place autocomplete
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 15, default: 8 }
+        - name: proximityLat
+          in: query
+          required: false
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - name: proximityLon
+          in: query
+          required: false
+          schema: { type: number, minimum: -180, maximum: 180 }
+      responses:
+        "200":
+          description: Place candidates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlaceSearchResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /v1/status:
+    get:
+      tags: [status]
+      operationId: getStatus
+      summary: Public data freshness and degraded status
+      responses:
+        "200":
+          description: Status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusResponse"
+  /health/live:
+    get:
+      tags: [health]
+      operationId: live
+      summary: Liveness probe
+      responses:
+        "200":
+          description: Process up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveResponse"
+  /health/ready:
+    get:
+      tags: [health]
+      operationId: ready
+      summary: Readiness probe
+      responses:
+        "200":
+          description: Ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+        "503":
+          description: Not ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotReadyResponse"
+components:
+  parameters:
+    RequestIdHeader:
+      name: X-Request-Id
+      in: header
+      required: false
+      schema: { type: string }
+    ClientHeader:
+      name: X-BetterMTA-Client
+      in: header
+      required: false
+      schema: { type: string, enum: [web] }
+  schemas:
+    ContractVersion:
+      type: string
+      enum: ["2026-07-30"]
+    DataMode:
+      type: string
+      enum: [live, schedule_only, stale, synthetic, unavailable]
+    Timing:
+      oneOf:
+        - type: object
+          required: [type]
+          properties:
+            type: { type: string, enum: [depart_now] }
+          additionalProperties: false
+        - type: object
+          required: [type, time]
+          properties:
+            type: { type: string, enum: [depart_at, arrive_by] }
+            time: { type: string, format: date-time }
+          additionalProperties: false
+    PlaceRef:
+      oneOf:
+        - type: object
+          required: [placeId]
+          properties:
+            placeId: { type: string, minLength: 1 }
+          additionalProperties: false
+        - type: object
+          required: [stationId]
+          properties:
+            stationId: { type: string, minLength: 1 }
+          additionalProperties: false
+        - type: object
+          required: [coordinate]
+          properties:
+            coordinate:
+              type: object
+              required: [lat, lon]
+              properties:
+                lat: { type: number, minimum: -90, maximum: 90 }
+                lon: { type: number, minimum: -180, maximum: 180 }
+              additionalProperties: false
+            label: { type: string }
+          additionalProperties: false
+    RouteSearchRequest:
+      type: object
+      required: [origin, destination, timing]
+      properties:
+        origin: { $ref: "#/components/schemas/PlaceRef" }
+        destination: { $ref: "#/components/schemas/PlaceRef" }
+        timing: { $ref: "#/components/schemas/Timing" }
+        selectedLineIds:
+          type: array
+          maxItems: 5
+          items: { type: string, minLength: 1 }
+          uniqueItems: true
+        clientContext:
+          type: object
+          properties:
+            viewport: { type: string, enum: [mobile, desktop] }
+            experimentOptIn: { type: boolean }
+          additionalProperties: false
+      additionalProperties: false
+    SatisfactionResult:
+      type: object
+      required:
+        - requestedLineIds
+        - satisfiedLineIds
+        - omittedLineIds
+        - satisfactionCount
+        - requestedCount
+        - isComplete
+        - feasibility
+      properties:
+        requestedLineIds:
+          type: array
+          items: { type: string }
+        satisfiedLineIds:
+          type: array
+          items: { type: string }
+        omittedLineIds:
+          type: array
+          items: { type: string }
+        satisfactionCount: { type: integer, minimum: 0 }
+        requestedCount: { type: integer, minimum: 0 }
+        isComplete: { type: boolean }
+        feasibility:
+          type: string
+          enum: [complete, partial, none, not_applicable]
+      additionalProperties: false
+    ExplanationFact:
+      type: object
+      required: [type, message]
+      properties:
+        type:
+          type: string
+          enum:
+            - line_used
+            - line_omitted
+            - transfer
+            - walk
+            - wait
+            - realtime
+            - baseline_delta
+            - alert
+        message: { type: string }
+        lineId: { type: string }
+        seconds: { type: integer }
+      additionalProperties: false
+    Explanation:
+      type: object
+      required: [summary, facts]
+      properties:
+        summary: { type: string }
+        facts:
+          type: array
+          items: { $ref: "#/components/schemas/ExplanationFact" }
+        baselineDeltaSeconds:
+          type: integer
+          nullable: true
+      additionalProperties: false
+    ReliabilityAssessment:
+      type: object
+      required: [level, basis, displayEligible]
+      properties:
+        level: { type: string, enum: [high, medium, low, unknown] }
+        basis: { type: string }
+        displayEligible: { type: boolean }
+      additionalProperties: false
+    ServiceAlert:
+      type: object
+      required: [alertId, header]
+      properties:
+        alertId: { type: string }
+        header: { type: string }
+        description: { type: string }
+        severity: { type: string, enum: [info, warning, severe, unknown] }
+        affectedLineIds:
+          type: array
+          items: { type: string }
+      additionalProperties: false
+    TransitLeg:
+      type: object
+      required: [legId, kind, lineId, from, to, departTime, arriveTime]
+      properties:
+        legId: { type: string }
+        kind: { type: string, enum: [transit] }
+        lineId: { type: string }
+        tripId: { type: string, nullable: true }
+        headsign: { type: string }
+        from:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            stationId: { type: string }
+            stopId: { type: string }
+          additionalProperties: false
+        to:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            stationId: { type: string }
+            stopId: { type: string }
+          additionalProperties: false
+        departTime: { type: string, format: date-time }
+        arriveTime: { type: string, format: date-time }
+        durationSeconds: { type: integer, minimum: 0 }
+        sourceEngineIds:
+          type: object
+          additionalProperties: { type: string }
+      additionalProperties: false
+    WalkingLeg:
+      type: object
+      required: [legId, kind, durationSeconds, outOfSystem]
+      properties:
+        legId: { type: string }
+        kind: { type: string, enum: [walk] }
+        durationSeconds: { type: integer, minimum: 0 }
+        distanceMeters: { type: number, minimum: 0 }
+        outOfSystem: { type: boolean }
+        instruction: { type: string }
+      additionalProperties: false
+    Leg:
+      oneOf:
+        - $ref: "#/components/schemas/TransitLeg"
+        - $ref: "#/components/schemas/WalkingLeg"
+    Itinerary:
+      type: object
+      required:
+        - itineraryId
+        - fingerprint
+        - durationSeconds
+        - arrivalTime
+        - walkingSeconds
+        - waitingSeconds
+        - transferCount
+        - lineSequence
+        - legs
+        - satisfaction
+        - realtimeConfidence
+        - alerts
+        - explanation
+      properties:
+        itineraryId: { type: string }
+        fingerprint: { type: string }
+        durationSeconds: { type: integer, minimum: 0 }
+        arrivalTime: { type: string, format: date-time }
+        walkingSeconds: { type: integer, minimum: 0 }
+        waitingSeconds: { type: integer, minimum: 0 }
+        transferCount: { type: integer, minimum: 0 }
+        lineSequence:
+          type: array
+          items: { type: string }
+        legs:
+          type: array
+          items: { $ref: "#/components/schemas/Leg" }
+        satisfaction: { $ref: "#/components/schemas/SatisfactionResult" }
+        realtimeConfidence:
+          type: string
+          enum: [high, medium, low, none]
+        alerts:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceAlert" }
+        explanation: { $ref: "#/components/schemas/Explanation" }
+        reliability:
+          allOf:
+            - $ref: "#/components/schemas/ReliabilityAssessment"
+          nullable: true
+        candidateFamily:
+          type: string
+          enum: [baseline, constrained, preference_biased, targeted_combination]
+      additionalProperties: false
+    Freshness:
+      type: object
+      required: [warnings]
+      properties:
+        realtimeAgeSeconds: { type: integer, minimum: 0, nullable: true }
+        staticActivatedAt: { type: string, format: date-time, nullable: true }
+        warnings:
+          type: array
+          items:
+            type: object
+            required: [code, message]
+            properties:
+              code: { type: string }
+              message: { type: string }
+            additionalProperties: false
+      additionalProperties: false
+    RouteSearchResponse:
+      type: object
+      required:
+        - contractVersion
+        - requestId
+        - staticDatasetVersion
+        - dataMode
+        - freshness
+        - baseline
+        - constrained
+      properties:
+        contractVersion: { $ref: "#/components/schemas/ContractVersion" }
+        requestId: { type: string }
+        staticDatasetVersion: { type: string }
+        realtimeSnapshotId: { type: string, nullable: true }
+        dataMode: { $ref: "#/components/schemas/DataMode" }
+        freshness: { $ref: "#/components/schemas/Freshness" }
+        baseline:
+          type: object
+          required: [itineraries]
+          properties:
+            itineraries:
+              type: array
+              maxItems: 3
+              items: { $ref: "#/components/schemas/Itinerary" }
+          additionalProperties: false
+        constrained:
+          type: object
+          required: [itineraries, satisfactionSummary]
+          properties:
+            itineraries:
+              type: array
+              maxItems: 3
+              items: { $ref: "#/components/schemas/Itinerary" }
+            satisfactionSummary:
+              type: object
+              required: [bestSatisfactionCount, requestedCount, completeMatchFound]
+              properties:
+                bestSatisfactionCount: { type: integer, minimum: 0 }
+                requestedCount: { type: integer, minimum: 0 }
+                completeMatchFound: { type: boolean }
+              additionalProperties: false
+          additionalProperties: false
+        experiment:
+          type: object
+          properties:
+            explanationVariant: { type: string, enum: [concise, detailed] }
+          additionalProperties: false
+      additionalProperties: false
+    Line:
+      type: object
+      required: [lineId, label, displayName, color, textColor, isActive, gtfsRouteIds]
+      properties:
+        lineId: { type: string }
+        label: { type: string }
+        displayName: { type: string }
+        color: { type: string }
+        textColor: { type: string }
+        isActive: { type: boolean }
+        gtfsRouteIds:
+          type: array
+          items: { type: string }
+      additionalProperties: false
+    LinesResponse:
+      type: object
+      required: [contractVersion, staticDatasetVersion, lines]
+      properties:
+        contractVersion: { $ref: "#/components/schemas/ContractVersion" }
+        staticDatasetVersion: { type: string }
+        lines:
+          type: array
+          items: { $ref: "#/components/schemas/Line" }
+      additionalProperties: false
+    Place:
+      type: object
+      required: [placeId, label, kind]
+      properties:
+        placeId: { type: string }
+        label: { type: string }
+        kind:
+          type: string
+          enum: [station, address, poi, current_location, coordinate]
+        stationId: { type: string }
+        borough: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+      additionalProperties: false
+    PlaceSearchResponse:
+      type: object
+      required: [contractVersion, query, places]
+      properties:
+        contractVersion: { $ref: "#/components/schemas/ContractVersion" }
+        query: { type: string }
+        places:
+          type: array
+          items: { $ref: "#/components/schemas/Place" }
+      additionalProperties: false
+    StatusResponse:
+      type: object
+      required:
+        - contractVersion
+        - dataMode
+        - staticDatasetVersion
+        - degraded
+        - messages
+      properties:
+        contractVersion: { $ref: "#/components/schemas/ContractVersion" }
+        dataMode: { $ref: "#/components/schemas/DataMode" }
+        staticDatasetVersion: { type: string }
+        realtimeSnapshotId: { type: string, nullable: true }
+        realtimeAgeSeconds: { type: integer, nullable: true }
+        degraded: { type: boolean }
+        messages:
+          type: array
+          items: { type: string }
+      additionalProperties: false
+    LiveResponse:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ok] }
+      additionalProperties: false
+    ReadyResponse:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ready] }
+        dataMode: { $ref: "#/components/schemas/DataMode" }
+      additionalProperties: false
+    NotReadyResponse:
+      type: object
+      required: [status, reasons]
+      properties:
+        status: { type: string, enum: [not_ready] }
+        reasons:
+          type: array
+          items: { type: string }
+      additionalProperties: false
+    ApiError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_input
+                - unknown_place
+                - unknown_line
+                - no_transit_path
+                - incomplete_selected_line_satisfaction
+                - insufficient_candidate_coverage
+                - timeout
+                - data_unavailable
+                - stale_realtime
+                - rate_limited
+                - internal_error
+            message: { type: string }
+            requestId: { type: string }
+            details:
+              type: object
+              additionalProperties: true
+          additionalProperties: false
+      additionalProperties: false
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    NotFound:
+      description: No transit path
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    RateLimited:
+      description: Rate limited
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    InternalError:
+      description: Internal error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    ServiceUnavailable:
+      description: Data unavailable or insufficient coverage
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+    Timeout:
+      description: Timeout
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ApiError" }
+  examples:
+    RouteSearchRequestDepartNow:
+      summary: Depart now with two selected lines
+      value:
+        origin: { placeId: "pl_carroll_st" }
+        destination: { placeId: "pl_bryant_park" }
+        timing: { type: depart_now }
+        selectedLineIds: ["F", "D"]
+        clientContext: { viewport: mobile, experimentOptIn: true }
+    RouteSearchCompleteMatch:
+      summary: Complete selected-line match (synthetic fixture shape)
+      value:
+        contractVersion: "2026-07-30"
+        requestId: "req_fixture_complete"
+        staticDatasetVersion: "gtfs_fixture_v1"
+        realtimeSnapshotId: "rt_fixture_v1"
+        dataMode: synthetic
+        freshness:
+          realtimeAgeSeconds: 0
+          staticActivatedAt: "2026-07-29T06:00:00Z"
+          warnings: []
+        baseline:
+          itineraries: []
+        constrained:
+          itineraries: []
+          satisfactionSummary:
+            bestSatisfactionCount: 2
+            requestedCount: 2
+            completeMatchFound: true
+        experiment:
+          explanationVariant: concise

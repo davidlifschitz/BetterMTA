@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/place-search-response.schema.json",
+  "title": "PlaceSearchResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "query", "places"],
+  "properties": {
+    "contractVersion": { "const": "2026-07-30" },
+    "query": { "type": "string" },
+    "places": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["placeId", "label", "kind"],
+        "properties": {
+          "placeId": { "type": "string" },
+          "label": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": ["station", "address", "poi", "current_location", "coordinate"]
+          },
+          "stationId": { "type": "string" },
+          "borough": { "type": "string" },
+          "lat": { "type": "number" },
+          "lon": { "type": "number" }
+        }
+      }
+    }
+  }
+}

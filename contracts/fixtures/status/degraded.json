@@ -1,0 +1,9 @@
+{
+  "contractVersion": "2026-07-30",
+  "dataMode": "stale",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_stale",
+  "realtimeAgeSeconds": 600,
+  "degraded": true,
+  "messages": ["Realtime feeds are stale; schedule fallback may apply."]
+}

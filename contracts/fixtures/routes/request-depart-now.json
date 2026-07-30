@@ -1,0 +1,7 @@
+{
+  "origin": { "placeId": "pl_carroll_st" },
+  "destination": { "placeId": "pl_bryant_park" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["F", "B"],
+  "clientContext": { "viewport": "mobile", "experimentOptIn": true }
+}
