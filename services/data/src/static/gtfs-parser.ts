@@ -3,6 +3,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import type {
   GtfsCalendar,
+  GtfsCalendarDate,
   GtfsRoute,
   GtfsStop,
   GtfsStopTime,
@@ -17,6 +18,7 @@ export interface ParsedGtfs {
   stopTimes: GtfsStopTime[];
   transfers: GtfsTransfer[];
   calendar: GtfsCalendar[];
+  calendarDates: GtfsCalendarDate[];
   rawFiles: Record<string, string>;
 }
 
@@ -188,6 +190,15 @@ export function parseGtfsFiles(rawFiles: Record<string, string>): ParsedGtfs {
     endDate: r["end_date"] ?? "",
   }));
 
+  // Optional: zip stub path may ship calendar_dates-only (empty calendar.txt stub).
+  const calendarDates: GtfsCalendarDate[] = rawFiles["calendar_dates.txt"]
+    ? parseCsv(rawFiles["calendar_dates.txt"]).map((r) => ({
+        serviceId: r["service_id"] ?? "",
+        date: r["date"] ?? "",
+        exceptionType: Number(r["exception_type"]) === 2 ? 2 : 1,
+      }))
+    : [];
+
   return {
     stops,
     routes,
@@ -195,6 +206,7 @@ export function parseGtfsFiles(rawFiles: Record<string, string>): ParsedGtfs {
     stopTimes,
     transfers,
     calendar,
+    calendarDates,
     rawFiles,
   };
 }

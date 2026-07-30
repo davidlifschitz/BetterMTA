@@ -20,6 +20,7 @@ import type {
 } from "../types.js";
 import { DEFAULT_FRESHNESS_POLICY } from "../types.js";
 import { REALTIME_FEEDS, REQUIRED_FEED_IDS } from "./feeds.js";
+import { isHollowParsedFeed } from "./hollow.js";
 
 export interface AssembledFeedInput {
   feedId: string;
@@ -192,6 +193,12 @@ export function assembleLiveSnapshot(options: {
   nowMs: number;
   policy?: FreshnessPolicy;
   synthetic?: boolean;
+  /**
+   * Prior assembled snapshot. When a feed poll is hollow/non-usable, retain
+   * that feedId's trip updates (and related entities) from prior rather than
+   * wiping the trunk's contribution from the merged snapshot.
+   */
+  priorSnapshot?: RealtimeSnapshot | null;
 }): {
   snapshot: RealtimeSnapshot;
   perFeed: Record<string, PerFeedStatus>;
@@ -238,12 +245,39 @@ export function assembleLiveSnapshot(options: {
     },
   );
 
-  // Re-attach derived cancellations / NYCT fields lost in JSON roundtrip:
-  // Prefer merging trip updates from parsed feeds directly when present.
-  const mergedFromParsed = successful.flatMap((f) => f.parsed!.tripUpdates);
-  const mergedAlerts = successful.flatMap((f) => f.parsed!.alerts);
-  const mergedQuarantined = successful.flatMap((f) => f.parsed!.quarantined);
-  if (mergedFromParsed.length > 0) {
+  // Re-attach derived cancellations / NYCT fields lost in JSON roundtrip.
+  // For hollow feeds, keep prior per-feed entities when available so one
+  // empty trunk poll does not wipe that feedId's contribution (High 5).
+  const prior = options.priorSnapshot ?? null;
+  const mergedFromParsed: import("../types.js").NormalizedTripUpdate[] = [];
+  const mergedAlerts: import("../types.js").ServiceAlert[] = [];
+  const mergedQuarantined: import("../types.js").QuarantinedEntity[] = [];
+  let vehicleTotal = 0;
+
+  for (const f of successful) {
+    const hollow = isHollowParsedFeed(f.parsed);
+    if (hollow && prior) {
+      mergedFromParsed.push(
+        ...prior.tripUpdates.filter((t) => t.feedId === f.feedId),
+      );
+      mergedAlerts.push(...prior.alerts.filter((a) => a.feedId === f.feedId));
+      mergedQuarantined.push(
+        ...prior.quarantined.filter((q) => q.feedId === f.feedId),
+      );
+      continue;
+    }
+    mergedFromParsed.push(...f.parsed!.tripUpdates);
+    mergedAlerts.push(...f.parsed!.alerts);
+    mergedQuarantined.push(...f.parsed!.quarantined);
+    vehicleTotal += f.parsed?.vehicleCount ?? 0;
+  }
+
+  const anyWire = successful.some((f) => f.parsed?.hasWireEntities === true);
+  const retainedHollowFeed = successful.some(
+    (f) => isHollowParsedFeed(f.parsed) && prior,
+  );
+
+  if (mergedFromParsed.length > 0 || mergedAlerts.length > 0) {
     snapshot.tripUpdates = mergedFromParsed;
     snapshot.cancellations = mergedFromParsed.filter(
       (t) => t.scheduleRelationship === "canceled",
@@ -270,7 +304,7 @@ export function assembleLiveSnapshot(options: {
     snapshot.entityCounts = {
       tripUpdates: mergedFromParsed.length,
       alerts: mergedAlerts.length,
-      vehicles: successful.reduce((n, f) => n + (f.parsed?.vehicleCount ?? 0), 0),
+      vehicles: vehicleTotal,
       quarantined: snapshot.quarantined.length,
     };
   }
@@ -290,7 +324,7 @@ export function assembleLiveSnapshot(options: {
   snapshot.perFeed = perFeed;
 
   const hasRealtimePayload =
-    snapshot.tripUpdates.length + snapshot.alerts.length > 0;
+    anyWire && snapshot.tripUpdates.length + snapshot.alerts.length > 0;
 
   // Prefer multi-feed mode when we have per-feed coverage for required feeds
   const multiMode = computeMultiFeedDataMode(perFeed, {
@@ -298,9 +332,20 @@ export function assembleLiveSnapshot(options: {
     hasRealtimePayload,
   });
 
-  // Conservative blend: if multi-feed says live but classic age says otherwise, use worse
+  // Classic age blend must ignore optional alert feeds (e.g. camsys-subway-alerts).
+  // Required-feed multiMode remains authoritative for live/stale/schedule_only;
+  // stale alerts must not poison overall dataMode when TU feeds are fresh.
+  const requiredTimestamps: Record<string, string> = {};
+  for (const [feedId, ts] of Object.entries(snapshot.feedTimestamps)) {
+    const def = REALTIME_FEEDS.find((f) => f.feedId === feedId);
+    if (def && !def.requiredForMode) continue;
+    requiredTimestamps[feedId] = ts;
+  }
   const classicAge = hasRealtimePayload
-    ? computeRealtimeAgeSeconds(snapshot, options.nowMs)
+    ? computeRealtimeAgeSeconds(
+        { feedTimestamps: requiredTimestamps, ingestedAt: snapshot.ingestedAt },
+        options.nowMs,
+      )
     : null;
   const classicMode = computeDataMode(classicAge, {
     hasRealtimePayload,
@@ -308,6 +353,9 @@ export function assembleLiveSnapshot(options: {
     policy,
   });
 
+  // Required-feed multiMode wins for live/stale/schedule_only when it is more
+  // optimistic than classic (alerts excluded above). Still take the worse of
+  // the two when classic is based only on required feeds.
   snapshot.dataMode = worseMode(multiMode, classicMode);
   snapshot.ageSeconds =
     classicAge ??
@@ -331,6 +379,12 @@ export function assembleLiveSnapshot(options: {
     .digest("hex")
     .slice(0, 10);
   snapshot.snapshotId = `rt_live_${ingestedAt.slice(0, 10).replace(/-/g, "")}_${h}`;
+
+  // Re-commit when hollow-feed retention changed the merged entity set so LKG
+  // is not left with a trunk wiped by the initial ingest put.
+  if (hasRealtimePayload && retainedHollowFeed) {
+    options.ingestor.commitAssembledSnapshot(snapshot, options.nowMs, policy);
+  }
 
   const manifest = manifestFromSnapshot(snapshot, perFeed);
   return { snapshot, perFeed, manifest };

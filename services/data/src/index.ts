@@ -16,6 +16,7 @@ export type {
   FeedFreshnessStatus,
   PerFeedStatus,
   SnapshotManifest,
+  GtfsCalendarDate,
 } from "./types.js";
 
 export { DEFAULT_FRESHNESS_POLICY } from "./types.js";

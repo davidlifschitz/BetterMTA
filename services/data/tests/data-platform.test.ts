@@ -104,10 +104,39 @@ describe("static GTFS import", () => {
     expect(result.dataset.quarantinedRoutes).toEqual([
       { gtfsRouteId: "XXZ", reason: "unknown_route_id" },
     ]);
+    expect(result.dataset.calendarDates).toEqual([]);
     expect(metrics.getCounter("bettermta_quarantined_routes_total")).toBe(1);
     expect(store.getActive()?.staticDatasetVersion).toBe(
       result.dataset.staticDatasetVersion,
     );
+  });
+
+  it("retains calendar_dates exceptions through import", () => {
+    const files: Record<string, string> = {
+      "stops.txt":
+        "stop_id,stop_name,stop_lat,stop_lon,location_type,parent_station\nA02N,Test,40.7,-74.0,0,\n",
+      "routes.txt":
+        "route_id,route_short_name,route_long_name,route_color,route_text_color\nA,A,Eighth Ave,0039A6,FFFFFF\n",
+      "trips.txt":
+        "route_id,service_id,trip_id,trip_headsign,direction_id\nA,WEEKDAY,A_UP_001,North,0\n",
+      "stop_times.txt":
+        "trip_id,arrival_time,departure_time,stop_id,stop_sequence\nA_UP_001,08:00:00,08:00:00,A02N,1\n",
+      "transfers.txt":
+        "from_stop_id,to_stop_id,transfer_type,min_transfer_time\n",
+      "calendar.txt":
+        "service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date\nWEEKDAY,1,1,1,1,1,0,0,20260101,20261231\n",
+      "calendar_dates.txt":
+        "service_id,date,exception_type\nWEEKDAY,20260704,2\nHOLIDAY,20260704,1\n",
+    };
+    const result = importer.importFromFiles(files, {
+      importedAt: "2026-07-30T06:00:00.000Z",
+      activate: true,
+    });
+    expect(result.validationOk).toBe(true);
+    expect(result.dataset.calendarDates).toEqual([
+      { serviceId: "WEEKDAY", date: "20260704", exceptionType: 2 },
+      { serviceId: "HOLIDAY", date: "20260704", exceptionType: 1 },
+    ]);
   });
 
   it("never activates a failed import; keeps previous active", () => {

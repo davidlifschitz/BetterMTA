@@ -36,6 +36,7 @@ import {
   listenInternalServer,
   closeInternalServer,
   REALTIME_FEEDS,
+  REQUIRED_FEED_IDS,
   loadRealtimeLiveConfig,
   buildLineCatalog,
   buildStationCatalog,
@@ -497,6 +498,7 @@ describe("NYCT normalize + trip_replacement_period", () => {
 
     const synthetic: StaticDataset = {
       ...staticDataset,
+      calendarDates: staticDataset.calendarDates ?? [],
       trips: [
         {
           tripId: "A_LATE_001",
@@ -555,6 +557,71 @@ describe("NYCT normalize + trip_replacement_period", () => {
       feedTimestampSec: boundary,
     });
     expect(derivedOutside.some((t) => t.tripId === "A_LATE_001")).toBe(false);
+  });
+
+  it("calendar_dates exception removal prevents false absence cancels", () => {
+    const serviceDate = "20260729"; // Wednesday — WEEKDAY normally active
+    const dep = staticDataset.stopTimes.find(
+      (s) => s.tripId === "A_UP_001",
+    )!.departureTime;
+    const startUp = tripStartUnix(serviceDate, dep)!;
+    const withRemoval: StaticDataset = {
+      ...staticDataset,
+      calendarDates: [
+        { serviceId: "WEEKDAY", date: serviceDate, exceptionType: 2 },
+      ],
+    };
+    const derived = deriveAbsenceCancellations({
+      feedId: "nyct-gtfs-ace",
+      periods: [
+        { routeId: "A", start: startUp - 60, end: startUp + 3600 },
+      ],
+      presentTripIds: new Set(),
+      staticDataset: withRemoval,
+      feedTimestampSec: startUp,
+    });
+    expect(derived.some((t) => t.tripId === "A_UP_001")).toBe(false);
+  });
+
+  it("calendar_dates-only added service can produce absence cancels", () => {
+    // Sunday 20260802 — WEEKDAY calendar is off; add via calendar_dates.
+    const serviceDate = "20260802";
+    const dep = staticDataset.stopTimes.find(
+      (s) => s.tripId === "A_UP_001",
+    )!.departureTime;
+    const startUp = tripStartUnix(serviceDate, dep)!;
+    const holidayService: StaticDataset = {
+      ...staticDataset,
+      calendarDates: [
+        { serviceId: "WEEKDAY", date: serviceDate, exceptionType: 1 },
+      ],
+    };
+    const without = deriveAbsenceCancellations({
+      feedId: "nyct-gtfs-ace",
+      periods: [
+        { routeId: "A", start: startUp - 60, end: startUp + 3600 },
+      ],
+      presentTripIds: new Set(),
+      staticDataset: { ...staticDataset, calendarDates: [] },
+      feedTimestampSec: startUp,
+    });
+    expect(without.some((t) => t.tripId === "A_UP_001")).toBe(false);
+
+    const withAdd = deriveAbsenceCancellations({
+      feedId: "nyct-gtfs-ace",
+      periods: [
+        { routeId: "A", start: startUp - 60, end: startUp + 3600 },
+      ],
+      presentTripIds: new Set(),
+      staticDataset: holidayService,
+      feedTimestampSec: startUp,
+    });
+    expect(
+      withAdd.some(
+        (t) =>
+          t.tripId === "A_UP_001" && t.scheduleRelationship === "canceled",
+      ),
+    ).toBe(true);
   });
 });
 
@@ -690,6 +757,7 @@ describe("partial-feed status + hollow LKG", () => {
           parseErrors: 0,
           vehicleCount: 0,
           simulatedFailure: null,
+          hasWireEntities: f.requiredForMode,
         },
         fetchedAt: new Date(nowMs).toISOString(),
         headerTimestamp: nowSec - 10,
@@ -793,6 +861,371 @@ describe("partial-feed status + hollow LKG", () => {
       },
     );
     expect(resolved?.snapshotId).toBe(goodId);
+  });
+
+  it("hollow protobuf WITH trip_replacement_period does not overwrite LKG or become live", async () => {
+    const platform = new DataPlatform({
+      env: { BETTERMTA_ALLOW_FIXTURE_STATIC: "true", NODE_ENV: "test" },
+    });
+    platform.importStatic(VALID_STATIC, {
+      importedAt: "2026-07-30T06:00:00.000Z",
+      activate: true,
+    });
+    const ds = platform.staticStore.getActive()!;
+    const known = new Set(ds.trips.map((t) => t.tripId));
+    const nowMs = Date.parse("2026-07-29T16:00:00.000Z");
+    const nowSec = Math.floor(nowMs / 1000);
+
+    const serviceDate = "20260729";
+    const depUp = ds.stopTimes.find((s) => s.tripId === "A_UP_001")!
+      .departureTime;
+    const startUp = tripStartUnix(serviceDate, depUp)!;
+
+    // Seed usable LKG via JSON ingest (wire entities, no TRP)
+    platform.ingestRealtime(
+      [
+        {
+          feedId: "nyct-gtfs-ace",
+          payload: {
+            header: { gtfsRealtimeVersion: "2.0", timestamp: nowSec - 30 },
+            entity: [
+              {
+                id: "1",
+                tripUpdate: {
+                  trip: {
+                    tripId: "A_UP_001",
+                    routeId: "A",
+                    scheduleRelationship: "SCHEDULED",
+                  },
+                  stopTimeUpdate: [{ stopId: "A02N" }],
+                },
+              },
+            ],
+            _fixtureMeta: {
+              feedTimestampIso: new Date((nowSec - 30) * 1000).toISOString(),
+            },
+          },
+        },
+      ],
+      {
+        staticDatasetVersion: ds.staticDatasetVersion,
+        knownTripIds: known,
+        ingestedAt: new Date((nowSec - 30) * 1000).toISOString(),
+        nowMs: nowMs - 30_000,
+      },
+    );
+    const goodId = platform.realtimeStore.getLatest()!.snapshotId;
+
+    // Hollow entity list + TRP that would mass-cancel if treated as usable
+    const hollowBytes = await encodeFeedMessage({
+      header: {
+        gtfsRealtimeVersion: "2.0",
+        timestamp: nowSec,
+        nyct: {
+          nyctSubwayVersion: "1.0",
+          tripReplacementPeriods: [
+            {
+              routeId: "A",
+              start: startUp - 60,
+              end: startUp + 7200,
+            },
+          ],
+        },
+      },
+      entity: [],
+    });
+    const hollowDecoded = await decodeFeedMessage(hollowBytes);
+    const hollowParsed = normalizeDecodedFeed(hollowDecoded, {
+      feedId: "nyct-gtfs-ace",
+      knownTripIds: known,
+      staticDataset: ds,
+    });
+    expect(hollowParsed.hasWireEntities).toBe(false);
+    expect(
+      hollowParsed.tripUpdates.filter((t) => t.derivedFromReplacementPeriod),
+    ).toHaveLength(0);
+    // Diagnostics: TRP would cancel if wire had entities
+    const wouldCancel = deriveAbsenceCancellations({
+      feedId: "nyct-gtfs-ace",
+      periods: hollowDecoded.header.nyct!.tripReplacementPeriods,
+      presentTripIds: new Set(),
+      staticDataset: ds,
+      feedTimestampSec: nowSec,
+    });
+    expect(wouldCancel.some((t) => t.tripId === "A_UP_001")).toBe(true);
+
+    const { snapshot: hollowSnap } = assembleLiveSnapshot({
+      ingestor: platform.realtimeIngestor,
+      feeds: [
+        {
+          feedId: "nyct-gtfs-ace",
+          parsed: hollowParsed,
+          fetchedAt: new Date(nowMs).toISOString(),
+          headerTimestamp: nowSec,
+        },
+      ],
+      staticDatasetVersion: ds.staticDatasetVersion,
+      knownTripIds: known,
+      lineMapping: ds.lineMapping,
+      nowMs,
+      priorSnapshot: platform.realtimeStore.getLatest(),
+    });
+
+    // Must not become assembled live solely from TRP-derived cancels
+    expect(hollowSnap.dataMode).not.toBe("live");
+    const latest = platform.realtimeStore.getLatest();
+    expect(latest?.snapshotId).toBe(goodId);
+    const resolved = platform.realtimeIngestor.resolveForRouting(latest, {
+      nowMs,
+      staticDatasetVersion: ds.staticDatasetVersion,
+    });
+    expect(resolved?.snapshotId).toBe(goodId);
+  });
+
+  it("optional alerts feed age does not poison overall dataMode", () => {
+    const platform = new DataPlatform({
+      env: { BETTERMTA_ALLOW_FIXTURE_STATIC: "true", NODE_ENV: "test" },
+    });
+    platform.importStatic(VALID_STATIC, {
+      importedAt: "2026-07-30T06:00:00.000Z",
+      activate: true,
+    });
+    const ds = platform.staticStore.getActive()!;
+    const known = new Set(ds.trips.map((t) => t.tripId));
+    const nowMs = Date.now();
+    const nowSec = Math.floor(nowMs / 1000);
+    const staleAlertSec = nowSec - 200;
+
+    const feeds: AssembledFeedInput[] = REALTIME_FEEDS.map((f) => {
+      if (f.feedId === "camsys-subway-alerts") {
+        return {
+          feedId: f.feedId,
+          parsed: {
+            feedId: f.feedId,
+            feedTimestampIso: new Date(staleAlertSec * 1000).toISOString(),
+            tripUpdates: [],
+            alerts: [
+              {
+                alertId: "old",
+                header: "Old alert",
+                feedId: f.feedId,
+              },
+            ],
+            quarantined: [],
+            parseErrors: 0,
+            vehicleCount: 0,
+            simulatedFailure: null,
+            hasWireEntities: true,
+          },
+          fetchedAt: new Date(staleAlertSec * 1000).toISOString(),
+          headerTimestamp: staleAlertSec,
+        };
+      }
+      return {
+        feedId: f.feedId,
+        parsed: {
+          feedId: f.feedId,
+          feedTimestampIso: new Date((nowSec - 10) * 1000).toISOString(),
+          tripUpdates: [
+            {
+              tripId: "A_UP_001",
+              scheduleRelationship: "scheduled" as const,
+              stopTimeUpdates: [],
+              feedId: f.feedId,
+            },
+          ],
+          alerts: [],
+          quarantined: [],
+          parseErrors: 0,
+          vehicleCount: 0,
+          simulatedFailure: null,
+          hasWireEntities: true,
+        },
+        fetchedAt: new Date(nowMs).toISOString(),
+        headerTimestamp: nowSec - 10,
+      };
+    });
+
+    const { snapshot, perFeed } = assembleLiveSnapshot({
+      ingestor: platform.realtimeIngestor,
+      feeds,
+      staticDatasetVersion: ds.staticDatasetVersion,
+      knownTripIds: known,
+      nowMs,
+    });
+
+    expect(perFeed["camsys-subway-alerts"]!.status).toBe("stale");
+    expect(
+      REQUIRED_FEED_IDS.every((id) => perFeed[id]?.status === "fresh"),
+    ).toBe(true);
+    expect(snapshot.dataMode).toBe("live");
+  });
+
+  it("two-feed merge retains prior entities when one feed goes hollow", async () => {
+    const platform = new DataPlatform({
+      env: { BETTERMTA_ALLOW_FIXTURE_STATIC: "true", NODE_ENV: "test" },
+    });
+    platform.importStatic(VALID_STATIC, {
+      importedAt: "2026-07-30T06:00:00.000Z",
+      activate: true,
+    });
+    const ds = platform.staticStore.getActive()!;
+    const known = new Set(ds.trips.map((t) => t.tripId));
+    const nowMs = Date.now();
+    const nowSec = Math.floor(nowMs / 1000);
+
+    const makeTu = (feedId: string, tripId: string) => ({
+      feedId,
+      parsed: {
+        feedId,
+        feedTimestampIso: new Date(nowSec * 1000).toISOString(),
+        tripUpdates: [
+          {
+            tripId,
+            routeId: tripId.startsWith("D") ? "D" : "A",
+            scheduleRelationship: "scheduled" as const,
+            stopTimeUpdates: [{ stopId: "A02N" }],
+            feedId,
+          },
+        ],
+        alerts: [],
+        quarantined: [],
+        parseErrors: 0,
+        vehicleCount: 0,
+        simulatedFailure: null,
+        hasWireEntities: true,
+      },
+      fetchedAt: new Date(nowMs).toISOString(),
+      headerTimestamp: nowSec,
+    });
+
+    const firstFeeds: AssembledFeedInput[] = [
+      makeTu("nyct-gtfs-ace", "A_UP_001"),
+      makeTu("nyct-gtfs-bdfm", "D_UP_001"),
+    ];
+    const { snapshot: prior } = assembleLiveSnapshot({
+      ingestor: platform.realtimeIngestor,
+      feeds: firstFeeds,
+      staticDatasetVersion: ds.staticDatasetVersion,
+      knownTripIds: known,
+      nowMs,
+    });
+    expect(prior.tripUpdates.some((t) => t.feedId === "nyct-gtfs-ace")).toBe(
+      true,
+    );
+    expect(prior.tripUpdates.some((t) => t.feedId === "nyct-gtfs-bdfm")).toBe(
+      true,
+    );
+
+    const hollowAce = await encodeFeedMessage({
+      header: { gtfsRealtimeVersion: "2.0", timestamp: nowSec + 5 },
+      entity: [],
+    });
+    const hollowParsed = normalizeDecodedFeed(await decodeFeedMessage(hollowAce), {
+      feedId: "nyct-gtfs-ace",
+      knownTripIds: known,
+      staticDataset: ds,
+    });
+    expect(hollowParsed.hasWireEntities).toBe(false);
+
+    const secondFeeds: AssembledFeedInput[] = [
+      {
+        feedId: "nyct-gtfs-ace",
+        parsed: hollowParsed,
+        fetchedAt: new Date(nowMs + 5000).toISOString(),
+        headerTimestamp: nowSec + 5,
+      },
+      makeTu("nyct-gtfs-bdfm", "D_UP_001"),
+    ];
+    const { snapshot: merged } = assembleLiveSnapshot({
+      ingestor: platform.realtimeIngestor,
+      feeds: secondFeeds,
+      staticDatasetVersion: ds.staticDatasetVersion,
+      knownTripIds: known,
+      nowMs: nowMs + 5000,
+      priorSnapshot: prior,
+    });
+
+    expect(merged.tripUpdates.some((t) => t.feedId === "nyct-gtfs-ace")).toBe(
+      true,
+    );
+    expect(merged.tripUpdates.some((t) => t.tripId === "A_UP_001")).toBe(true);
+    expect(merged.tripUpdates.some((t) => t.feedId === "nyct-gtfs-bdfm")).toBe(
+      true,
+    );
+  });
+});
+
+describe("raw store hollow LKG", () => {
+  it("does not displace prior raw LKG with hollow protobuf (even with TRP)", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "bmta-raw-"));
+    const metrics = new MetricsRegistry();
+    const store = new RealtimeSnapshotStore();
+    const ingestor = new RealtimeIngestor(store, metrics);
+    const rawStore = new RawFeedStore({ dataDir: tmp, mirrorToDisk: false });
+    const manifestStore = new SnapshotManifestStore();
+    const platform = new DataPlatform({
+      env: { BETTERMTA_ALLOW_FIXTURE_STATIC: "true", NODE_ENV: "test" },
+    });
+    platform.importStatic(VALID_STATIC, {
+      importedAt: "2026-07-30T06:00:00.000Z",
+      activate: true,
+    });
+
+    const goodBytes = loadCaptured("nyct-gtfs-g");
+    const nowSec = Math.floor(Date.now() / 1000);
+    const hollowBytes = await encodeFeedMessage({
+      header: {
+        gtfsRealtimeVersion: "2.0",
+        timestamp: nowSec,
+        nyct: {
+          nyctSubwayVersion: "1.0",
+          tripReplacementPeriods: [
+            { routeId: "G", start: nowSec - 60, end: nowSec + 3600 },
+          ],
+        },
+      },
+      entity: [],
+    });
+
+    let useHollow = false;
+    const fetchFn: typeof fetch = async () => {
+      return new Response(useHollow ? hollowBytes : goodBytes, { status: 200 });
+    };
+
+    const poller = new RealtimePoller({
+      config: {
+        ...loadRealtimeLiveConfig({
+          env: {
+            BETTERMTA_INTERNAL_ALLOW_ANON: "true",
+            BETTERMTA_DATA_DIR: tmp,
+          },
+          serviceRoot: tmp,
+        }),
+        maxRetries: 0,
+      },
+      rawStore,
+      ingestor,
+      manifestStore,
+      getStaticDataset: () => platform.staticStore.getActive(),
+      fetchFn,
+    });
+
+    const feed = REALTIME_FEEDS.find((f) => f.feedId === "nyct-gtfs-g")!;
+    await poller.pollOne(feed);
+    const prior = rawStore.get("nyct-gtfs-g")!;
+    expect(prior.byteSize).toBeGreaterThan(0);
+    expect(Buffer.compare(prior.bytes, goodBytes)).toBe(0);
+
+    useHollow = true;
+    const hollowResult = await poller.pollOne(feed);
+    expect(hollowResult.parsed?.hasWireEntities).toBe(false);
+    const after = rawStore.get("nyct-gtfs-g")!;
+    expect(Buffer.compare(after.bytes, prior.bytes)).toBe(0);
+    expect(after.fetchedAt).toBe(prior.fetchedAt);
+
+    await poller.stop();
+    rmSync(tmp, { recursive: true, force: true });
   });
 });
 

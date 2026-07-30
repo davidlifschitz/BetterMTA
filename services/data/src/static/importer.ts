@@ -35,15 +35,19 @@ export interface ImportResult {
 
 function serviceWindow(
   calendar: ParsedGtfs["calendar"],
+  calendarDates: ParsedGtfs["calendarDates"] = [],
 ): { startDate: string; endDate: string } | null {
-  if (calendar.length === 0) return null;
-  let start = calendar[0]!.startDate;
-  let end = calendar[0]!.endDate;
+  const dates: string[] = [];
   for (const c of calendar) {
-    if (c.startDate < start) start = c.startDate;
-    if (c.endDate > end) end = c.endDate;
+    if (/^\d{8}$/.test(c.startDate)) dates.push(c.startDate);
+    if (/^\d{8}$/.test(c.endDate)) dates.push(c.endDate);
   }
-  return { startDate: start, endDate: end };
+  for (const d of calendarDates) {
+    if (/^\d{8}$/.test(d.date)) dates.push(d.date);
+  }
+  if (dates.length === 0) return null;
+  dates.sort();
+  return { startDate: dates[0]!, endDate: dates[dates.length - 1]! };
 }
 
 function buildVersion(
@@ -119,9 +123,10 @@ export class StaticImporter {
         stopTimes: parsed.stopTimes,
         transfers: parsed.transfers,
         calendar: parsed.calendar,
+        calendarDates: parsed.calendarDates,
         lineMapping: mappings,
         quarantinedRoutes: quarantined,
-        serviceWindow: serviceWindow(parsed.calendar),
+        serviceWindow: serviceWindow(parsed.calendar, parsed.calendarDates),
       };
       this.store.recordFailed(failed);
       this.metrics.setStaticStatus("failed", version);
@@ -147,9 +152,10 @@ export class StaticImporter {
       stopTimes: parsed.stopTimes,
       transfers: parsed.transfers,
       calendar: parsed.calendar,
+      calendarDates: parsed.calendarDates,
       lineMapping: mappings,
       quarantinedRoutes: quarantined,
-      serviceWindow: serviceWindow(parsed.calendar),
+      serviceWindow: serviceWindow(parsed.calendar, parsed.calendarDates),
     };
 
     this.store.putPending(pending);

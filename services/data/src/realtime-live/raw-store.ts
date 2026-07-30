@@ -33,9 +33,9 @@ export class RawFeedStore {
   }
 
   /**
-   * Store a successful fetch. Always updates memory; optionally mirrors to disk.
-   * Callers must not invoke this for hollow/failed polls when preserving LKG —
-   * the poller only calls put on decode success.
+   * Store a successful non-hollow fetch. Always updates memory; optionally
+   * mirrors to disk. Callers must not invoke this for hollow/failed polls when
+   * a prior LKG exists — the poller skips put for hollow when prior is present.
    */
   put(entry: RawFeedLkg): void {
     this.memory.set(entry.feedId, entry);

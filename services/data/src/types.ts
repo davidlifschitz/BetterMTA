@@ -74,6 +74,13 @@ export interface GtfsCalendar {
   endDate: string;
 }
 
+/** GTFS calendar_dates.txt row (exception_type 1=added, 2=removed). */
+export interface GtfsCalendarDate {
+  serviceId: string;
+  date: string;
+  exceptionType: 1 | 2;
+}
+
 export interface LineMappingEntry {
   gtfsRouteId: string;
   lineId: string;
@@ -102,6 +109,8 @@ export interface StaticDataset {
   stopTimes: GtfsStopTime[];
   transfers: GtfsTransfer[];
   calendar: GtfsCalendar[];
+  /** calendar_dates exceptions (added/removed service days) */
+  calendarDates: GtfsCalendarDate[];
   lineMapping: LineMappingEntry[];
   quarantinedRoutes: QuarantinedRoute[];
   serviceWindow: { startDate: string; endDate: string } | null;

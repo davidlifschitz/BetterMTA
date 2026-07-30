@@ -6,13 +6,9 @@ import {
   type ParsedGtfs,
 } from "../static/gtfs-parser.js";
 import { validateGtfs, type ValidationResult } from "../static/validator.js";
-import type { GtfsCalendar } from "../types.js";
+import type { GtfsCalendar, GtfsCalendarDate } from "../types.js";
 
-export interface GtfsCalendarDate {
-  serviceId: string;
-  date: string;
-  exceptionType: 1 | 2;
-}
+export type { GtfsCalendarDate };
 
 export interface PipelineValidationOptions {
   /** Injected "now" for deterministic service-coverage checks. */
@@ -86,6 +82,31 @@ export function parseCalendarDates(content: string): GtfsCalendarDate[] {
     date: r["date"] ?? "",
     exceptionType: Number(r["exception_type"]) === 2 ? 2 : 1,
   }));
+}
+
+/**
+ * Whether a specific service_id is active on YYYYMMDD, applying calendar.txt
+ * plus calendar_dates exceptions (1=added, 2=removed). Same rules as coverage
+ * checks, scoped to one service.
+ */
+export function isServiceIdActiveOnDate(
+  serviceId: string,
+  dateStr: string,
+  weekday: number,
+  calendar: GtfsCalendar[],
+  calendarDates: readonly GtfsCalendarDate[],
+): boolean {
+  let active = false;
+  for (const c of calendar) {
+    if (c.serviceId !== serviceId) continue;
+    if (calendarActiveOnDay(c, dateStr, weekday)) active = true;
+  }
+  for (const ex of calendarDates) {
+    if (ex.date !== dateStr || ex.serviceId !== serviceId) continue;
+    if (ex.exceptionType === 1) active = true;
+    else if (ex.exceptionType === 2) active = false;
+  }
+  return active;
 }
 
 /**

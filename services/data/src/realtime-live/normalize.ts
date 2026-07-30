@@ -17,6 +17,7 @@
 
 import type {
   GtfsCalendar,
+  GtfsCalendarDate,
   GtfsStopTime,
   GtfsTrip,
   LineMappingEntry,
@@ -27,12 +28,14 @@ import type {
   StopTimeUpdate,
 } from "../types.js";
 import { resolveLineId } from "../line-mapping.js";
+import { isServiceIdActiveOnDate } from "../static-pipeline/validate.js";
 import type { ParsedRealtimeFeed } from "../realtime/parser.js";
 import type {
   DecodedFeedMessage,
   DecodedEntity,
   TripReplacementPeriodDecoded,
 } from "./proto.js";
+import { isHollowDecodedFeed } from "./hollow.js";
 
 const TZ = "America/New_York";
 
@@ -185,42 +188,39 @@ function addDaysYyyymmdd(yyyymmdd: string, delta: number): string {
   return `${yy}${mm}${dd}`;
 }
 
-function weekdayName(yyyymmdd: string): keyof Omit<
-  GtfsCalendar,
-  "serviceId" | "startDate" | "endDate"
-> {
-  // Use noon ET to avoid DST edge
+/** 0=Sun..6=Sat in America/New_York for a YYYYMMDD service date. */
+function weekdayNumber(yyyymmdd: string): number {
   const midnight = serviceDateMidnightUnix(yyyymmdd);
   const fmt = new Intl.DateTimeFormat("en-US", {
     timeZone: TZ,
-    weekday: "long",
+    weekday: "short",
   });
-  const day = fmt.format(new Date(midnight * 1000 + 12 * 3600 * 1000));
-  const map: Record<string, keyof Omit<GtfsCalendar, "serviceId" | "startDate" | "endDate">> = {
-    Monday: "monday",
-    Tuesday: "tuesday",
-    Wednesday: "wednesday",
-    Thursday: "thursday",
-    Friday: "friday",
-    Saturday: "saturday",
-    Sunday: "sunday",
+  const wd = fmt.format(new Date(midnight * 1000 + 12 * 3600 * 1000));
+  const map: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
   };
-  return map[day] ?? "monday";
+  return map[wd] ?? 1;
 }
 
 function serviceActiveOnDate(
   calendar: GtfsCalendar[],
+  calendarDates: readonly GtfsCalendarDate[],
   serviceId: string,
   yyyymmdd: string,
 ): boolean {
-  const rows = calendar.filter((c) => c.serviceId === serviceId);
-  if (rows.length === 0) return false;
-  const dayKey = weekdayName(yyyymmdd);
-  for (const row of rows) {
-    if (yyyymmdd < row.startDate || yyyymmdd > row.endDate) continue;
-    if (row[dayKey]) return true;
-  }
-  return false;
+  return isServiceIdActiveOnDate(
+    serviceId,
+    yyyymmdd,
+    weekdayNumber(yyyymmdd),
+    calendar,
+    calendarDates,
+  );
 }
 
 function firstDepartureByTrip(
@@ -294,6 +294,7 @@ export function deriveAbsenceCancellations(options: {
         if (
           !serviceActiveOnDate(
             staticDataset.calendar,
+            staticDataset.calendarDates ?? [],
             trip.serviceId,
             serviceDate,
           )
@@ -465,6 +466,7 @@ export function normalizeDecodedFeed(
   let parseErrors = 0;
 
   const presentTripIds = new Set<string>();
+  const hasWireEntities = !isHollowDecodedFeed(decoded);
 
   for (const ent of decoded.entity) {
     try {
@@ -488,7 +490,10 @@ export function normalizeDecodedFeed(
   }
 
   const periods = decoded.header.nyct?.tripReplacementPeriods ?? [];
-  if (periods.length > 0 && options.staticDataset) {
+  // Absence-as-cancellation only merges into a usable snapshot when the wire
+  // message had real entities. Hollow + TRP alone must not invent cancels that
+  // look like live payload (see hollow LKG / mass-cancel remediations).
+  if (periods.length > 0 && options.staticDataset && hasWireEntities) {
     const derived = deriveAbsenceCancellations({
       feedId,
       periods,
@@ -512,6 +517,7 @@ export function normalizeDecodedFeed(
     parseErrors,
     vehicleCount,
     simulatedFailure: null,
+    hasWireEntities,
   };
 }
 

@@ -16,6 +16,7 @@ import {
 } from "./config.js";
 import { decodeFeedMessage, ProtoDecodeError } from "./proto.js";
 import { normalizeDecodedFeed } from "./normalize.js";
+import { isHollowDecodedFeed } from "./hollow.js";
 import { RawFeedStore, type RawFeedLkg } from "./raw-store.js";
 import {
   assembleLiveSnapshot,
@@ -216,10 +217,13 @@ export class RealtimePoller {
         headerTimestamp: decoded.header.timestamp,
         byteSize: bytes.byteLength,
       };
-      // Always store successful decode as raw LKG (even if hollow — raw bytes
-      // are still the latest wire capture for OTP updaters). Snapshot LKG
-      // usability is enforced separately in ingest.
-      this.deps.rawStore.put(lkg);
+      // Empty/hollow polls must not displace a usable prior raw LKG (OTP
+      // updaters consume /internal/feeds/<id>; hollow+TRP is mass-cancel risk).
+      // First capture may still be stored when no prior exists.
+      const hollow = isHollowDecodedFeed(decoded);
+      if (!hollow || !prior) {
+        this.deps.rawStore.put(lkg);
+      }
 
       st.lastSuccessAt = fetchedAt;
       st.lastError = undefined;
@@ -413,6 +417,7 @@ export class RealtimePoller {
       lineMapping: staticDataset?.lineMapping,
       nowMs: this.nowFn(),
       synthetic: false,
+      priorSnapshot: this.latestSnapshot,
     });
     this.deps.manifestStore.put(manifest, this.nowFn());
     this.latestSnapshot = snapshot;

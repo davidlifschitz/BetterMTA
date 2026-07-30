@@ -72,6 +72,11 @@ export interface ParsedRealtimeFeed {
   parseErrors: number;
   vehicleCount: number;
   simulatedFailure: { feedId: string; reason: string } | null;
+  /**
+   * True when the wire message had ≥1 entity with tripUpdate, alert, or vehicle.
+   * Hollow/header-only feeds (including TRP-derived-only) are not usable for LKG.
+   */
+  hasWireEntities: boolean;
 }
 
 function translateText(
@@ -164,6 +169,7 @@ export function parseRealtimeFeedJson(
       parseErrors: 1,
       vehicleCount: 0,
       simulatedFailure: null,
+      hasWireEntities: false,
     };
   }
 
@@ -184,6 +190,7 @@ export function parseRealtimeFeedJson(
       parseErrors: 1,
       vehicleCount: 0,
       simulatedFailure: null,
+      hasWireEntities: false,
     };
   }
 
@@ -204,6 +211,7 @@ export function parseRealtimeFeedJson(
         feedId: effectiveFeedId,
         reason: "timeout",
       },
+      hasWireEntities: false,
     };
   }
   if (meta?.simulatedError === "fetch_failure") {
@@ -219,6 +227,7 @@ export function parseRealtimeFeedJson(
         feedId: effectiveFeedId,
         reason: "fetch_failure",
       },
+      hasWireEntities: false,
     };
   }
   if (meta?.simulatedError === "malformed") {
@@ -238,6 +247,7 @@ export function parseRealtimeFeedJson(
       parseErrors: 1,
       vehicleCount: 0,
       simulatedFailure: null,
+      hasWireEntities: false,
     };
   }
 
@@ -377,6 +387,10 @@ export function parseRealtimeFeedJson(
     }
   }
 
+  const hasWireEntities = entities.some(
+    (ent) => Boolean(ent.tripUpdate || ent.alert || ent.vehicle),
+  );
+
   return {
     feedId: effectiveFeedId,
     feedTimestampIso,
@@ -386,5 +400,6 @@ export function parseRealtimeFeedJson(
     parseErrors,
     vehicleCount,
     simulatedFailure: null,
+    hasWireEntities,
   };
 }

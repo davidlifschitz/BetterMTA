@@ -67,12 +67,14 @@ function mergeFeeds(feeds: ParsedRealtimeFeed[]): {
   feedTimestamps: Record<string, string>;
   partialFeeds: string[];
   failedFeeds: Array<{ feedId: string; reason: string }>;
+  hasWireEntities: boolean;
 } {
   const tripUpdates: NormalizedTripUpdate[] = [];
   const alerts: ServiceAlert[] = [];
   const quarantined: QuarantinedEntity[] = [];
   let parseErrors = 0;
   let vehicleCount = 0;
+  let hasWireEntities = false;
   const feedTimestamps: Record<string, string> = {};
   const partialFeeds: string[] = [];
   const failedFeeds: Array<{ feedId: string; reason: string }> = [];
@@ -82,6 +84,7 @@ function mergeFeeds(feeds: ParsedRealtimeFeed[]): {
       failedFeeds.push(f.simulatedFailure);
       continue;
     }
+    if (f.hasWireEntities) hasWireEntities = true;
     tripUpdates.push(...f.tripUpdates);
     alerts.push(...f.alerts);
     quarantined.push(...f.quarantined);
@@ -104,6 +107,7 @@ function mergeFeeds(feeds: ParsedRealtimeFeed[]): {
     feedTimestamps,
     partialFeeds,
     failedFeeds,
+    hasWireEntities,
   };
 }
 
@@ -177,10 +181,11 @@ export class RealtimeIngestor {
       }
     }
 
-    // Usable realtime requires trip updates and/or alerts.
-    // A fresh header with an empty entity list is NOT usable — do not
-    // treat it as live or overwrite last-known-good.
+    // Usable realtime requires wire entities plus trip updates and/or alerts.
+    // Hollow/header-only feeds must not become usable solely via TRP-derived
+    // cancels — do not treat as live or overwrite last-known-good.
     const hasRealtimePayload =
+      merged.hasWireEntities &&
       merged.tripUpdates.length + merged.alerts.length > 0;
 
     // All feeds failed ⇒ schedule_only / unavailable path
@@ -266,6 +271,20 @@ export class RealtimeIngestor {
     }
 
     return { snapshot: draft, pollDurationMs };
+  }
+
+  /**
+   * Persist an assembled snapshot after post-ingest merges (e.g. retaining
+   * prior per-feed entities when one trunk poll is hollow).
+   */
+  commitAssembledSnapshot(
+    snapshot: RealtimeSnapshot,
+    nowMs: number,
+    policy: FreshnessPolicy = DEFAULT_FRESHNESS_POLICY,
+  ): void {
+    if (!isUsableRealtimeSnapshot(snapshot)) return;
+    this.store.put(snapshot, nowMs, policy);
+    this.metrics.markLastSuccessfulUpdate(snapshot.ingestedAt);
   }
 
   /**

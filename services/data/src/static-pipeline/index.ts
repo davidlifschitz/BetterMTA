@@ -32,6 +32,7 @@ export {
   validateExtractedGtfs,
   parseCalendarDates,
   isServiceActiveOnDate,
+  isServiceIdActiveOnDate,
   computeServiceDateRange,
   nycYyyymmdd,
   type PipelineValidationOptions,
