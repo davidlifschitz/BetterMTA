@@ -1,0 +1,282 @@
+# BetterMTA CI
+#
+# Directory-guarded jobs. Contracts always validate.
+# Per-service test/build jobs no-op (success) when the directory is absent
+# so this workflow stays green before parallel branches merge.
+
+name: ci
+
+on:
+  push:
+    branches: [main, "agent/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: contracts-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - name: Install contracts deps
+        run: npm --prefix contracts install
+      - name: Validate schemas and fixtures
+        run: npm --prefix contracts run validate
+
+  api:
+    name: apps-api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test and build (if present)
+        run: |
+          set -euo pipefail
+          if [ ! -d apps/api ]; then
+            echo "PLACEHOLDER: apps/api not present — skipping (awaiting backend merge)"
+            exit 0
+          fi
+          if [ -f apps/api/package-lock.json ]; then
+            npm --prefix apps/api ci
+          else
+            npm --prefix apps/api install
+          fi
+          if npm --prefix apps/api run | grep -qE '^  test'; then
+            npm --prefix apps/api test
+          else
+            echo "No test script in apps/api"
+          fi
+          if npm --prefix apps/api run | grep -qE '^  build'; then
+            npm --prefix apps/api run build
+          else
+            echo "No build script in apps/api"
+          fi
+
+  web:
+    name: apps-web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test and build (if present)
+        run: |
+          set -euo pipefail
+          if [ ! -d apps/web ]; then
+            echo "PLACEHOLDER: apps/web not present — skipping (awaiting frontend merge)"
+            exit 0
+          fi
+          if [ -f apps/web/package-lock.json ]; then
+            npm --prefix apps/web ci
+          else
+            npm --prefix apps/web install
+          fi
+          if npm --prefix apps/web run | grep -qE '^  test'; then
+            npm --prefix apps/web test
+          else
+            echo "No test script in apps/web"
+          fi
+          if npm --prefix apps/web run | grep -qE '^  build'; then
+            npm --prefix apps/web run build
+          else
+            echo "No build script in apps/web"
+          fi
+
+  routing:
+    name: services-routing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test and build (if present)
+        run: |
+          set -euo pipefail
+          if [ ! -d services/routing ]; then
+            echo "PLACEHOLDER: services/routing not present — skipping (awaiting routing merge)"
+            exit 0
+          fi
+          if [ -f services/routing/package-lock.json ]; then
+            npm --prefix services/routing ci
+          else
+            npm --prefix services/routing install
+          fi
+          if npm --prefix services/routing run | grep -qE '^  test'; then
+            npm --prefix services/routing test
+          else
+            echo "No test script in services/routing"
+          fi
+          if npm --prefix services/routing run | grep -qE '^  build'; then
+            npm --prefix services/routing run build
+          else
+            echo "No build script in services/routing"
+          fi
+
+  data:
+    name: services-data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test and build (if present)
+        run: |
+          set -euo pipefail
+          if [ ! -d services/data ]; then
+            echo "PLACEHOLDER: services/data not present — skipping (awaiting data merge)"
+            exit 0
+          fi
+          if [ -f services/data/package-lock.json ]; then
+            npm --prefix services/data ci
+          else
+            npm --prefix services/data install
+          fi
+          if npm --prefix services/data run | grep -qE '^  test'; then
+            npm --prefix services/data test
+          else
+            echo "No test script in services/data"
+          fi
+          if npm --prefix services/data run | grep -qE '^  build'; then
+            npm --prefix services/data run build
+          else
+            echo "No build script in services/data"
+          fi
+
+  benchmarks:
+    name: benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run benchmarks (if present)
+        run: |
+          set -euo pipefail
+          if [ ! -d benchmarks ]; then
+            echo "PLACEHOLDER: benchmarks not present — skipping (awaiting QA merge)"
+            exit 0
+          fi
+          if [ -f benchmarks/package-lock.json ]; then
+            npm --prefix benchmarks ci
+          elif [ -f benchmarks/package.json ]; then
+            npm --prefix benchmarks install
+          fi
+          if [ -f benchmarks/package.json ] && npm --prefix benchmarks run | grep -qE '^  test'; then
+            npm --prefix benchmarks test
+          elif [ -f benchmarks/package.json ] && npm --prefix benchmarks run | grep -qE '^  gate'; then
+            npm --prefix benchmarks run gate
+          else
+            echo "benchmarks/ present but no test/gate script yet — listing only"
+            ls -la benchmarks
+          fi
+
+  audit:
+    name: dependency-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - name: Audit contracts (always)
+        run: |
+          npm --prefix contracts install --package-lock-only=false
+          npm --prefix contracts audit --audit-level=high || {
+            echo "::warning::npm audit reported high+ issues in contracts — review before release"
+            npm --prefix contracts audit --audit-level=high || true
+          }
+      - name: Audit present application packages
+        run: |
+          set -euo pipefail
+          for dir in apps/api apps/web services/routing services/data benchmarks; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Auditing $dir"
+              if [ -f "$dir/package-lock.json" ]; then
+                npm --prefix "$dir" ci
+              else
+                npm --prefix "$dir" install
+              fi
+              npm --prefix "$dir" audit --audit-level=high || {
+                echo "::warning::npm audit high+ issues in $dir"
+                true
+              }
+            else
+              echo "PLACEHOLDER: skip audit — $dir missing"
+            fi
+          done
+
+  infra-validate:
+    name: infra-config-validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: contracts/package-lock.json
+      - name: Install contracts deps (js-yaml)
+        run: npm --prefix contracts install
+      - name: Validate workflow YAML and infra JSON
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require("fs");
+          const path = require("path");
+          const yaml = require("./contracts/node_modules/js-yaml");
+
+          function walk(dir, acc = []) {
+            if (!fs.existsSync(dir)) return acc;
+            for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+              const p = path.join(dir, ent.name);
+              if (ent.isDirectory()) walk(p, acc);
+              else acc.push(p);
+            }
+            return acc;
+          }
+
+          const yamlFiles = [
+            ...walk(".github/workflows").filter((f) => f.endsWith(".yml") || f.endsWith(".yaml")),
+            ...walk("infra").filter((f) => f.endsWith(".yml") || f.endsWith(".yaml")),
+          ];
+          for (const f of yamlFiles) {
+            yaml.load(fs.readFileSync(f, "utf8"));
+            console.log("YAML OK:", f);
+          }
+
+          const jsonFiles = walk("infra").filter((f) => f.endsWith(".json"));
+          for (const f of jsonFiles) {
+            JSON.parse(fs.readFileSync(f, "utf8"));
+            console.log("JSON OK:", f);
+          }
+          NODE
+      - name: Validate Fly toml configs
+        run: |
+          set -euo pipefail
+          python3 -c '
+          import pathlib
+          import tomllib
+          root = pathlib.Path("infra/fly")
+          files = sorted(root.glob("*.toml"))
+          if not files:
+              raise SystemExit("No infra/fly/*.toml files found")
+          for path in files:
+              tomllib.loads(path.read_text(encoding="utf-8"))
+              print("TOML OK:", path)
+          '

@@ -1,0 +1,89 @@
+# PLACEHOLDER — inactive until ADR-0005 acceptance + apps/api, apps/web, services/data merge.
+#
+# This workflow is workflow_dispatch-only so it NEVER runs on push/PR.
+# Do not add push/pull_request triggers until conductor accepts the platform ADR
+# and service Dockerfiles exist. Fail closed: health gate failure must fail the job.
+#
+# Intended flow (outline only — secrets/apps not provisioned yet):
+# 1. Authenticate flyctl
+# 2. flyctl deploy api/web/data with infra/fly/*.toml
+# 3. Health gate: curl /health/live + /health/ready (api); web smoke on /
+# 4. On any gate failure: exit non-zero (no promote); operators use fly releases rollback
+
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment label (documentation only until wired)"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+      confirm_placeholder:
+        description: "Type ACTIVATE only when this workflow is intentionally enabled"
+        required: true
+        default: "NO"
+        type: string
+
+jobs:
+  deploy-placeholder:
+    name: deploy-fly-placeholder
+    runs-on: ubuntu-latest
+    # Hard guard: refuse to deploy until operators explicitly opt in AND services exist
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse unless explicitly activated
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.confirm_placeholder }}" != "ACTIVATE" ]; then
+            echo "PLACEHOLDER deploy workflow — refusing run (confirm_placeholder != ACTIVATE)."
+            echo "Enable only after ADR-0005 acceptance and apps/services merge."
+            exit 1
+          fi
+
+      - name: Require service directories
+        run: |
+          set -euo pipefail
+          missing=0
+          for dir in apps/api apps/web services/data; do
+            if [ ! -d "$dir" ]; then
+              echo "Missing required directory: $dir"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Fail closed: services not merged — abort deploy."
+            exit 1
+          fi
+
+      - name: Setup flyctl (PLACEHOLDER — not authenticated until secrets exist)
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy outline (fail closed on health gate)
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FLY_API_TOKEN:-}" ]; then
+            echo "Fail closed: FLY_API_TOKEN secret not configured."
+            exit 1
+          fi
+
+          # Outline — uncomment/activate when Dockerfiles + apps exist:
+          # flyctl deploy -a bettermta-api  -c infra/fly/api.fly.toml
+          # flyctl deploy -a bettermta-web  -c infra/fly/web.fly.toml
+          # flyctl deploy -a bettermta-data -c infra/fly/data.fly.toml
+          #
+          # Health gate (api):
+          #   curl -fsS "https://<api-host>/health/live"
+          #   curl -fsS "https://<api-host>/health/ready"
+          # On failure: exit 1 (do not continue); operators roll back:
+          #   flyctl releases rollback -a bettermta-api
+
+          echo "PLACEHOLDER: flyctl deploy + health gate not executed — outline only."
+          exit 1

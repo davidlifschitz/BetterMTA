@@ -1,0 +1,44 @@
+# PLACEHOLDER — ready-to-activate when services/data exists and ADR-0005 is accepted.
+# App: bettermta-data (Fly.io) — GTFS static import + GTFS-RT poller
+#
+# This process is not publicly HTTP-routed. Freshness and readiness are
+# observed via apps/api GET /v1/status and GET /health/ready.
+#
+# Activate:
+#   fly apps create bettermta-data
+#   fly secrets set -a bettermta-data --stage ...
+#   fly deploy -a bettermta-data -c infra/fly/data.fly.toml
+#
+# One-action rollback:
+#   fly releases rollback -a bettermta-data
+#
+# Cost guardrail: single Machine, no autoscaling, poll interval env-bounded.
+
+app = 'bettermta-data'
+primary_region = 'ewr'
+
+[build]
+  # PLACEHOLDER: point at services/data Dockerfile once data merges
+  dockerfile = 'services/data/Dockerfile'
+
+[env]
+  NODE_ENV = 'production'
+  # Poll bounds (non-secret defaults); override carefully
+  REALTIME_POLL_INTERVAL_MS = '15000'
+  REALTIME_POLL_INTERVAL_MAX_MS = '60000'
+  STATIC_IMPORT_MAX_CONCURRENCY = '1'
+
+# No public http_service — private process. Optional metrics port later.
+[processes]
+  # PLACEHOLDER: entrypoint must be confirmed against services/data when integrated
+  # (package.json start / Dockerfile CMD). Do not treat 'node dist/poller.js' as final.
+  # Always-on: fly scale count poller=1; restart policy + private health/metrics — see infra/fly/DEPLOY.md
+  poller = 'node dist/poller.js'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+
+[deploy]
+  strategy = 'rolling'
