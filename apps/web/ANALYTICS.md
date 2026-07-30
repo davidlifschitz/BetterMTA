@@ -20,7 +20,7 @@ Privacy-safe funnel events for the BetterMTA mobile web client.
 | UI moment | Event | Key properties |
 |---|---|---|
 | User taps **Find routes** | `search_started` | `hasSelectedLines`, `selectedLineCount`, `timingType`, `viewport` |
-| User picks an autocomplete place | `place_selected` | `field`, `placeKind`, `placeId` |
+| User picks an autocomplete place | `place_selected` | `field`, `placeKind`, opaque `placeId?` (omitted for `current_location` / `coordinate` / `coord_*`) |
 | User changes depart/arrive timing | `timing_changed` | `timingType` |
 | Line picker sheet opens | `line_picker_opened` | `selectedLineCount`, `context` |
 | Line badge toggled | `line_toggled` | `lineId`, `selected`, `selectedLineCount` |

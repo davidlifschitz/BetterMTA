@@ -92,6 +92,24 @@ jobs:
           else
             echo "No build script in apps/web"
           fi
+      - name: Live build + verify no fixtures
+        run: |
+          set -euo pipefail
+          if [ ! -d apps/web ]; then
+            echo "PLACEHOLDER: apps/web not present — skipping live verify"
+            exit 0
+          fi
+          if ! npm --prefix apps/web run | grep -qE '^  verify:no-fixtures'; then
+            echo "No verify:no-fixtures script in apps/web — skipping"
+            exit 0
+          fi
+          # Additive live production build (overwrites .next; fixture build above
+          # remains the default for local/dev; Playwright mocked paths use their own config).
+          NEXT_PUBLIC_API_MODE=live \
+          NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8080 \
+          NEXT_PUBLIC_FLAG_FEEDBACK=false \
+            npm --prefix apps/web run build
+          npm --prefix apps/web run verify:no-fixtures
 
   routing:
     name: services-routing

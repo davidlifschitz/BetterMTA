@@ -17,6 +17,10 @@
  *   - origin_destination_consistency
  *   - expected_feasibility, minimum_satisfaction (non-soft synthetic / release subset)
  *
+ * Release-subset policy: soft_feasibility / pending_live_integration / live-under-fixture
+ * cases in the subset are configuration failures (exit 1). Soft cases never count
+ * toward rankingPasses.
+ *
  * Note: ACCEPTANCE_CRITERIA §D.3 accessibility/performance is NOT measured by this gate.
  * Fly-deploy BLOCKED and Google NOT_CLAIMED checklist rows do not fail the gate alone.
  */
@@ -27,6 +31,7 @@ import {
   buildReleaseChecklist,
   writeReleaseChecklist,
 } from "./release-checklist.js";
+import { collectSoftSubsetViolations } from "./release-subset-policy.js";
 import { resolveSutMode, runBenchmarks } from "./runner.js";
 import type { InvariantId, SutMode } from "./types.js";
 
@@ -91,6 +96,12 @@ async function loadSubsetCaseIds(subsetPath: string): Promise<string[]> {
   return data.caseIds as string[];
 }
 
+/** True when we already recorded a soft-subset violation for this case id. */
+function isSoftListed(configFailures: string[], caseId: string): boolean {
+  const prefix = `${caseId}: soft/pending case must not appear in release-subset`;
+  return configFailures.some((f) => f.startsWith(prefix));
+}
+
 async function main() {
   try {
     const argv = process.argv.slice(2);
@@ -107,19 +118,22 @@ async function main() {
     const casesById = new Map(result.cases.map((c) => [c.caseId, c]));
     const configFailures: string[] = [];
 
+    // Soft/pending/fixture-soft-live cases are forbidden in the release subset.
+    for (const v of collectSoftSubsetViolations(
+      result.cases,
+      caseIds,
+      sutMode
+    )) {
+      configFailures.push(v);
+    }
+
     for (const id of caseIds) {
       const c = casesById.get(id);
       if (!c) {
         configFailures.push(`${id}: missing from loaded corpus`);
         continue;
       }
-      // Live-only cases are soft under fixture SUT; do not require full invariant list for config.
-      if (
-        sutMode === "fixture" &&
-        (c.classification === "live" || c.sut.kind === "live")
-      ) {
-        continue;
-      }
+      if (isSoftListed(configFailures, id)) continue;
       const present = new Set(c.invariantAssertions);
       for (const inv of MERGE_BLOCKING) {
         if (!present.has(inv)) {
@@ -142,6 +156,7 @@ async function main() {
 
     let rankingPasses = 0;
     for (const c of result.report.cases) {
+      if (c.soft) continue;
       for (const a of c.assertions) {
         if (RANKING_INVARIANTS.has(a.invariantId) && a.status === "pass") {
           rankingPasses += 1;

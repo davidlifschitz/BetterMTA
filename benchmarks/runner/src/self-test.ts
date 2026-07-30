@@ -10,6 +10,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runInvariants } from "./invariants/index.js";
 import { loadJson } from "./paths.js";
+import {
+  collectSoftSubsetViolations,
+  type SoftSubsetCase,
+} from "./release-subset-policy.js";
 import type {
   BenchmarkCase,
   InvariantId,
@@ -105,6 +109,76 @@ function makeRequest(nc: NegativeCase): RouteSearchRequest {
   };
 }
 
+function softSubsetSelfTest(): string[] {
+  const hard: SoftSubsetCase = {
+    caseId: "bmc-hard",
+    classification: "synthetic_contract_fixture",
+    sut: { kind: "qa_fixture", responseId: "x" },
+  };
+  const softTag: SoftSubsetCase = {
+    caseId: "bmc-soft-tag",
+    classification: "synthetic_contract_fixture",
+    tags: ["soft_feasibility"],
+    sut: { kind: "qa_fixture", responseId: "x" },
+  };
+  const pending: SoftSubsetCase = {
+    caseId: "bmc-pending",
+    classification: "pending_live_integration",
+    sut: { kind: "qa_fixture", responseId: "x" },
+  };
+  const live: SoftSubsetCase = {
+    caseId: "bmc-live",
+    classification: "live",
+    sut: { kind: "live" },
+  };
+
+  const failures: string[] = [];
+
+  const ok = collectSoftSubsetViolations([hard], ["bmc-hard"], "fixture");
+  if (ok.length !== 0) {
+    failures.push(
+      `soft-subset: hard case unexpectedly violated: ${ok.join("; ")}`
+    );
+  }
+
+  const softHits = collectSoftSubsetViolations(
+    [softTag, pending, live, hard],
+    ["bmc-soft-tag", "bmc-pending", "bmc-live", "bmc-hard"],
+    "fixture"
+  );
+  const expectedIds = ["bmc-soft-tag", "bmc-pending", "bmc-live"];
+  for (const id of expectedIds) {
+    if (!softHits.some((v) => v.startsWith(`${id}:`))) {
+      failures.push(
+        `soft-subset: expected violation for ${id} under fixture SUT`
+      );
+    }
+  }
+  if (softHits.some((v) => v.startsWith("bmc-hard:"))) {
+    failures.push("soft-subset: hard case must not be flagged");
+  }
+
+  // Live cases under live SUT are not soft — subset may include them (gate still
+  // requires merge-blocking invariants). Soft tag / pending remain forbidden.
+  const liveMode = collectSoftSubsetViolations(
+    [live, softTag],
+    ["bmc-live", "bmc-soft-tag"],
+    "live"
+  );
+  if (liveMode.some((v) => v.startsWith("bmc-live:"))) {
+    failures.push(
+      "soft-subset: live case under live SUT must not be soft-flagged"
+    );
+  }
+  if (!liveMode.some((v) => v.startsWith("bmc-soft-tag:"))) {
+    failures.push(
+      "soft-subset: soft_feasibility must still violate under live SUT"
+    );
+  }
+
+  return failures;
+}
+
 async function main() {
   const unexpectedPasses: string[] = [];
   const confirmedFails: string[] = [];
@@ -136,16 +210,30 @@ async function main() {
 
   console.log("BetterMTA invariant self-test (expected failures)");
   for (const line of confirmedFails) console.log(`  OK  ${line}`);
-  if (unexpectedPasses.length) {
+
+  const softSubsetFailures = softSubsetSelfTest();
+  if (softSubsetFailures.length === 0) {
+    console.log("  OK  soft-subset policy rejects soft/pending/fixture-live");
+  }
+
+  if (unexpectedPasses.length || softSubsetFailures.length) {
     console.error("");
-    console.error(
-      `SELF-TEST FAIL: ${unexpectedPasses.length} expected-fail case(s) did not fail`
-    );
-    for (const line of unexpectedPasses) console.error(`  BAD ${line}`);
+    if (unexpectedPasses.length) {
+      console.error(
+        `SELF-TEST FAIL: ${unexpectedPasses.length} expected-fail case(s) did not fail`
+      );
+      for (const line of unexpectedPasses) console.error(`  BAD ${line}`);
+    }
+    if (softSubsetFailures.length) {
+      console.error(
+        `SELF-TEST FAIL: ${softSubsetFailures.length} soft-subset policy check(s) failed`
+      );
+      for (const line of softSubsetFailures) console.error(`  BAD ${line}`);
+    }
     process.exit(1);
   }
   console.log(
-    `SELF-TEST PASS: ${confirmedFails.length}/${CASES.length} named invariants failed as expected`
+    `SELF-TEST PASS: ${confirmedFails.length}/${CASES.length} named invariants failed as expected; soft-subset policy OK`
   );
   process.exit(0);
 }

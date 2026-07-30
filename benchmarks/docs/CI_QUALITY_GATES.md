@@ -42,7 +42,7 @@ npm --prefix benchmarks/runner run gate -- --sut live
 
 File: `benchmarks/release-subset.json` (`{ "caseIds": [...] }`).
 
-Includes synthetic fixtures **and** `recorded_data` NYC captures. Soft/`pending_live_integration` and `live` HTTP cases are excluded from the fixture subset. Every subset case must list **all** merge-blocking invariants in `invariantAssertions`.
+Includes synthetic fixtures **and** `recorded_data` NYC captures. Soft/`pending_live_integration` and `live` HTTP cases are excluded from the fixture subset. The gate **fails** (non-zero) if any subset member is soft under the active SUT (`soft_feasibility`, `pending_live_integration`, or live cases soft under fixture). Soft cases never count toward `rankingPasses`. Every subset case must list **all** merge-blocking invariants in `invariantAssertions`.
 
 Ranking coverage: the subset must include at least one multi-itinerary case such that `complete_beats_partial` or `max_satisfaction_before_time` **PASSes** (not only skips). Zero ranking passes → gate fail.
 

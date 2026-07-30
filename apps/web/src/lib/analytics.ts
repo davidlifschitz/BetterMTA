@@ -5,6 +5,22 @@
  * Never include precise coordinates in event payloads.
  */
 
+import type { Place } from "@/lib/contracts";
+
+/**
+ * Opaque place id for analytics — never lat/lon or `coord_*` encodings.
+ * For current_location / coordinate kinds, omit placeId (kind is enough).
+ */
+export function analyticsPlaceId(place: Place): string | undefined {
+  if (place.kind === "current_location" || place.kind === "coordinate") {
+    return undefined;
+  }
+  if (place.placeId.startsWith("coord_")) {
+    return undefined;
+  }
+  return place.placeId;
+}
+
 export type AnalyticsEventName =
   | "search_started"
   | "place_selected"

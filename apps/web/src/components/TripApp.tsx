@@ -10,7 +10,7 @@ import type {
   RouteSearchResponse,
   Timing,
 } from "@/lib/contracts";
-import { track } from "@/lib/analytics";
+import { analyticsPlaceId, track } from "@/lib/analytics";
 import {
   detectViewport,
   displayItineraries,
@@ -342,7 +342,7 @@ export function TripApp() {
     track("place_selected", {
       field,
       placeKind: place.kind,
-      placeId: place.placeId,
+      placeId: analyticsPlaceId(place),
     });
   }
 
@@ -374,7 +374,7 @@ export function TripApp() {
         track("place_selected", {
           field: "origin",
           placeKind: "current_location",
-          placeId: mapped.placeId,
+          placeId: analyticsPlaceId(mapped),
         });
       },
       (err) => {

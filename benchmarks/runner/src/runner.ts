@@ -20,12 +20,15 @@ import {
   HybridLiveSut,
 } from "./sut.js";
 import { LiveSystemUnderTest } from "./sut-live.js";
+import { isSoftCase } from "./release-subset-policy.js";
 import type {
   BenchmarkCase,
   CaseResult,
   SutMode,
   SystemUnderTest,
 } from "./types.js";
+
+export { isSoftCase } from "./release-subset-policy.js";
 
 export interface RunOptions {
   validateOnly?: boolean;
@@ -46,19 +49,6 @@ export function resolveSutMode(
   throw new Error(
     `Invalid BETTERMTA_SUT="${env.BETTERMTA_SUT}" (expected live|fixture)`
   );
-}
-
-export function isSoftCase(c: BenchmarkCase, sutMode: SutMode = "fixture"): boolean {
-  if ((c.tags ?? []).includes("soft_feasibility")) return true;
-  if (c.classification === "pending_live_integration") return true;
-  // Live cases are soft placeholders under fixture SUT (cannot execute without HTTP).
-  if (
-    (c.classification === "live" || c.sut.kind === "live") &&
-    sutMode !== "live"
-  ) {
-    return true;
-  }
-  return false;
 }
 
 export async function runBenchmarks(options: RunOptions = {}) {

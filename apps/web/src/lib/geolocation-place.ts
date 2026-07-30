@@ -26,8 +26,10 @@ export function placeFromGeolocation(
     };
   }
 
+  // Opaque placeId — never embed lat/lon (analytics and logs must stay privacy-safe).
+  // Real coordinates remain on lat/lon for live PlaceRef via toPlaceRef.
   return {
-    placeId: `coord_${lat.toFixed(5)}_${lon.toFixed(5)}`,
+    placeId: "current_location",
     label: "Current location",
     kind: "current_location",
     lat,
