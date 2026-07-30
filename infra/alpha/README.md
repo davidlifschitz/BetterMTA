@@ -4,7 +4,7 @@ Self-hosted macOS + Docker Compose origin for ADR-0021. Cloudflare Tunnel will
 target the loopback edge; secrets, tunnel UUIDs, hostnames, and tester emails
 stay **out of this repo**.
 
-## Index (12A.3–12A.9)
+## Index (12A.3–12A.12)
 
 | Doc / path | Phase | Role |
 |---|---|---|
@@ -15,6 +15,8 @@ stay **out of this repo**.
 | [`../../deployments/README.md`](../../deployments/README.md) | **12A.8** | Immutable release IDs + deploy/rollback scripts |
 | [`scripts/monitor-alpha.sh`](./scripts/monitor-alpha.sh) | **12A.9** | External / dogfood health monitor (Access token or local) |
 | [`../../.github/workflows/alpha-monitor.yml`](../../.github/workflows/alpha-monitor.yml) | **12A.9** | Scheduled monitor (disabled until vars/secrets set) |
+| [`../../docs/alpha/RELIABILITY_DRILLS.md`](../../docs/alpha/RELIABILITY_DRILLS.md) | **12A.11** | Local reliability drill results table |
+| [`../../docs/alpha/PERFORMANCE.md`](../../docs/alpha/PERFORMANCE.md) | **12A.12** | Bounded local edge latency sample (not a competitor bench) |
 | [`cloudflared/config.template.yml`](./cloudflared/config.template.yml) | 12A.6 | Safe ingress template (placeholders only) |
 | [`Caddyfile`](./Caddyfile) | 12A.3 | Edge routes to api/web |
 | [`scripts/preflight-host.sh`](./scripts/preflight-host.sh) | 12A.5 | Read-only host / Docker / tunnel / health report |

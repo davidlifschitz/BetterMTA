@@ -24,7 +24,7 @@ Do **not** mark `READY_FOR_CONTROLLED_ALPHA` until remote controlled-alpha gates
 BLOCKED
 ```
 
-**Not** `READY_FOR_CONTROLLED_ALPHA` yet — Phase 12A local edge (CA02), host/Tunnel/Access **documentation** (12A.5–7), release/rollback tooling (12A.8 / CA08 **PARTIAL**), and external monitor tooling (12A.9 / CA09 **PENDING** until secrets) are in place; **live** Cloudflare Tunnel, Access allowlist, and remote smoke remain incomplete. Full rebuild + distinct-digest rollback still blocked by host disk (~2.6Gi).  
+**Not** `READY_FOR_CONTROLLED_ALPHA` yet — Phase 12A local edge (CA02), host/Tunnel/Access **documentation** (12A.5–7), release/rollback tooling (12A.8 / CA08 **PARTIAL**), external monitor tooling (12A.9 / CA09 **PENDING** until secrets), and local reliability drills (12A.11 — see `docs/alpha/RELIABILITY_DRILLS.md`) are in place; **live** Cloudflare Tunnel, Access allowlist, and remote smoke remain incomplete. Full rebuild + distinct-digest rollback still blocked by host disk (~2–3 Gi free during drills). Local latency sample recorded (12A.12 — `docs/alpha/PERFORMANCE.md`); does **not** close G15 or claim competitor superiority.  
 Intended hosted private/public beta remains Fly.io (ADR-0012). Local compose live path is proven for dogfood/self-hosted validation; cloud activation, TLS/domain, and Fly rollback drill are absent — do not label `READY_FOR_PRIVATE_BETA` or `READY_FOR_PUBLIC_BETA`.
 
 ## Controlled-alpha gates (Phase 12A — ADR-0021)
@@ -33,17 +33,19 @@ These are **additional** to G01–G20 merge/fixture honesty. Current overall sta
 
 | ID | Gate | Current | Notes |
 |---|---|---|---|
-| CA01 | Local compose origin healthy (data+OTP+API+web) | **PASS*** | Local evidence at `3ceb6f5` (12A.1); *re-verify before claiming ready |
-| CA02 | Edge proxy in front of compose origin | **PASS*** | Phase 12A.3 — Caddy on `127.0.0.1:8088` via `docker-compose.alpha.yml`; *re-verify with `infra/alpha/scripts/smoke-edge.sh` |
-| CA03 | Cloudflare Tunnel (no router port forward) | **PENDING** | Template + runbook: `infra/alpha/TUNNEL.md` + `cloudflared/config.template.yml`; **no real tunnel created in-repo** — operator must complete interactive CF setup; secrets/UUIDs/hostnames stay out of Git |
+| CA01 | Local compose origin healthy (data+OTP+API+web) | **PASS*** | Re-verified 2026-07-30 during 12A.11/12A.12: edge live+ready 200; local monitor 6/0 fail with `dataMode=live` after rollback recreate |
+| CA02 | Edge proxy in front of compose origin | **PASS*** | Re-verified: `smoke-edge.sh` **8/8** repeatedly (edge/api/data/otp restarts + post-rollback); Caddy on `127.0.0.1:8088` |
+| CA03 | Cloudflare Tunnel (no router port forward) | **PENDING** | Template + runbook: `infra/alpha/TUNNEL.md` + `cloudflared/config.template.yml`; connector process present locally but **no** agent HUP (LaunchDaemon needs sudo). Remote tunnel+Access gates still incomplete |
 | CA04 | Cloudflare Access deny-by-default + email allowlist + OTP/PIN | **PENDING** | Runbook: `infra/alpha/ACCESS.md`; allowlist + service token live only in Cloudflare; tester emails not committed |
 | CA05 | Remote smoke via Access (allowlisted) | **PENDING** | Blocked on CA03–CA04; must succeed before `READY_FOR_CONTROLLED_ALPHA` |
-| CA06 | Availability / ops honesty documented | **PASS*** | ADR-0021 + `HOST.md` / `TUNNEL.md` / `ACCESS.md` + `preflight-host.sh`; *still depends on operator following host/power/sleep honesty |
+| CA06 | Availability / ops honesty documented | **PASS*** | ADR-0021 + host/tunnel/access docs + `docs/alpha/RELIABILITY_DRILLS.md` (12A.11 local drills; Mac reboot/logout + Colima restart PENDING_USER / skipped for disk risk) |
 | CA07 | Existing correctness / security / privacy / data-honesty / fixture-exclusion / rollback gates not waived | **BINDING** | Controlled alpha does not relax them |
-| CA08 | Controlled-alpha release/rollback (immutable image refs) | **PARTIAL** | Scripts under `deployments/` (12A.8). Live **retag** image-switch drill passed (`:local` → `:rel-…` recreate + edge smoke 8/8; volumes kept). Full `compose build` still **BLOCKED-for-disk** (~2.6Gi free). Distinct-digest rollback (two different builds) not yet proven — both release tags currently share the same local digests |
-| CA09 | External health monitor (Access service token) | **PENDING** | Tooling in place (12A.9): `infra/alpha/scripts/monitor-alpha.sh` + `.github/workflows/alpha-monitor.yml` (disabled until `ALPHA_MONITOR_ENABLED=true` + secrets). **Monitor gate pending until secrets configured** and a remote scheduled/manual run succeeds. Local dogfood: `MONITOR_MODE=local` |
+| CA08 | Controlled-alpha release/rollback (immutable image refs) | **PARTIAL** | 12A.11 re-ran `./deployments/scripts/rollback-release.sh` → smoke 8/8 in ~99 s (`deployments/manifests/rollback-20260730T210125Z.json`). Still **retag / same-digest** (`previous.env` == `current.env` == `:local` digests). Distinct-digest rollback **BLOCKED-for-disk** |
+| CA09 | External health monitor (Access service token) | **PENDING** | Tooling in place (12A.9). Local dogfood green during drills (`MONITOR_MODE=local`). **Remote** gate pending until Access secrets + scheduled/manual remote run |
+| CA10 | Local reliability drills (12A.11) | **PARTIAL** | Evidence: `docs/alpha/RELIABILITY_DRILLS.md`. Service restarts + RT pause + retag rollback **PASS**; hollow via Phase 10 unit evidence; static/graph pointer rollback skipped (no prior versions); cloudflared/Colima/Mac/net flap **PENDING_USER** or skipped |
+| CA11 | Local latency sample (12A.12) | **PARTIAL** | Evidence: `docs/alpha/PERFORMANCE.md`. n=15 via edge; p50=42 ms p95=1170 ms max=1467 ms; 0 errors; all `dataMode=live`. **Not** G15 load closure; **no** competitor claims |
 
-Unblocks for `READY_FOR_CONTROLLED_ALPHA`: CA03–CA05 pass with remote evidence; CA02 local edge re-verified; CA06/CA07 documented; CA08 preferred complete with a distinct-digest rollback once disk allows a real rebuild; CA09 preferred green after Access secrets + remote monitor; G01–G07 remain green; no false live/fixture claims. Docs for 12A.5–7 do **not** alone clear CA03–CA05.
+Unblocks for `READY_FOR_CONTROLLED_ALPHA`: CA03–CA05 pass with remote evidence; CA02 local edge re-verified; CA06/CA07 documented; CA08 preferred complete with a distinct-digest rollback once disk allows a real rebuild; CA09 preferred green after Access secrets + remote monitor; G01–G07 remain green; no false live/fixture claims. Docs for 12A.5–7 do **not** alone clear CA03–CA05. CA10/CA11 are local ops evidence only.
 
 ## G01–G20 summary (honest)
 
@@ -65,7 +67,7 @@ Merge-blocking rows are G01–G07 only. Fly BLOCKED / Google NOT_CLAIMED do not 
 | G12 | **PASS*** | no | Shadow report written (`live-shadow-2026-07-30T19-22-40-758Z.*`); `humanValidity=pending_review` |
 | G13 | **NOT_MEASURED** | no | Core workflow a11y (D.3) — Frontend ownership |
 | G14 | **PARTIAL** | no | CI contracts + directory-guarded jobs; full app CI additive |
-| G15 | **NOT_MEASURED** | no | Route search p95 under beta load (C.4); single-case latency ~2.1s recorded |
+| G15 | **PARTIAL** | no | Beta-load p95 still open. Local edge sample (12A.12): n=15 Carroll→Bryant F; p50=42 ms p95=1170 ms max=1467 ms; 0 errors; `dataMode=live` — see `docs/alpha/PERFORMANCE.md`. Prior Phase 9 smoke ~2107 ms. **No** Google comparison |
 | G16 | **PARTIAL** | no | Health/locked endpoints proven on local compose; not re-probed by gate process |
 | G17 | **BLOCKED** | no | Fly.io not activated — no `flyctl` / credentials / apps |
 | G18 | **PENDING** | no | One-action Fly rollback drill (E.4) blocked on G17 |
