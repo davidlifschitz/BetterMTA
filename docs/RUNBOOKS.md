@@ -14,16 +14,27 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 
 **Edge origin (12A.3–12A.4):** loopback Caddy at `http://127.0.0.1:8088` — see `infra/alpha/README.md` (restart policies, health deps, start/stop scripts).
 
+**Host / Tunnel / Access (12A.5–12A.7):** docs only + read-only preflight in-repo; interactive Cloudflare setup is operator-owned and stays outside Git.
+
+| Doc | Phase |
+|---|---|
+| `infra/alpha/HOST.md` | 12A.5 macOS operating requirements |
+| `infra/alpha/TUNNEL.md` | 12A.6 named Cloudflare Tunnel |
+| `infra/alpha/ACCESS.md` | 12A.7 Access allowlist + OTP + service token |
+| `infra/alpha/cloudflared/config.template.yml` | placeholders only |
+
 ```bash
-./infra/alpha/scripts/start-alpha.sh   # compose up + wait ready + smoke
-./infra/alpha/scripts/stop-alpha.sh    # compose down (no -v; volumes kept)
+./infra/alpha/scripts/preflight-host.sh   # read-only host/Docker/tunnel/health
+./infra/alpha/scripts/start-alpha.sh      # compose up + wait ready + smoke
+./infra/alpha/scripts/stop-alpha.sh       # compose down (no -v; volumes kept)
 # Smoke only: ./infra/alpha/scripts/smoke-edge.sh
 ```
 
-Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`); long-running services `restart: unless-stopped`; API alpha healthcheck uses `/health/ready`. Tunnel/Access runbooks land in 12A.5–7.
+Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`); long-running services `restart: unless-stopped`; API alpha healthcheck uses `/health/ready`. Named tunnel + Access must be completed interactively (`TUNNEL.md` / `ACCESS.md`) before remote gates pass.
 
 - Local origin (dev ports): this doc § Local compose bring-up  
-- Alpha edge: `infra/alpha/README.md`  
+- Alpha index: `infra/alpha/README.md`  
+- Host / Tunnel / Access: `infra/alpha/HOST.md`, `TUNNEL.md`, `ACCESS.md`  
 - Gates / status: `docs/RELEASE_GATE_REPORT.md` (CA01–CA07 + vocabulary)  
 - Risks: `docs/RISK_REGISTER.md` R19–R23  
 - Do not commit secrets, tunnel UUIDs, hostnames, or tester emails  

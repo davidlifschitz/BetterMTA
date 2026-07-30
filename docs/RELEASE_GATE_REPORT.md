@@ -24,7 +24,7 @@ Do **not** mark `READY_FOR_CONTROLLED_ALPHA` until remote controlled-alpha gates
 BLOCKED
 ```
 
-**Not** `READY_FOR_CONTROLLED_ALPHA` yet — Phase 12A local edge (CA02) is in place; Tunnel, Access, and remote smoke remain incomplete.  
+**Not** `READY_FOR_CONTROLLED_ALPHA` yet — Phase 12A local edge (CA02) and host/Tunnel/Access **documentation** (12A.5–7) are in place; **live** Cloudflare Tunnel, Access allowlist, and remote smoke remain incomplete until the operator finishes interactive Cloudflare setup.  
 Intended hosted private/public beta remains Fly.io (ADR-0012). Local compose live path is proven for dogfood/self-hosted validation; cloud activation, TLS/domain, and Fly rollback drill are absent — do not label `READY_FOR_PRIVATE_BETA` or `READY_FOR_PUBLIC_BETA`.
 
 ## Controlled-alpha gates (Phase 12A — ADR-0021)
@@ -35,13 +35,13 @@ These are **additional** to G01–G20 merge/fixture honesty. Current overall sta
 |---|---|---|---|
 | CA01 | Local compose origin healthy (data+OTP+API+web) | **PASS*** | Local evidence at `3ceb6f5` (12A.1); *re-verify before claiming ready |
 | CA02 | Edge proxy in front of compose origin | **PASS*** | Phase 12A.3 — Caddy on `127.0.0.1:8088` via `docker-compose.alpha.yml`; *re-verify with `infra/alpha/scripts/smoke-edge.sh` |
-| CA03 | Cloudflare Tunnel (no router port forward) | **PENDING** | Config later; secrets/UUIDs/hostnames out of repo |
-| CA04 | Cloudflare Access deny-by-default + email allowlist + OTP/PIN | **PENDING** | Tester emails not committed |
-| CA05 | Remote smoke via Access (allowlisted) | **PENDING** | Must succeed before `READY_FOR_CONTROLLED_ALPHA` |
-| CA06 | Availability / ops honesty documented | **PARTIAL** | ADR-0021 + risks; full runbook 12A.5–7 |
+| CA03 | Cloudflare Tunnel (no router port forward) | **PENDING** | Template + runbook: `infra/alpha/TUNNEL.md` + `cloudflared/config.template.yml`; **no real tunnel created in-repo** — operator must complete interactive CF setup; secrets/UUIDs/hostnames stay out of Git |
+| CA04 | Cloudflare Access deny-by-default + email allowlist + OTP/PIN | **PENDING** | Runbook: `infra/alpha/ACCESS.md`; allowlist + service token live only in Cloudflare; tester emails not committed |
+| CA05 | Remote smoke via Access (allowlisted) | **PENDING** | Blocked on CA03–CA04; must succeed before `READY_FOR_CONTROLLED_ALPHA` |
+| CA06 | Availability / ops honesty documented | **PASS*** | ADR-0021 + `HOST.md` / `TUNNEL.md` / `ACCESS.md` + `preflight-host.sh`; *still depends on operator following host/power/sleep honesty |
 | CA07 | Existing correctness / security / privacy / data-honesty / fixture-exclusion / rollback gates not waived | **BINDING** | Controlled alpha does not relax them |
 
-Unblocks for `READY_FOR_CONTROLLED_ALPHA`: CA03–CA05 pass with remote evidence; CA02 local edge re-verified; CA06/CA07 documented; G01–G07 remain green; no false live/fixture claims.
+Unblocks for `READY_FOR_CONTROLLED_ALPHA`: CA03–CA05 pass with remote evidence; CA02 local edge re-verified; CA06/CA07 documented; G01–G07 remain green; no false live/fixture claims. Docs for 12A.5–7 do **not** alone clear CA03–CA05.
 
 ## G01–G20 summary (honest)
 

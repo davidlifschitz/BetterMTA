@@ -1,0 +1,20 @@
+# Controlled alpha — cloudflared named-tunnel template (Phase 12A.6)
+#
+# Copy OUTSIDE the repo before use, e.g.:
+#   cp infra/alpha/cloudflared/config.template.yml ~/.cloudflared/config.yml
+#
+# Replace placeholders on the host only. Never commit a filled-in copy.
+# Do not use Quick Tunnels. Do not port-forward the origin on the router.
+#
+# Placeholders:
+#   <TUNNEL_UUID>            — UUID from `cloudflared tunnel create`
+#   <LOCAL_CREDENTIAL_FILE>  — absolute path to credentials JSON (outside Git)
+#   <ALPHA_HOSTNAME>         — DNS hostname routed to this tunnel
+
+tunnel: <TUNNEL_UUID>
+credentials-file: <LOCAL_CREDENTIAL_FILE>
+
+ingress:
+  - hostname: <ALPHA_HOSTNAME>
+    service: http://127.0.0.1:8088
+  - service: http_status:404

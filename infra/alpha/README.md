@@ -4,6 +4,23 @@ Self-hosted macOS + Docker Compose origin for ADR-0021. Cloudflare Tunnel will
 target the loopback edge; secrets, tunnel UUIDs, hostnames, and tester emails
 stay **out of this repo**.
 
+## Index (12A.3–12A.7)
+
+| Doc / path | Phase | Role |
+|---|---|---|
+| This README | 12A.3–4 | Edge bind, compose override, start/stop |
+| [`HOST.md`](./HOST.md) | **12A.5** | macOS operating requirements |
+| [`TUNNEL.md`](./TUNNEL.md) | **12A.6** | Named Cloudflare Tunnel (interactive CF setup) |
+| [`ACCESS.md`](./ACCESS.md) | **12A.7** | Cloudflare Access allowlist + OTP + service token |
+| [`cloudflared/config.template.yml`](./cloudflared/config.template.yml) | 12A.6 | Safe ingress template (placeholders only) |
+| [`Caddyfile`](./Caddyfile) | 12A.3 | Edge routes to api/web |
+| [`scripts/preflight-host.sh`](./scripts/preflight-host.sh) | 12A.5 | Read-only host / Docker / tunnel / health report |
+| [`scripts/start-alpha.sh`](./scripts/start-alpha.sh) | 12A.4 | Compose up + wait ready + smoke |
+| [`scripts/stop-alpha.sh`](./scripts/stop-alpha.sh) | 12A.4 | Compose down (volumes preserved) |
+| [`scripts/smoke-edge.sh`](./scripts/smoke-edge.sh) | 12A.4 | Local edge HTTP smoke (no Cloudflare) |
+
+**Operator order:** `preflight-host.sh` → fix manual host settings → `start-alpha.sh` → configure Tunnel/Access outside Git → remote smoke with Access.
+
 ## Edge bind
 
 | Bind | Role |
@@ -63,7 +80,8 @@ remains fail-closed on the routing path. Do not treat web or edge HTML as ready.
 | `docker-compose.yml` | yes | Base stack |
 | `docker-compose.alpha.yml` | yes | Alpha override (edge, binds, restart/health) |
 | `infra/alpha/Caddyfile` | yes | Edge routes |
-| `.env` / tunnel creds | **no** | Not used by these scripts; never commit |
+| `infra/alpha/cloudflared/config.template.yml` | yes | Template only — copy outside repo |
+| `.env` / tunnel creds / Access tokens | **no** | Never commit; see `TUNNEL.md` / `ACCESS.md` |
 | `services/otp/var/otp/graphs/active.json` | soft | Needed for OTP/API ready |
 | `services/data/var/data/static` | soft | Needed for data ready |
 
@@ -77,8 +95,9 @@ Preferred:
 ```bash
 cd /path/to/bettermta   # integration-live worktree
 
-./infra/alpha/scripts/start-alpha.sh   # up + wait ready + smoke
-./infra/alpha/scripts/stop-alpha.sh    # compose down (volumes preserved)
+./infra/alpha/scripts/preflight-host.sh   # read-only host checks
+./infra/alpha/scripts/start-alpha.sh      # up + wait ready + smoke
+./infra/alpha/scripts/stop-alpha.sh       # compose down (volumes preserved)
 ```
 
 Environment knobs for `start-alpha.sh`:
@@ -88,6 +107,14 @@ Environment knobs for `start-alpha.sh`:
 | `EDGE_BASE` | `http://127.0.0.1:8088` | Edge origin |
 | `ALPHA_WAIT_SECS` | `420` | Max wait for live+ready |
 | `ALPHA_ROUTE_SMOKE` | `1` | Include places/route search in smoke |
+
+Public health (preflight only when set — secrets outside Git):
+
+| Var | Meaning |
+|---|---|
+| `ALPHA_PUBLIC_BASE_URL` | `https://<ALPHA_HOSTNAME>` |
+| `CF_ACCESS_CLIENT_ID` | Access service token client id |
+| `CF_ACCESS_CLIENT_SECRET` | Access service token secret |
 
 Manual equivalent:
 
@@ -107,4 +134,4 @@ graph artifacts persist across restarts.
 
 - Ops pointer: `docs/RUNBOOKS.md` § Controlled alpha
 - Deploy decision: ADR-0021 in `docs/ARCHITECTURE_DECISIONS.md`
-- Gates: `docs/RELEASE_GATE_REPORT.md` (CA02+)
+- Gates: `docs/RELEASE_GATE_REPORT.md` (CA02–CA06; Tunnel/Access remote evidence still pending)
