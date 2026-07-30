@@ -15,6 +15,11 @@ downloads/
 eggs/
 .eggs/
 lib/
+# Re-include app source; the Python "lib/" pattern above must not hide TS/JS source trees.
+!apps/**/src/lib/
+!apps/**/src/lib/**
+!services/**/src/lib/
+!services/**/src/lib/**
 lib64/
 parts/
 sdist/
