@@ -1,0 +1,27 @@
+{
+  "name": "@bettermta/benchmark-runner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BetterMTA benchmark case runner, invariant library, and CI quality gates",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "run-benchmarks": "tsx src/cli.ts",
+    "gate": "tsx src/gate.ts",
+    "validate-cases": "tsx src/cli.ts --validate-only",
+    "self-test": "tsx src/self-test.ts",
+    "test": "tsx src/self-test.ts && tsx src/cli.ts && tsx src/gate.ts"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "caseId": "bmc-pending-arrive-by-morning",
+  "title": "PENDING: Arrive-by 09:00 Midtown from Bay Ridge on R",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_1"
+  ],
+  "origin": {
+    "placeId": "pl_bay_ridge_95"
+  },
+  "destination": {
+    "placeId": "pl_herald_sq"
+  },
+  "timing": {
+    "type": "arrive_by",
+    "time": "2026-07-30T09:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "R"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Arrive-by semantics unresolved (ADR open). Case reserved; do not assert engine strategy yet.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "complete-match"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility",
+    "arrive_by_open"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

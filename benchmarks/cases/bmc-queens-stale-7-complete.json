@@ -1,0 +1,53 @@
+{
+  "caseId": "bmc-queens-stale-7-complete",
+  "title": "Vernon Blvd → Grand Central on 7 with stale realtime",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_queens",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_1",
+    "no_transfer",
+    "degraded_realtime",
+    "od_on_selected_lines"
+  ],
+  "origin": {
+    "stationId": "st_vernon"
+  },
+  "destination": {
+    "stationId": "st_gct"
+  },
+  "timing": {
+    "type": "depart_now"
+  },
+  "selectedLineIds": [
+    "7"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "expectedOriginStationId": "st_vernon",
+  "expectedDestinationStationId": "st_gct",
+  "humanReviewNotes": "Synthetic stale mode: freshness warning required; alert on 7 must surface. Not live-verified.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_stale",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "degraded-realtime"
+  },
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

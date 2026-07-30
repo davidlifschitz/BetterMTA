@@ -1,0 +1,49 @@
+{
+  "caseId": "bmc-pending-offpeak-g-crosstown",
+  "title": "PENDING: Court Sq → Church Av G off-peak",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_queens",
+    "borough_brooklyn",
+    "cross_borough",
+    "off_peak",
+    "lines_1",
+    "od_on_selected_lines"
+  ],
+  "origin": {
+    "stationId": "st_court_sq"
+  },
+  "destination": {
+    "stationId": "st_church_g"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T21:15:00-04:00"
+  },
+  "selectedLineIds": [
+    "G"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Late evening frequency sensitivity; needs live/schedule integration.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "none",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "baseline-only"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

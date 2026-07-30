@@ -1,0 +1,49 @@
+{
+  "caseId": "bmc-pending-si-ferry-adjacent",
+  "title": "PENDING: St George → Times Sq (SI access + subway)",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_staten_island",
+    "borough_manhattan",
+    "cross_borough",
+    "off_peak",
+    "lines_1"
+  ],
+  "origin": {
+    "placeId": "pl_st_george"
+  },
+  "destination": {
+    "placeId": "pl_times_sq"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T11:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "1"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Ferry+subway multimodal may be out of MVP; case reserved for scope decision. Fixture is placeholder only.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "none",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "baseline-only"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility",
+    "scope_risk"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

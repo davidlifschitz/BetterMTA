@@ -1,0 +1,47 @@
+{
+  "caseId": "bmc-pending-manual-external-compare-slot",
+  "title": "MANUAL SLOT: Midtown lunch OD reserved for external comparison",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_manhattan",
+    "off_peak",
+    "lines_2"
+  ],
+  "origin": {
+    "placeId": "pl_grand_central"
+  },
+  "destination": {
+    "placeId": "pl_columbus_circle"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T12:10:00-04:00"
+  },
+  "selectedLineIds": [
+    "B",
+    "D"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Human-only external comparison slot. Do not scrape third parties. Fill after live routing with manual screenshots + notes.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "complete-match"
+  },
+  "tags": [
+    "manual_review_required",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

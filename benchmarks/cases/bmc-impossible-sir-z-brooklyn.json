@@ -1,0 +1,54 @@
+{
+  "caseId": "bmc-impossible-sir-z-brooklyn",
+  "title": "Incompatible SIR+Z on Brooklyn–Manhattan OD (feasibility none)",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "off_peak",
+    "lines_2",
+    "incompatible_lines",
+    "impossible_constraint"
+  ],
+  "origin": {
+    "stationId": "st_utica"
+  },
+  "destination": {
+    "stationId": "st_bowling"
+  },
+  "timing": {
+    "type": "depart_now"
+  },
+  "selectedLineIds": [
+    "SIR",
+    "Z"
+  ],
+  "expectedFeasibility": "none",
+  "minimumSatisfactionCount": 0,
+  "humanReviewNotes": "QA synthetic: structured omission for SIR/Z; baseline still present. Not claiming real SIR routing.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "qa_fixture",
+    "responseId": "feasibility-none"
+  },
+  "tags": [
+    "illustrative_od"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}
