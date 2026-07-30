@@ -12,15 +12,15 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 
 **Deploy decision:** ADR-0021 — self-hosted macOS + Docker Compose origin; Cloudflare Tunnel transport; Cloudflare Access auth; **no** router port forwarding.
 
-**Edge origin (12A.3):** loopback Caddy at `http://127.0.0.1:8088` — see `infra/alpha/README.md`.
+**Edge origin (12A.3–12A.4):** loopback Caddy at `http://127.0.0.1:8088` — see `infra/alpha/README.md` (restart policies, health deps, start/stop scripts).
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.alpha.yml build
-docker-compose -f docker-compose.yml -f docker-compose.alpha.yml up -d
-./infra/alpha/scripts/smoke-edge.sh
+./infra/alpha/scripts/start-alpha.sh   # compose up + wait ready + smoke
+./infra/alpha/scripts/stop-alpha.sh    # compose down (no -v; volumes kept)
+# Smoke only: ./infra/alpha/scripts/smoke-edge.sh
 ```
 
-Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`). Tunnel/Access runbooks land in 12A.5–7.
+Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`); long-running services `restart: unless-stopped`; API alpha healthcheck uses `/health/ready`. Tunnel/Access runbooks land in 12A.5–7.
 
 - Local origin (dev ports): this doc § Local compose bring-up  
 - Alpha edge: `infra/alpha/README.md`  

@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Phase 12A.3 — local edge proxy smoke (no Cloudflare).
+# Phase 12A.4 — local edge proxy smoke (no Cloudflare).
 # Expects alpha compose stack up:
-#   docker-compose -f docker-compose.yml -f docker-compose.alpha.yml up -d
+#   ./infra/alpha/scripts/start-alpha.sh
+#   # or: docker-compose -f docker-compose.yml -f docker-compose.alpha.yml up -d
+#
+# Optional route search: ALPHA_ROUTE_SMOKE=1 (default) / 0 to skip.
 set -euo pipefail
 
 EDGE="${EDGE_BASE:-http://127.0.0.1:8088}"
+ROUTE_SMOKE="${ALPHA_ROUTE_SMOKE:-1}"
 COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.alpha.yml)
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$ROOT"
@@ -112,6 +116,73 @@ if command -v docker >/dev/null 2>&1; then
       ok "runtime ps has no 0.0.0.0:8081/:8090"
     fi
   fi
+
+  # Restart policy check (alpha long-running services)
+  cfg_json="${cfg_json:-$(docker-compose "${COMPOSE_FILES[@]}" config --format json 2>/dev/null || true)}"
+  if [[ -n "$cfg_json" ]]; then
+    python3 - "$cfg_json" <<'PY' && ok "restart=unless-stopped on data/data-proxy/otp/api/web/edge" || bad "restart policy missing on a long-running alpha service"
+import json, sys
+cfg = json.loads(sys.argv[1])
+services = cfg.get("services", {})
+need = ("data", "data-proxy", "otp", "api", "web", "edge")
+errors = []
+for name in need:
+    if name not in services:
+        errors.append(f"missing service {name}")
+        continue
+    policy = services[name].get("restart")
+    if policy != "unless-stopped":
+        errors.append(f"{name} restart={policy!r} (want unless-stopped)")
+if errors:
+    print("restart errors:", *errors, sep="\n  ")
+    sys.exit(1)
+PY
+  fi
+fi
+
+# --- optional fast route search via edge (not readiness authority) ---
+if [[ "$ROUTE_SMOKE" == "1" ]]; then
+  echo "== optional route search (ALPHA_ROUTE_SMOKE=1) =="
+  places_code="$(http_code "${EDGE}/v1/places/search?q=Carroll&limit=3" /tmp/bettermta-edge-places.body 15)"
+  if [[ "$places_code" == "200" ]] && grep -q 'places' /tmp/bettermta-edge-places.body 2>/dev/null; then
+    ok "/v1/places/search → ${places_code}"
+    # Best-effort stationIds from JSON without requiring jq.
+    origin_id="$(python3 - <<'PY' 2>/dev/null || true
+import json
+data=json.load(open("/tmp/bettermta-edge-places.body"))
+places=data.get("places") or []
+print((places[0].get("stationId") or places[0].get("placeId") or "") if places else "")
+PY
+)"
+    dest_code="$(http_code "${EDGE}/v1/places/search?q=Bryant&limit=3" /tmp/bettermta-edge-dest.body 15)"
+    dest_id="$(python3 - <<'PY' 2>/dev/null || true
+import json
+data=json.load(open("/tmp/bettermta-edge-dest.body"))
+places=data.get("places") or []
+print((places[0].get("stationId") or places[0].get("placeId") or "") if places else "")
+PY
+)"
+    if [[ "$dest_code" == "200" && -n "$origin_id" && -n "$dest_id" ]]; then
+      route_code="$(
+        curl -sS -o /tmp/bettermta-edge-route.body -w '%{http_code}' --max-time 25 \
+          -H 'content-type: application/json' \
+          -d "{\"origin\":{\"stationId\":\"${origin_id}\"},\"destination\":{\"stationId\":\"${dest_id}\"},\"timing\":{\"type\":\"depart_now\"},\"selectedLineIds\":[\"F\"]}" \
+          "${EDGE}/v1/routes/search" || true
+      )"
+      # Success or honest typed failure — never opaque 500.
+      if [[ "$route_code" == "200" ]] || [[ "$route_code" == "404" ]] || [[ "$route_code" == "503" ]] || [[ "$route_code" == "504" ]]; then
+        ok "/v1/routes/search → ${route_code} (typed)"
+      else
+        bad "/v1/routes/search → ${route_code:-000} (unexpected)"
+      fi
+    else
+      bad "could not resolve places for route smoke (dest=${dest_code:-000})"
+    fi
+  else
+    bad "/v1/places/search → ${places_code:-000} (optional route smoke aborted)"
+  fi
+else
+  echo "== optional route search skipped (ALPHA_ROUTE_SMOKE=${ROUTE_SMOKE}) =="
 fi
 
 echo "== summary: ${pass} passed, ${fail} failed =="

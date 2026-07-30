@@ -1,27 +1,73 @@
-# BetterMTA controlled-alpha override (Phase 12A.3 — ADR-0021)
+# BetterMTA controlled-alpha override (Phase 12A.4 — ADR-0021)
 #
-# Adds a loopback-only edge proxy and removes LAN-published data/OTP ports.
+# Adds a loopback-only edge proxy, removes LAN-published data/OTP ports,
+# sets restart policies, and tightens dependency-aware startup for alpha.
 # Local-dev without this file keeps the root docker-compose.yml port map.
 #
-# Bring-up:
+# Bring-up (preferred):
+#   ./infra/alpha/scripts/start-alpha.sh
+#   ./infra/alpha/scripts/stop-alpha.sh
+#
+# Or manually:
 #   docker-compose -f docker-compose.yml -f docker-compose.alpha.yml build
 #   docker-compose -f docker-compose.yml -f docker-compose.alpha.yml up -d
 #
 # Edge origin (Tunnel target later): http://127.0.0.1:8088
 # Smoke: infra/alpha/scripts/smoke-edge.sh
+#
+# Restart: unless-stopped on all long-running alpha services (data, data-proxy,
+# otp, api, web, edge). data-proxy has no healthcheck (socat TCP forward only;
+# depends_on uses service_started).
+#
+# Readiness authority remains API /health/ready (data + OTP coherent; realtime
+# may be degraded). Web is not the readiness authority. Graph/static mismatch
+# stays fail-closed in the API routing path.
 
 services:
   # Internal-only: no host publish for data (8081/8082) or OTP GraphQL/debug.
   data:
     ports: !reset []
+    restart: unless-stopped
+    # Slightly longer probe than base: feed polls can briefly delay /internal/health.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS --max-time 5 -H 'Authorization: Bearer dev-local-token' http://127.0.0.1:8081/internal/health || exit 1",
+        ]
+      interval: 20s
+      timeout: 8s
+      retries: 8
+      start_period: 90s
+
+  data-proxy:
+    restart: unless-stopped
+    # No healthcheck: alpine/socat is a TCP forward only (no HTTP probe surface).
 
   otp:
     ports: !reset []
+    restart: unless-stopped
 
   # Loopback-only debug bindings (not 0.0.0.0). Prefer edge :8088 for clients.
   api:
     ports: !override
       - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    depends_on:
+      data:
+        condition: service_healthy
+      data-proxy:
+        condition: service_started
+      otp:
+        condition: service_healthy
+    # Alpha compose "healthy" tracks API readiness (not mere process liveness).
+    # Do not weaken /health/ready semantics — data/OTP coherence stays fail-closed.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 120s
 
   web:
     build:
@@ -34,6 +80,10 @@ services:
         NEXT_PUBLIC_FLAG_FEEDBACK: "false"
     ports: !override
       - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
 
   edge:
     image: caddy:2.9.1-alpine@sha256:b4e3952384eb9524a887633ce65c752dd7c71314d2c2acf98cd5c715aaa534f0
