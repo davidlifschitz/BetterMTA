@@ -4,7 +4,7 @@ Self-hosted macOS + Docker Compose origin for ADR-0021. Cloudflare Tunnel will
 target the loopback edge; secrets, tunnel UUIDs, hostnames, and tester emails
 stay **out of this repo**.
 
-## Index (12A.3–12A.8)
+## Index (12A.3–12A.9)
 
 | Doc / path | Phase | Role |
 |---|---|---|
@@ -13,6 +13,8 @@ stay **out of this repo**.
 | [`TUNNEL.md`](./TUNNEL.md) | **12A.6** | Named Cloudflare Tunnel (interactive CF setup) |
 | [`ACCESS.md`](./ACCESS.md) | **12A.7** | Cloudflare Access allowlist + OTP + service token |
 | [`../../deployments/README.md`](../../deployments/README.md) | **12A.8** | Immutable release IDs + deploy/rollback scripts |
+| [`scripts/monitor-alpha.sh`](./scripts/monitor-alpha.sh) | **12A.9** | External / dogfood health monitor (Access token or local) |
+| [`../../.github/workflows/alpha-monitor.yml`](../../.github/workflows/alpha-monitor.yml) | **12A.9** | Scheduled monitor (disabled until vars/secrets set) |
 | [`cloudflared/config.template.yml`](./cloudflared/config.template.yml) | 12A.6 | Safe ingress template (placeholders only) |
 | [`Caddyfile`](./Caddyfile) | 12A.3 | Edge routes to api/web |
 | [`scripts/preflight-host.sh`](./scripts/preflight-host.sh) | 12A.5 | Read-only host / Docker / tunnel / health report |
@@ -145,8 +147,63 @@ Uses `docker-compose.release.yml` image env overrides. Real `deployments/current
 `previous.env` are host-local and gitignored — only `*.env.example` is tracked.
 Full rebuild is refused under ~6Gi free disk (`BLOCKED-for-disk`); prefer `--retag-only`.
 
+## External health monitor (12A.9)
+
+Lightweight probe for public reachability, `/health/live`, `/health/ready`, `/v1/status`,
+one bounded Carroll→Bryant **F** route smoke (`placeId` `st:F21` → `st:D16` only — no
+coordinates), static coherence, and `dataMode` classification.
+
+### Local dogfood (no Access)
+
+```bash
+MONITOR_MODE=local ./infra/alpha/scripts/monitor-alpha.sh
+# optional: EDGE_BASE=http://127.0.0.1:8088
+```
+
+### Remote (Access service token)
+
+Required secret **names** (values never in Git):
+
+| Name | Role |
+|---|---|
+| `ALPHA_PUBLIC_BASE_URL` | `https://<ALPHA_HOSTNAME>` |
+| `CF_ACCESS_CLIENT_ID` | Access service token client id |
+| `CF_ACCESS_CLIENT_SECRET` | Access service token secret |
+
+```bash
+export ALPHA_PUBLIC_BASE_URL="https://<ALPHA_HOSTNAME>"
+export CF_ACCESS_CLIENT_ID="…"
+export CF_ACCESS_CLIENT_SECRET="…"
+MONITOR_MODE=remote ./infra/alpha/scripts/monitor-alpha.sh
+```
+
+Remote mode **soft-skips** (exit 0) when those are unset so contributor machines do not fail.
+
+Failure classes (where practical): `host_offline`, `tunnel_offline`, `access_denied`,
+`web_failure`, `api_failure`, `otp_failure`, `data_failure`, `graph_static_mismatch`,
+`stale_realtime`, `schedule_only_operation`. Stale / schedule-only are **warnings** by
+default (`MONITOR_FAIL_ON_STALE=1` / `MONITOR_FAIL_ON_SCHEDULE_ONLY=1` to harden).
+
+### GitHub Actions (disabled by default)
+
+Workflow: [`.github/workflows/alpha-monitor.yml`](../../.github/workflows/alpha-monitor.yml)
+
+| Enablement | Requirement |
+|---|---|
+| Does not run on push/PR | schedule (~every 45 min) + `workflow_dispatch` only |
+| Soft-skip unless enabled | repository variable `ALPHA_MONITOR_ENABLED=true` |
+| Needs secrets | `ALPHA_PUBLIC_BASE_URL`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET` |
+
+**Alert delivery:** GitHub Actions failure notifications / email for watchers on failed
+workflow runs. Optional later: repository secret `MONITOR_WEBHOOK_URL` (reserved; not
+required for first alpha). Do not send PlaceRefs with coordinates, tester emails, or
+route history to third-party analytics.
+
+Gate **CA09** in `docs/RELEASE_GATE_REPORT.md` stays **PENDING** until secrets are
+configured and a remote monitor run succeeds.
+
 ## Related
 
 - Ops pointer: `docs/RUNBOOKS.md` § Controlled alpha
 - Deploy decision: ADR-0021 in `docs/ARCHITECTURE_DECISIONS.md`
-- Gates: `docs/RELEASE_GATE_REPORT.md` (CA02–CA06; Tunnel/Access remote evidence still pending; CA08 rollback drill)
+- Gates: `docs/RELEASE_GATE_REPORT.md` (CA02–CA06; Tunnel/Access remote evidence still pending; CA08 rollback drill; CA09 monitor pending)

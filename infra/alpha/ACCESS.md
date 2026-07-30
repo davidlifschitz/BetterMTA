@@ -52,6 +52,8 @@ export CF_ACCESS_CLIENT_SECRET="<SERVICE_TOKEN_CLIENT_SECRET>"
 
 `infra/alpha/scripts/preflight-host.sh` performs a public `/health/live` check **only** when these are set; otherwise it prints `skipped`. Never echo the secret in logs you might paste into issues.
 
+For continuous external probing (Phase **12A.9**), use `infra/alpha/scripts/monitor-alpha.sh` (`MONITOR_MODE=remote`) or enable `.github/workflows/alpha-monitor.yml` with repository variable `ALPHA_MONITOR_ENABLED=true` plus the same three secret **names** as GitHub Actions secrets. See `infra/alpha/README.md` § External health monitor.
+
 Example authenticated probe (operator machine):
 
 ```bash

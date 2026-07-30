@@ -22,6 +22,8 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 | `infra/alpha/TUNNEL.md` | 12A.6 named Cloudflare Tunnel |
 | `infra/alpha/ACCESS.md` | 12A.7 Access allowlist + OTP + service token |
 | `deployments/README.md` | 12A.8 release IDs + deploy/rollback |
+| `infra/alpha/scripts/monitor-alpha.sh` | 12A.9 external / dogfood health monitor |
+| `.github/workflows/alpha-monitor.yml` | 12A.9 scheduled monitor (disabled until configured) |
 | `infra/alpha/cloudflared/config.template.yml` | placeholders only |
 
 ```bash
@@ -29,6 +31,8 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 ./infra/alpha/scripts/start-alpha.sh      # compose up + wait ready + smoke
 ./infra/alpha/scripts/stop-alpha.sh       # compose down (no -v; volumes kept)
 # Smoke only: ./infra/alpha/scripts/smoke-edge.sh
+# External / dogfood monitor (12A.9):
+MONITOR_MODE=local ./infra/alpha/scripts/monitor-alpha.sh
 # Release / rollback (image tags — not source re-edit):
 ./deployments/scripts/deploy-release.sh --retag-only
 ./deployments/scripts/rollback-release.sh
@@ -36,10 +40,40 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 
 Alpha override: no host publish for data/OTP; api/web debug binds are `127.0.0.1` only; web bakes same-origin API (`NEXT_PUBLIC_API_BASE_URL=""`); long-running services `restart: unless-stopped`; API alpha healthcheck uses `/health/ready`. Named tunnel + Access must be completed interactively (`TUNNEL.md` / `ACCESS.md`) before remote gates pass.
 
+### External monitor (12A.9)
+
+Probes public app `/`, `/health/live`, `/health/ready`, `/v1/status`, one bounded
+Carroll→Bryant F route search (`placeId` only), static coherence, and `dataMode`.
+Uses Cloudflare Access service token headers when remote.
+
+| Secret / var (names only) | Where |
+|---|---|
+| `ALPHA_PUBLIC_BASE_URL` | shell or GitHub Actions secret |
+| `CF_ACCESS_CLIENT_ID` | shell or GitHub Actions secret |
+| `CF_ACCESS_CLIENT_SECRET` | shell or GitHub Actions secret |
+| `ALPHA_MONITOR_ENABLED=true` | GitHub Actions repository **variable** (enable schedule) |
+
+```bash
+# Local dogfood (loopback edge, no Access):
+MONITOR_MODE=local ./infra/alpha/scripts/monitor-alpha.sh
+
+# Remote (from another machine or CI), after Tunnel + Access exist:
+export ALPHA_PUBLIC_BASE_URL="https://<ALPHA_HOSTNAME>"
+export CF_ACCESS_CLIENT_ID="…"
+export CF_ACCESS_CLIENT_SECRET="…"
+MONITOR_MODE=remote ./infra/alpha/scripts/monitor-alpha.sh
+```
+
+**Alerts:** failed GitHub Actions `alpha-monitor` runs notify watchers via GitHub’s
+notification/email settings. Optional later webhook: secret `MONITOR_WEBHOOK_URL`
+(reserved). Soft-skip when secrets/vars missing so contributor CI stays green.
+Do not ship coordinates, tester identities, or route history to analytics vendors.
+Gate **CA09** remains PENDING until remote secrets are configured and a run passes.
+
 - Local origin (dev ports): this doc § Local compose bring-up  
 - Alpha index: `infra/alpha/README.md`  
 - Host / Tunnel / Access: `infra/alpha/HOST.md`, `TUNNEL.md`, `ACCESS.md`  
-- Gates / status: `docs/RELEASE_GATE_REPORT.md` (CA01–CA07 + vocabulary)  
+- Gates / status: `docs/RELEASE_GATE_REPORT.md` (CA01–CA09 + vocabulary)  
 - Risks: `docs/RISK_REGISTER.md` R19–R23  
 - Do not commit secrets, tunnel UUIDs, hostnames, or tester emails  
 
@@ -456,7 +490,7 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 | Track | Verdict |
 |---|---|
 | Local compose (data+OTP+API+web) + fixture CI gates | Proven; Critical Phase 10 remediations landed |
-| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge local (CA02); Tunnel / Access / remote smoke pending |
+| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge local (CA02); Tunnel / Access / remote smoke pending; CA09 monitor tooling ready, secrets pending |
 | Fly private beta (intended cloud cohort) | **BLOCKED** — no `flyctl`/creds/apps, no domain/TLS, no rollback drill |
 | Public beta | **BLOCKED** (same + a11y/p95/Google non-claim) |
 

@@ -1,0 +1,85 @@
+# Phase 12A.9 — external alpha health monitor (Cloudflare Access service token).
+#
+# Disabled by default for contributors:
+# - Does NOT run on push/PR (will not break ordinary CI).
+# - Scheduled + workflow_dispatch only.
+# - Soft-skips (exit 0) unless repository variable ALPHA_MONITOR_ENABLED=true
+#   AND secrets ALPHA_PUBLIC_BASE_URL, CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET
+#   are configured.
+#
+# Alert delivery: GitHub Actions failure emails / notification settings on the
+# repo or watching users. Optional MONITOR_WEBHOOK_URL can be wired later
+# (not required for first alpha). Never log secret values.
+
+name: alpha-monitor
+
+on:
+  schedule:
+    # Every 45 minutes (:00 and :45) — bounded external probe for controlled alpha.
+    - cron: "0,45 * * * *"
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Run even if ALPHA_MONITOR_ENABLED is not true (still needs secrets or soft-skips)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: alpha-monitor
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    name: monitor-alpha
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check enablement + secrets (fail soft)
+        id: gate
+        env:
+          ALPHA_MONITOR_ENABLED: ${{ vars.ALPHA_MONITOR_ENABLED }}
+          ALPHA_PUBLIC_BASE_URL: ${{ secrets.ALPHA_PUBLIC_BASE_URL }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          FORCE_RUN: ${{ inputs.force_run || false }}
+        run: |
+          set -euo pipefail
+          enabled="${ALPHA_MONITOR_ENABLED:-}"
+          force="${FORCE_RUN:-false}"
+          if [[ "$force" != "true" && "$enabled" != "true" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::alpha-monitor disabled — set repository variable ALPHA_MONITOR_ENABLED=true and configure Access secrets to enable"
+            exit 0
+          fi
+          missing=0
+          for name in ALPHA_PUBLIC_BASE_URL CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::notice::missing secret/var value for ${name}"
+              missing=1
+            fi
+          done
+          if [[ "$missing" -eq 1 ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::alpha-monitor soft-skip — secrets not fully configured (ALPHA_PUBLIC_BASE_URL, CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET)"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.skip != 'true'
+
+      - name: Run remote alpha monitor
+        if: steps.gate.outputs.skip != 'true'
+        env:
+          MONITOR_MODE: remote
+          MONITOR_SOFT_SKIP: "0"
+          ALPHA_PUBLIC_BASE_URL: ${{ secrets.ALPHA_PUBLIC_BASE_URL }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          # Optional future webhook — unused by script today; reserved for ops.
+          MONITOR_WEBHOOK_URL: ${{ secrets.MONITOR_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          chmod +x infra/alpha/scripts/monitor-alpha.sh
+          ./infra/alpha/scripts/monitor-alpha.sh

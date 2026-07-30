@@ -24,7 +24,7 @@ Do **not** mark `READY_FOR_CONTROLLED_ALPHA` until remote controlled-alpha gates
 BLOCKED
 ```
 
-**Not** `READY_FOR_CONTROLLED_ALPHA` yet — Phase 12A local edge (CA02), host/Tunnel/Access **documentation** (12A.5–7), and release/rollback tooling (12A.8 / CA08 **PARTIAL**) are in place; **live** Cloudflare Tunnel, Access allowlist, and remote smoke remain incomplete. Full rebuild + distinct-digest rollback still blocked by host disk (~2.6Gi).  
+**Not** `READY_FOR_CONTROLLED_ALPHA` yet — Phase 12A local edge (CA02), host/Tunnel/Access **documentation** (12A.5–7), release/rollback tooling (12A.8 / CA08 **PARTIAL**), and external monitor tooling (12A.9 / CA09 **PENDING** until secrets) are in place; **live** Cloudflare Tunnel, Access allowlist, and remote smoke remain incomplete. Full rebuild + distinct-digest rollback still blocked by host disk (~2.6Gi).  
 Intended hosted private/public beta remains Fly.io (ADR-0012). Local compose live path is proven for dogfood/self-hosted validation; cloud activation, TLS/domain, and Fly rollback drill are absent — do not label `READY_FOR_PRIVATE_BETA` or `READY_FOR_PUBLIC_BETA`.
 
 ## Controlled-alpha gates (Phase 12A — ADR-0021)
@@ -41,8 +41,9 @@ These are **additional** to G01–G20 merge/fixture honesty. Current overall sta
 | CA06 | Availability / ops honesty documented | **PASS*** | ADR-0021 + `HOST.md` / `TUNNEL.md` / `ACCESS.md` + `preflight-host.sh`; *still depends on operator following host/power/sleep honesty |
 | CA07 | Existing correctness / security / privacy / data-honesty / fixture-exclusion / rollback gates not waived | **BINDING** | Controlled alpha does not relax them |
 | CA08 | Controlled-alpha release/rollback (immutable image refs) | **PARTIAL** | Scripts under `deployments/` (12A.8). Live **retag** image-switch drill passed (`:local` → `:rel-…` recreate + edge smoke 8/8; volumes kept). Full `compose build` still **BLOCKED-for-disk** (~2.6Gi free). Distinct-digest rollback (two different builds) not yet proven — both release tags currently share the same local digests |
+| CA09 | External health monitor (Access service token) | **PENDING** | Tooling in place (12A.9): `infra/alpha/scripts/monitor-alpha.sh` + `.github/workflows/alpha-monitor.yml` (disabled until `ALPHA_MONITOR_ENABLED=true` + secrets). **Monitor gate pending until secrets configured** and a remote scheduled/manual run succeeds. Local dogfood: `MONITOR_MODE=local` |
 
-Unblocks for `READY_FOR_CONTROLLED_ALPHA`: CA03–CA05 pass with remote evidence; CA02 local edge re-verified; CA06/CA07 documented; CA08 preferred complete with a distinct-digest rollback once disk allows a real rebuild; G01–G07 remain green; no false live/fixture claims. Docs for 12A.5–7 do **not** alone clear CA03–CA05.
+Unblocks for `READY_FOR_CONTROLLED_ALPHA`: CA03–CA05 pass with remote evidence; CA02 local edge re-verified; CA06/CA07 documented; CA08 preferred complete with a distinct-digest rollback once disk allows a real rebuild; CA09 preferred green after Access secrets + remote monitor; G01–G07 remain green; no false live/fixture claims. Docs for 12A.5–7 do **not** alone clear CA03–CA05.
 
 ## G01–G20 summary (honest)
 
