@@ -300,7 +300,9 @@ export function graphVersionMatchesStatic(
   if (!staticVersionId) return false;
   if (graphVersion === staticVersionId) return true;
   // Prefix rule: graph version starts with staticVersionId then a separator.
+  // Phase 4 binding uses "<staticVersionId>+otp2.9.0".
   return (
+    graphVersion.startsWith(staticVersionId + "+") ||
     graphVersion.startsWith(staticVersionId + "_") ||
     graphVersion.startsWith(staticVersionId + "-") ||
     graphVersion.startsWith(staticVersionId + "/")

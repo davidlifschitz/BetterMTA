@@ -407,6 +407,9 @@ describe("LiveRoutingAdapter", () => {
       true,
     );
     expect(graphVersionMatchesStatic("other_graph", "gtfs_live_v1")).toBe(false);
+    expect(
+      graphVersionMatchesStatic("mta-subway-c9c3366cdd16+otp2.9.0", "mta-subway-c9c3366cdd16"),
+    ).toBe(true);
 
     const data = makeData();
     const snapshot = await data.getSnapshotHandle();

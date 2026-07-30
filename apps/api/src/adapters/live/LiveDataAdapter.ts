@@ -267,9 +267,20 @@ export class LiveDataAdapter implements DataAdapter {
     for (const line of catalog.lines) {
       for (const routeId of line.gtfsRouteIds) {
         map.set(routeId, line.lineId);
+        // Also index bare forms; OTP returns feed-prefixed ids like "nyct-gtfs:F".
+        map.set(stripFeedPrefix(routeId), line.lineId);
       }
+      // shortName / lineId itself is a common OTP shortName fallback key
+      map.set(line.lineId, line.lineId);
     }
-    return (gtfsRouteId: string) => map.get(gtfsRouteId) ?? null;
+    return (gtfsRouteId: string) => {
+      if (!gtfsRouteId) return null;
+      return (
+        map.get(gtfsRouteId) ??
+        map.get(stripFeedPrefix(gtfsRouteId)) ??
+        null
+      );
+    };
   }
 
   isUnreachable(): boolean {
@@ -401,6 +412,12 @@ function statusResponseFromInternal(status: InternalStatusBody): StatusResponse 
 
 export function placeIdForStation(stationId: string): string {
   return `st:${stationId}`;
+}
+
+/** Strip OTP/agency feed prefixes (`nyct-gtfs:F` → `F`). */
+export function stripFeedPrefix(gtfsId: string): string {
+  const idx = gtfsId.lastIndexOf(":");
+  return idx >= 0 ? gtfsId.slice(idx + 1) : gtfsId;
 }
 
 export function stationToPlace(st: InternalCatalogStation): Place {
