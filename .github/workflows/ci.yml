@@ -27,7 +27,7 @@ jobs:
           cache: npm
           cache-dependency-path: contracts/package-lock.json
       - name: Install contracts deps
-        run: npm --prefix contracts install
+        run: npm --prefix contracts ci
       - name: Validate schemas and fixtures
         run: npm --prefix contracts run validate
 
@@ -46,6 +46,21 @@ jobs:
             echo "PLACEHOLDER: apps/api not present — skipping (awaiting backend merge)"
             exit 0
           fi
+
+          # @bettermta/api consumes @bettermta/routing through a local file
+          # dependency whose package entry points at dist/. Build it before
+          # npm packages the dependency into apps/api/node_modules.
+          if [ ! -d services/routing ]; then
+            echo "services/routing is required by apps/api"
+            exit 1
+          fi
+          if [ -f services/routing/package-lock.json ]; then
+            npm --prefix services/routing ci
+          else
+            npm --prefix services/routing install
+          fi
+          npm --prefix services/routing run build
+
           if [ -f apps/api/package-lock.json ]; then
             npm --prefix apps/api ci
           else
@@ -126,6 +141,11 @@ jobs:
             echo "PLACEHOLDER: services/routing not present — skipping (awaiting routing merge)"
             exit 0
           fi
+
+          # Schema tests intentionally validate against conductor-owned
+          # contracts and therefore require the contracts Ajv installation.
+          npm --prefix contracts ci
+
           if [ -f services/routing/package-lock.json ]; then
             npm --prefix services/routing ci
           else
@@ -157,6 +177,11 @@ jobs:
             echo "PLACEHOLDER: services/data not present — skipping (awaiting data merge)"
             exit 0
           fi
+
+          # Schema tests intentionally validate against conductor-owned
+          # contracts and therefore require the contracts Ajv installation.
+          npm --prefix contracts ci
+
           if [ -f services/data/package-lock.json ]; then
             npm --prefix services/data ci
           else
@@ -248,7 +273,7 @@ jobs:
           cache: npm
           cache-dependency-path: contracts/package-lock.json
       - name: Install contracts deps (js-yaml)
-        run: npm --prefix contracts install
+        run: npm --prefix contracts ci
       - name: Validate workflow YAML and infra JSON
         run: |
           set -euo pipefail
