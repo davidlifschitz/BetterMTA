@@ -5,7 +5,14 @@ import {
   DATA_CATALOG_TTL_MS_DEFAULT,
   DATA_INTERNAL_URL_DEFAULT,
   DATA_STATUS_TTL_MS_DEFAULT,
+  GEOCODER_MAX_ATTEMPTS_DEFAULT,
+  GEOCODER_MIN_INTERVAL_MS_DEFAULT,
+  GEOCODER_QUERY_CACHE_MAX_DEFAULT,
+  GEOCODER_QUERY_CACHE_TTL_MS_DEFAULT,
+  GEOCODER_RESOLVE_CACHE_TTL_MS_DEFAULT,
+  GEOCODER_TIMEOUT_MS_DEFAULT,
   LINES_CACHE_TTL_MS_DEFAULT,
+  NOMINATIM_BASE_URL_DEFAULT,
   OTP_PROBE_TTL_MS_DEFAULT,
   OTP_TIMEOUT_MS_DEFAULT,
   OTP_URL_DEFAULT,
@@ -14,6 +21,11 @@ import {
   REQUEST_TIMEOUT_MS_DEFAULT,
   ROUTE_CACHE_TTL_MS_DEFAULT,
 } from "./constants.js";
+import type { GeocoderProviderName } from "./adapters/places/createGeocoder.js";
+import {
+  isAddressPoiEnabled,
+  loadFeatureFlags,
+} from "./adapters/places/flags.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -69,6 +81,23 @@ export interface ApiConfig {
    * active staticDatasetVersion or searches fail closed as data_unavailable.
    */
   otpGraphVersion: string | null;
+  /**
+   * ADR-0022: when true, /v1/places/search may append address/POI geocode results.
+   * Default false — certified station-index alpha unchanged until go/no-go.
+   */
+  addressPoiEnabled: boolean;
+  /** none | fake (CI) | nominatim (controlled alpha). */
+  geocoderProvider: GeocoderProviderName;
+  nominatimBaseUrl: string;
+  nominatimUserAgent: string | null;
+  nominatimEmail: string | null;
+  geocoderTimeoutMs: number;
+  geocoderMaxAttempts: number;
+  geocoderMinIntervalMs: number;
+  geocoderQueryCacheTtlMs: number;
+  geocoderQueryCacheMax: number;
+  geocoderResolveCacheTtlMs: number;
+  flagDefaultsPath: string | null;
 }
 
 function envInt(name: string, fallback: number): number {
@@ -117,6 +146,16 @@ export function envAdapterMode(
   return "live";
 }
 
+export function envGeocoderProvider(
+  raw = process.env.BETTERMTA_GEOCODER_PROVIDER,
+): GeocoderProviderName {
+  if (raw === undefined || raw === "") return "none";
+  if (raw === "none" || raw === "fake" || raw === "nominatim") return raw;
+  throw new Error(
+    `Invalid BETTERMTA_GEOCODER_PROVIDER=${raw}; expected none|fake|nominatim`,
+  );
+}
+
 /**
  * ADR-0018: production must never boot in fixture mode.
  * Call before listen (and from buildApp so tests can assert throw).
@@ -142,6 +181,24 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
 
   const tokenRaw = process.env.BETTERMTA_DATA_INTERNAL_TOKEN;
   const graphRaw = process.env.BETTERMTA_OTP_GRAPH_VERSION;
+  const nominatimUaRaw = process.env.BETTERMTA_NOMINATIM_USER_AGENT;
+  const nominatimEmailRaw = process.env.BETTERMTA_NOMINATIM_EMAIL;
+  const flagDefaultsPath =
+    process.env.FLAG_DEFAULTS_PATH ??
+    process.env.BETTERMTA_FLAG_DEFAULTS_PATH ??
+    null;
+
+  const addressPoiEnv = process.env.BETTERMTA_ADDRESS_POI_ENABLED;
+  const addressPoiDirect =
+    addressPoiEnv === undefined || addressPoiEnv === ""
+      ? null
+      : envBool("BETTERMTA_ADDRESS_POI_ENABLED", false);
+
+  const featureFlags = loadFeatureFlags({
+    featureFlagsJson: process.env.FEATURE_FLAGS_JSON ?? null,
+    flagDefaultsPath,
+    addressPoiEnabled: addressPoiDirect,
+  });
 
   const base: ApiConfig = {
     port: envInt("PORT", 3080),
@@ -199,6 +256,43 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
     ),
     otpGraphVersion:
       graphRaw !== undefined && graphRaw !== "" ? graphRaw : null,
+    addressPoiEnabled: isAddressPoiEnabled(featureFlags),
+    geocoderProvider: envGeocoderProvider(),
+    nominatimBaseUrl:
+      process.env.BETTERMTA_NOMINATIM_BASE_URL ?? NOMINATIM_BASE_URL_DEFAULT,
+    nominatimUserAgent:
+      nominatimUaRaw !== undefined && nominatimUaRaw !== ""
+        ? nominatimUaRaw
+        : null,
+    nominatimEmail:
+      nominatimEmailRaw !== undefined && nominatimEmailRaw !== ""
+        ? nominatimEmailRaw
+        : null,
+    geocoderTimeoutMs: envInt(
+      "BETTERMTA_GEOCODER_TIMEOUT_MS",
+      GEOCODER_TIMEOUT_MS_DEFAULT,
+    ),
+    geocoderMaxAttempts: envInt(
+      "BETTERMTA_GEOCODER_MAX_ATTEMPTS",
+      GEOCODER_MAX_ATTEMPTS_DEFAULT,
+    ),
+    geocoderMinIntervalMs: envInt(
+      "BETTERMTA_GEOCODER_MIN_INTERVAL_MS",
+      GEOCODER_MIN_INTERVAL_MS_DEFAULT,
+    ),
+    geocoderQueryCacheTtlMs: envInt(
+      "BETTERMTA_GEOCODER_QUERY_CACHE_TTL_MS",
+      GEOCODER_QUERY_CACHE_TTL_MS_DEFAULT,
+    ),
+    geocoderQueryCacheMax: envInt(
+      "BETTERMTA_GEOCODER_QUERY_CACHE_MAX",
+      GEOCODER_QUERY_CACHE_MAX_DEFAULT,
+    ),
+    geocoderResolveCacheTtlMs: envInt(
+      "BETTERMTA_GEOCODER_RESOLVE_CACHE_TTL_MS",
+      GEOCODER_RESOLVE_CACHE_TTL_MS_DEFAULT,
+    ),
+    flagDefaultsPath,
   };
 
   return { ...base, ...overrides };
