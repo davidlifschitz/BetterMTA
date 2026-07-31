@@ -3,7 +3,7 @@
 **Branch:** `agent/p1-wave1-routing`  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-p1-wave1-routing`  
 **Lock tip base:** `b9139fb`  
-**Tip SHA:** `03fc8c589ae51c7ab00de7ca9929d831184985b8`  
+**Tip SHA:** `ea281b79ffcaf980e13d273d72306f6aca6d6a26`  
 **Date:** 2026-07-31  
 **Contract version consumed:** `2026-07-31` (read-only; `contracts/**` not edited)  
 **Remote:** pushed to `origin/agent/p1-wave1-routing` (no merge to main; no alpha redeploy)
