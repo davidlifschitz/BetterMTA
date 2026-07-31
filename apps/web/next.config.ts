@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
         __dirname,
         "src/lib/api/create-client.live.ts",
       );
+
+      // The application imports this module through the @/* TypeScript alias.
+      // Alias that exact request before path expansion, and retain the absolute
+      // aliases for requests that Next/Webpack has already normalized.
+      alias["@/lib/api/create-client$"] = liveFactory;
+      alias["@/lib/api/create-client"] = liveFactory;
       alias[path.resolve(__dirname, "src/lib/api/create-client.ts")] =
         liveFactory;
       alias[path.resolve(__dirname, "src/lib/api/create-client")] = liveFactory;
