@@ -65,4 +65,12 @@ In-memory fixed-window limiter — **single-replica scope** (startup log: `rate_
 
 ## Privacy
 
-Structured logs redact coordinates and raw place-search query text. Prefer `queryLength` / `proximityProvided` over raw values.
+Structured logs redact coordinates, address/POI query text, `providerPlaceId`, and secrets (ADR-0022). Prefer `queryLength` / `placeQueryHash` / `proximityProvided` / `proximityGrid` / `selectedLineCount` over raw values.
+
+Helpers for other waves:
+
+- `src/logging/privacy.ts` — hash/coarsen/`PrivacySafe*` builders
+- `src/metrics/privacyMetrics.ts` — place-provider + candidate-budget + preference-coverage counters
+- `src/services/privacySignals.ts` — thin route-search wiring
+
+Regression: `npm test -- test/privacy.test.ts`.

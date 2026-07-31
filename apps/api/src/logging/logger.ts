@@ -1,3 +1,5 @@
+import { isSensitiveLogKey } from "./privacy.js";
+
 export type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
 
 const LEVEL_ORDER: Record<Exclude<LogLevel, "silent">, number> = {
@@ -19,7 +21,8 @@ export interface LogFields {
 
 /**
  * Structured JSON logger.
- * Never logs precise lat/lon or raw place-search query text.
+ * Never logs precise lat/lon, raw address/POI query text, or vendor place IDs.
+ * See `privacy.ts` + ADR-0022 / API_CONTRACT §11.
  */
 export function createLogger(level: LogLevel = "info") {
   function shouldLog(at: Exclude<LogLevel, "silent">): boolean {
@@ -55,36 +58,39 @@ export function createLogger(level: LogLevel = "info") {
 
 export type Logger = ReturnType<typeof createLogger>;
 
+const REDACTED = "[redacted]";
+
 /** Testable redaction used by createLogger. */
 export function redactSensitive(fields: LogFields): LogFields {
   const out: LogFields = {};
   for (const [k, v] of Object.entries(fields)) {
-    const key = k.toLowerCase();
-    if (
-      key.includes("lat") ||
-      key.includes("lon") ||
-      key.includes("lng") ||
-      key.includes("coordinate")
-    ) {
-      out[k] = "[redacted]";
+    if (isSensitiveLogKey(k)) {
+      out[k] = REDACTED;
       continue;
     }
-    // Raw place-search / free-text query must never appear in logs.
-    if (
-      key === "query" ||
-      key === "q" ||
-      key === "rawquery" ||
-      key === "searchquery" ||
-      key === "querytext"
-    ) {
-      out[k] = "[redacted]";
+    if (Array.isArray(v)) {
+      out[k] = v.map((item) =>
+        item && typeof item === "object"
+          ? redactSensitive(item as LogFields)
+          : item,
+      );
       continue;
     }
-    if (v && typeof v === "object" && !Array.isArray(v)) {
+    if (v && typeof v === "object") {
       out[k] = redactSensitive(v as LogFields);
+      continue;
+    }
+    // Catch lat/lon embedded in free-form strings (e.g. "40.67912,-73.99534").
+    if (typeof v === "string" && looksLikePreciseCoordinatePair(v)) {
+      out[k] = REDACTED;
       continue;
     }
     out[k] = v;
   }
   return out;
+}
+
+/** Heuristic: decimal degree pair at >2 fractional digits. */
+export function looksLikePreciseCoordinatePair(value: string): boolean {
+  return /^-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}$/.test(value.trim());
 }

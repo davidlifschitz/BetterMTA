@@ -1,6 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { isDataUnavailableError } from "../../adapters/live/errors.js";
 import { ApiError } from "../../errors/apiError.js";
+import {
+  coarseGridId,
+  hashPlaceQuery,
+} from "../../logging/privacy.js";
+import {
+  normalizePlaceProviderMetricId,
+  type PlaceProviderResult,
+} from "../../metrics/privacyMetrics.js";
 import { newRequestId } from "../../services/routeSearch.js";
 import {
   assertRateLimit,
@@ -17,6 +25,7 @@ export async function registerPlacesRoute(
     const requestId = newRequestId(request.headers["x-request-id"]);
     request.requestId = requestId;
     setContractHeaders(reply, requestId);
+    const startedMs = request.startedAt ?? Date.now();
 
     try {
       assertRateLimit(deps, request, requestId);
@@ -77,7 +86,7 @@ export async function registerPlacesRoute(
         }
       }
 
-      // Do not log proximity coordinates or raw query text.
+      // Do not log proximity coordinates or raw query text (ADR-0022).
       const result = await deps.data.searchPlaces({
         query: q,
         limit,
@@ -88,24 +97,65 @@ export async function registerPlacesRoute(
       const geocodeCount = result.places.filter(
         (p) => p.provider === "geocoder",
       ).length;
+      const durationMs = Date.now() - startedMs;
+      const providerIds = new Set(
+        result.places
+          .map((p) =>
+            normalizePlaceProviderMetricId(
+              (p as { provider?: string }).provider,
+            ),
+          )
+          .filter((id) => id !== "unknown"),
+      );
+      const provider =
+        providerIds.size === 1
+          ? [...providerIds][0]!
+          : providerIds.has("geocoder")
+            ? "geocoder"
+            : providerIds.has("station_index")
+              ? "station_index"
+              : "unknown";
+      const placeResult: PlaceProviderResult =
+        result.places.length === 0 ? "empty" : "ok";
+      deps.privacyMetrics.recordPlaceProvider({
+        provider,
+        result: placeResult,
+        durationMs,
+      });
+
+      const proximityGrid =
+        proximityLat !== undefined && proximityLon !== undefined
+          ? coarseGridId(proximityLat, proximityLon)
+          : undefined;
+
       deps.logger.info("places_ok", {
         requestId,
         route: "/v1/places/search",
         method: "GET",
         statusCode: 200,
-        durationMs: Date.now() - request.startedAt,
+        durationMs,
         queryLength: q.length,
+        placeQueryHash: hashPlaceQuery(q),
         resultCount: result.places.length,
         stationResultCount: result.places.length - geocodeCount,
         geocodeResultCount: geocodeCount,
         addressPoiEnabled: deps.config.addressPoiEnabled,
         hasAttribution: Boolean(result.attribution),
         proximityProvided: proximityLat !== undefined,
+        ...(proximityGrid ? { proximityGrid } : {}),
+        provider,
       });
 
       return reply.status(200).send(result);
     } catch (err) {
+      const durationMs = Date.now() - startedMs;
       if (isDataUnavailableError(err)) {
+        deps.privacyMetrics.recordPlaceProvider({
+          provider: "unknown",
+          result: "unavailable",
+          durationMs,
+          errorClass: "upstream",
+        });
         sendApiError(
           reply,
           new ApiError("data_unavailable", err.message, requestId),
@@ -114,9 +164,23 @@ export async function registerPlacesRoute(
         return;
       }
       if (err instanceof ApiError) {
+        if (err.code !== "invalid_input" && err.code !== "rate_limited") {
+          deps.privacyMetrics.recordPlaceProvider({
+            provider: "unknown",
+            result: "error",
+            durationMs,
+            errorClass: "unknown",
+          });
+        }
         sendApiError(reply, err, deps.logger);
         return;
       }
+      deps.privacyMetrics.recordPlaceProvider({
+        provider: "unknown",
+        result: "error",
+        durationMs,
+        errorClass: "unknown",
+      });
       sendApiError(
         reply,
         new ApiError("internal_error", "An unexpected error occurred.", requestId),
