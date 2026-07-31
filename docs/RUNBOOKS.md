@@ -1,10 +1,10 @@
 # BetterMTA Runbooks
 
 **Owner:** Infrastructure (+ Integration Phase 11 inventory)  
-**Status:** Local compose live path proven (Phases 8–10); controlled alpha target ADR-0021 (**not** ready); Fly cloud **not activated**  
-**Related:** `docs/SLOS.md`, `docs/RELEASE_GATE_REPORT.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`, `.agents/handoffs/integration-live.md`
+**Status:** Local compose live path proven (Phases 8–10); Phase 12A local edge + 12A.13 remediations in place; controlled alpha **BLOCKED** (remote gates pending); Fly cloud **not activated**  
+**Related:** `docs/SLOS.md`, `docs/RELEASE_GATE_REPORT.md`, `docs/alpha/REMOTE_VALIDATION.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`, `.agents/handoffs/integration-live.md`
 
-Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 11 go/no-go: **`BLOCKED`** (not ready for Fly private/public beta). Phase 12A controlled alpha: **not** `READY_FOR_CONTROLLED_ALPHA` until remote gates pass (ADR-0021).
+Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 11 go/no-go: **`BLOCKED`** (not ready for Fly private/public beta). Phase 12A controlled alpha: final status **`BLOCKED`** — **not** `READY_FOR_CONTROLLED_ALPHA` until remote gates pass (ADR-0021).
 
 ---
 
@@ -25,6 +25,9 @@ Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` 
 | `infra/alpha/scripts/monitor-alpha.sh` | 12A.9 external / dogfood health monitor |
 | `.github/workflows/alpha-monitor.yml` | 12A.9 scheduled monitor (disabled until configured) |
 | `infra/alpha/cloudflared/config.template.yml` | placeholders only |
+| `docs/alpha/REMOTE_VALIDATION.md` | 12A.10 twenty remote tests — all PENDING_USER / not run |
+| `docs/alpha/RELIABILITY_DRILLS.md` | 12A.11 local drills (PARTIAL; some PENDING_USER) |
+| `docs/alpha/PERFORMANCE.md` | 12A.12 local latency sample (not G15) |
 
 ```bash
 ./infra/alpha/scripts/preflight-host.sh   # read-only host/Docker/tunnel/health
@@ -485,12 +488,12 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 ## Phase 11 / 12A go/no-go (release gates)
 
 **Final status:** `BLOCKED` — see `docs/RELEASE_GATE_REPORT.md` and `.agents/handoffs/integration-live.md`.  
-**Not** `READY_FOR_CONTROLLED_ALPHA` (remote CA gates pending). **Not** Fly private/public beta.
+**Not** `READY_FOR_CONTROLLED_ALPHA` (CA03–CA05/CA09 PENDING; CA08/CA10 PARTIAL; Access env unset; approved/denied login not evidenced; distinct-digest disk-blocked; origin self-hosted macOS). **Not** Fly private/public beta.
 
 | Track | Verdict |
 |---|---|
 | Local compose (data+OTP+API+web) + fixture CI gates | Proven; Critical Phase 10 remediations landed |
-| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge local (CA02); Tunnel / Access / remote smoke pending; CA09 monitor tooling ready, secrets pending |
+| Controlled alpha (ADR-0021: Tunnel + Access + compose) | **BLOCKED** — edge local (CA02); 12A.13 local reviews PASS / High fixed; Tunnel / Access / remote smoke + 20 remote tests pending; CA09 secrets pending |
 | Fly private beta (intended cloud cohort) | **BLOCKED** — no `flyctl`/creds/apps, no domain/TLS, no rollback drill |
 | Public beta | **BLOCKED** (same + a11y/p95/Google non-claim) |
 

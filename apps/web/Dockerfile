@@ -9,6 +9,8 @@
 #   NEXT_PUBLIC_API_MODE=live
 #   NEXT_PUBLIC_FLAG_FEEDBACK=false
 #   no fixture payloads in the client graph
+# When NEXT_PUBLIC_API_MODE=live, the build stage runs `npm run verify:no-fixtures`
+# after `npm run build`. Fixture-mode builds skip that check.
 
 FROM node:22-bookworm-slim AS build
 WORKDIR /repo
@@ -30,7 +32,10 @@ RUN npm ci
 COPY apps/web/ ./
 COPY contracts /repo/contracts
 
-RUN npm run build
+# Live alpha/prod images must fail the bake if fixture markers leak into .next.
+# Fixture/local demos keep NEXT_PUBLIC_API_MODE≠live and skip verify.
+RUN npm run build \
+  && if [ "${NEXT_PUBLIC_API_MODE}" = "live" ]; then npm run verify:no-fixtures; fi
 
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app

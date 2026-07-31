@@ -34,6 +34,7 @@
 - `PRODUCTION_CHECKLIST.md`
 - `RUNBOOKS.md` — local compose bring-up, controlled-alpha pointer (`infra/alpha/`), drills, cost, go/no-go
 - `RELEASE_GATE_REPORT.md` — G01–G20 + CA gates; status vocabulary; final status still `BLOCKED` (not `READY_FOR_CONTROLLED_ALPHA`)
+- `alpha/REMOTE_VALIDATION.md` — Phase 12A.10 twenty remote tests (all PENDING_USER / not run)
 - `../infra/alpha/README.md` — controlled-alpha index (edge, host, tunnel, Access, scripts)
 - `../infra/alpha/HOST.md` — Phase 12A.5 macOS operating requirements + preflight
 - `../infra/alpha/TUNNEL.md` — Phase 12A.6 named Cloudflare Tunnel (interactive; secrets out of repo)
