@@ -10,6 +10,14 @@ import {
   formatMinutes,
   lineById,
 } from "@/lib/format";
+import { formatLineIdList, riderLineLabel } from "@/lib/line-display";
+import {
+  completePreferenceBannerText,
+  CONNECTOR_FILLED_BANNER,
+  hasConnectorFilled,
+  partialPreferenceBannerText,
+  satisfactionPillText,
+} from "@/lib/preference-copy";
 import { track } from "@/lib/analytics";
 
 type RouteCardProps = {
@@ -39,6 +47,12 @@ export function RouteCard({
     itinerary.explanation.baselineDeltaSeconds,
   );
   const cardFreshness = formatCardFreshness(itinerary.realtimeConfidence);
+  const connectorNote = hasConnectorFilled(itinerary.explanation.facts);
+  const pill = satisfactionPillText({
+    isComplete: sat.isComplete,
+    satisfactionCount: sat.satisfactionCount,
+    requestedCount: sat.requestedCount,
+  });
 
   return (
     <article className="route-card" data-testid="route-card">
@@ -67,14 +81,12 @@ export function RouteCard({
           </div>
           {isBaseline ? (
             <span className="pill">Baseline</span>
-          ) : sat.requestedCount > 0 ? (
+          ) : pill ? (
             <span
               className={`pill${sat.isComplete ? " pill--ok" : " pill--partial"}`}
               data-testid="satisfaction-pill"
             >
-              {sat.isComplete
-                ? `Uses all ${sat.requestedCount}`
-                : `${sat.satisfactionCount} of ${sat.requestedCount} lines`}
+              {pill}
             </span>
           ) : null}
         </div>
@@ -82,6 +94,7 @@ export function RouteCard({
         <ol className="line-sequence" aria-label="Line sequence">
           {itinerary.lineSequence.map((id) => {
             const line = lineById(lines, id);
+            const face = riderLineLabel(id, line);
             return (
               <li key={`${itinerary.itineraryId}-${id}`}>
                 <span
@@ -91,9 +104,11 @@ export function RouteCard({
                     color: line?.textColor ?? "#fff",
                   }}
                 >
-                  {line?.label ?? id}
+                  {face}
                 </span>
-                <span className="sr-only">{line?.displayName ?? id}</span>
+                <span className="sr-only">
+                  {line?.displayName ?? face}
+                </span>
               </li>
             );
           })}
@@ -101,10 +116,16 @@ export function RouteCard({
 
         {sat.requestedCount > 0 ? (
           <p className="coverage" data-testid="coverage-text">
-            Uses {sat.satisfiedLineIds.join(", ") || "none"}
+            Uses {formatLineIdList(sat.satisfiedLineIds, lines)}
             {sat.omittedLineIds.length > 0
-              ? ` · Omits ${sat.omittedLineIds.join(", ")}`
+              ? ` · Omits ${formatLineIdList(sat.omittedLineIds, lines)}`
               : ""}
+          </p>
+        ) : null}
+
+        {connectorNote ? (
+          <p className="connector-note" data-testid="connector-note">
+            {CONNECTOR_FILLED_BANNER}
           </p>
         ) : null}
 
@@ -172,7 +193,15 @@ export function RouteCard({
         {explanationVariant === "detailed" ? (
           <ul>
             {itinerary.explanation.facts.map((f, i) => (
-              <li key={`${f.type}-${i}`}>{f.message}</li>
+              <li
+                key={`${f.type}-${i}`}
+                data-fact-type={f.type}
+                className={
+                  f.type === "connector_filled" ? "fact--connector" : undefined
+                }
+              >
+                {f.message}
+              </li>
             ))}
           </ul>
         ) : null}
@@ -181,25 +210,51 @@ export function RouteCard({
   );
 }
 
-type PartialBannerProps = {
+type PreferenceBannerProps = {
   summary: RouteSearchResponse["constrained"]["satisfactionSummary"];
+  showConnectorHint?: boolean;
 };
 
-export function PartialSatisfactionBanner({ summary }: PartialBannerProps) {
-  if (summary.completeMatchFound || summary.requestedCount === 0) return null;
+export function PreferenceStateBanner({
+  summary,
+  showConnectorHint = false,
+}: PreferenceBannerProps) {
+  if (summary.requestedCount === 0) return null;
+
+  if (summary.completeMatchFound) {
+    const copy = completePreferenceBannerText(summary.requestedCount);
+    return (
+      <div
+        className="banner banner--ok"
+        role="status"
+        data-testid="complete-banner"
+      >
+        <strong>{copy.title}</strong>
+        <span>{copy.body}</span>
+        {showConnectorHint ? (
+          <span data-testid="connector-banner">{CONNECTOR_FILLED_BANNER}</span>
+        ) : null}
+      </div>
+    );
+  }
+
+  const copy = partialPreferenceBannerText(summary.requestedCount);
   return (
     <div
       className="banner banner--partial"
       role="status"
       data-testid="partial-banner"
     >
-      <strong>
-        No sensible route uses all {summary.requestedCount} selected lines.
-      </strong>
-      <span>
-        These options use the most selected lines while keeping the trip
-        practical.
-      </span>
+      <strong>{copy.title}</strong>
+      <span>{copy.body}</span>
+      {showConnectorHint ? (
+        <span data-testid="connector-banner">{CONNECTOR_FILLED_BANNER}</span>
+      ) : null}
     </div>
   );
+}
+
+/** @deprecated Prefer PreferenceStateBanner — kept as alias for tests. */
+export function PartialSatisfactionBanner(props: PreferenceBannerProps) {
+  return <PreferenceStateBanner {...props} />;
 }

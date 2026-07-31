@@ -163,11 +163,35 @@ a {
   background: transparent;
   padding: 0.6rem 0.75rem;
   border-radius: 8px;
+  display: grid;
+  gap: 0.15rem;
 }
 
 .suggest button:hover,
 .suggest button.is-active {
   background: var(--bg-accent);
+}
+
+.suggest__primary {
+  font-weight: 600;
+}
+
+.suggest__meta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.suggest__attribution {
+  padding: 0.45rem 0.75rem 0.55rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.field--compact {
+  margin-bottom: 0.35rem;
 }
 
 .location-row {
@@ -177,10 +201,26 @@ a {
 }
 
 .baseline-delta,
-.card-freshness {
+.card-freshness,
+.connector-note {
   margin: 0.35rem 0 0;
   font-size: 0.88rem;
   color: var(--muted);
+}
+
+.connector-note {
+  color: #1d455f;
+}
+
+.coverage-details {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.fact--connector {
+  font-weight: 600;
 }
 
 .card-freshness {
@@ -453,6 +493,12 @@ a {
   background: var(--partial-bg);
   color: var(--partial);
   border-color: #e5c4c4;
+}
+
+.banner--ok {
+  background: #e8f6ef;
+  color: #145c3e;
+  border-color: #b7dfc8;
 }
 
 .state-message {

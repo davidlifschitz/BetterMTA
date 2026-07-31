@@ -7,6 +7,11 @@ import {
   formatMinutes,
   lineById,
 } from "@/lib/format";
+import { formatLineIdList, riderLineLabel } from "@/lib/line-display";
+import {
+  CONNECTOR_FILLED_BANNER,
+  hasConnectorFilled,
+} from "@/lib/preference-copy";
 
 type RouteDetailProps = {
   itinerary: Itinerary;
@@ -20,6 +25,7 @@ export function RouteDetail({ itinerary, lines, onBack }: RouteDetailProps) {
     itinerary.reliability && itinerary.reliability.displayEligible
       ? itinerary.reliability
       : null;
+  const connectorNote = hasConnectorFilled(itinerary.explanation.facts);
 
   return (
     <section className="detail" data-testid="route-detail">
@@ -34,10 +40,17 @@ export function RouteDetail({ itinerary, lines, onBack }: RouteDetailProps) {
 
       {sat.requestedCount > 0 ? (
         <p data-testid="detail-coverage">
-          Selected-line coverage: {sat.satisfiedLineIds.join(", ") || "none"}
+          Preferred-line coverage:{" "}
+          {formatLineIdList(sat.satisfiedLineIds, lines)}
           {sat.omittedLineIds.length > 0
-            ? ` (omits ${sat.omittedLineIds.join(", ")})`
+            ? ` (omits ${formatLineIdList(sat.omittedLineIds, lines)})`
             : ""}
+        </p>
+      ) : null}
+
+      {connectorNote ? (
+        <p className="connector-note" data-testid="detail-connector-note">
+          {CONNECTOR_FILLED_BANNER}
         </p>
       ) : null}
 
@@ -58,6 +71,7 @@ export function RouteDetail({ itinerary, lines, onBack }: RouteDetailProps) {
             );
           }
           const line = lineById(lines, leg.lineId);
+          const face = riderLineLabel(leg.lineId, line);
           return (
             <li key={leg.legId} className="leg leg--transit">
               <span
@@ -67,7 +81,7 @@ export function RouteDetail({ itinerary, lines, onBack }: RouteDetailProps) {
                   color: line?.textColor ?? "#fff",
                 }}
               >
-                {line?.label ?? leg.lineId}
+                {face}
               </span>
               <div>
                 <strong>
@@ -105,15 +119,21 @@ export function RouteDetail({ itinerary, lines, onBack }: RouteDetailProps) {
         </p>
       ))}
 
-      {reliability ? (
-        <p>Reliability: {reliability.level}</p>
-      ) : null}
+      {reliability ? <p>Reliability: {reliability.level}</p> : null}
 
       <div className="explanation is-open">
         <p>{itinerary.explanation.summary}</p>
         <ul>
           {itinerary.explanation.facts.map((f, i) => (
-            <li key={`${f.type}-${i}`}>{f.message}</li>
+            <li
+              key={`${f.type}-${i}`}
+              data-fact-type={f.type}
+              className={
+                f.type === "connector_filled" ? "fact--connector" : undefined
+              }
+            >
+              {f.message}
+            </li>
           ))}
         </ul>
       </div>

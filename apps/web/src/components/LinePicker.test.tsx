@@ -36,10 +36,19 @@ const lines: Line[] = [
     isActive: true,
     gtfsRouteIds: ["L"],
   },
+  {
+    lineId: "GS",
+    label: "GS",
+    displayName: "42 St Shuttle",
+    color: "#808183",
+    textColor: "#FFFFFF",
+    isActive: true,
+    gtfsRouteIds: ["GS"],
+  },
 ];
 
 describe("LinePicker", () => {
-  it("shows accounting summary for selected lines", () => {
+  it("shows preferred-line summary and S alias for GS", () => {
     render(
       <LinePicker
         open
@@ -51,8 +60,9 @@ describe("LinePicker", () => {
       />,
     );
 
+    expect(screen.getByRole("heading", { name: /Preferred lines/i })).toBeInTheDocument();
     expect(screen.getByTestId("line-summary")).toHaveTextContent(
-      "Using the A and L",
+      "Preferring the A and L",
     );
     expect(
       screen.getByRole("button", { name: /A train, selected/i }),
@@ -60,6 +70,30 @@ describe("LinePicker", () => {
     expect(
       screen.getByRole("button", { name: /G train, not selected/i }),
     ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      screen.getByRole("button", { name: /S train.*not selected/i }),
+    ).toHaveAttribute("data-line-id", "GS");
+  });
+
+  it("filters GS via rider-facing S alias", async () => {
+    const user = userEvent.setup();
+    render(
+      <LinePicker
+        open
+        lines={lines}
+        selectedLineIds={[]}
+        onChange={() => undefined}
+        onClose={() => undefined}
+        onApply={() => undefined}
+      />,
+    );
+    await user.type(screen.getByTestId("line-filter"), "S");
+    expect(
+      screen.getByRole("button", { name: /S train/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /A train/i }),
+    ).toBeNull();
   });
 
   it("supports keyboard toggle and Escape close", async () => {

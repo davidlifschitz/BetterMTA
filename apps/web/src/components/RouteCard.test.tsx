@@ -31,21 +31,67 @@ describe("satisfaction and omission rendering", () => {
     );
 
     expect(screen.getByTestId("satisfaction-pill")).toHaveTextContent(
-      "2 of 3 lines",
+      "2 of 3 preferences",
     );
     expect(screen.getByTestId("coverage-text")).toHaveTextContent("Uses A, L");
     expect(screen.getByTestId("coverage-text")).toHaveTextContent("Omits G");
   });
 
-  it("shows partial-satisfaction banner copy", () => {
+  it("shows partial preferred-line banner copy", () => {
     render(
       <PartialSatisfactionBanner
         summary={(partialMatch as RouteSearchResponse).constrained.satisfactionSummary}
       />,
     );
     expect(screen.getByTestId("partial-banner")).toHaveTextContent(
-      "No sensible route uses all 3 selected lines.",
+      /Couldn’t use all preferences/i,
     );
+    expect(screen.getByTestId("partial-banner")).toHaveTextContent(
+      /all 3 preferred lines/i,
+    );
+  });
+
+  it("shows complete preferred-line banner copy", () => {
+    render(
+      <PartialSatisfactionBanner
+        summary={(completeMatch as RouteSearchResponse).constrained.satisfactionSummary}
+      />,
+    );
+    expect(screen.getByTestId("complete-banner")).toHaveTextContent(
+      /Using your preferred lines/i,
+    );
+  });
+
+  it("surfaces connector_filled explanation note", () => {
+    const itin = (completeMatch as RouteSearchResponse).constrained
+      .itineraries[0] as Itinerary;
+    const withConnector: Itinerary = {
+      ...itin,
+      explanation: {
+        ...itin.explanation,
+        facts: [
+          ...itin.explanation.facts,
+          {
+            type: "connector_filled",
+            message: "Filled gap with an unselected connector.",
+            lineId: "D",
+          },
+        ],
+      },
+    };
+    render(
+      <RouteCard
+        itinerary={withConnector}
+        lines={lines}
+        requestId="req_test"
+        explanationVariant="detailed"
+        onSelect={() => undefined}
+      />,
+    );
+    expect(screen.getByTestId("connector-note")).toHaveTextContent(
+      /connecting lines/i,
+    );
+    expect(screen.getByText(/Filled gap with an unselected connector/)).toBeInTheDocument();
   });
 
   it("hides reliability when displayEligible is absent/false", () => {

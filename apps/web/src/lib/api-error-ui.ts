@@ -1,4 +1,6 @@
-import type { ApiErrorCode } from "@/lib/contracts";
+import type { ApiErrorBody, ApiErrorCode } from "@/lib/contracts";
+import { formatLineIdList } from "@/lib/line-display";
+import type { Line } from "@/lib/contracts";
 
 export type ErrorUiPhase =
   | "no_route"
@@ -6,7 +8,8 @@ export type ErrorUiPhase =
   | "timeout"
   | "rate_limited"
   | "invalid"
-  | "error";
+  | "error"
+  | "coverage_failure";
 
 export type ErrorUi = {
   phase: ErrorUiPhase;
@@ -52,26 +55,28 @@ const BY_CODE: Record<ApiErrorCode, ErrorUi> = {
   unknown_place: {
     phase: "invalid",
     title: "Place not recognized",
-    defaultBody: "One of the places wasn’t recognized. Pick a station from the list.",
+    defaultBody:
+      "One of the places wasn’t recognized. Pick a result from the suggestions list.",
     testId: "invalid-state",
   },
   unknown_line: {
     phase: "error",
     title: "Couldn’t find routes",
-    defaultBody: "A selected line wasn’t recognized.",
+    defaultBody: "A preferred line wasn’t recognized.",
     testId: "error-state",
   },
   incomplete_selected_line_satisfaction: {
     phase: "error",
     title: "Couldn’t find routes",
-    defaultBody: "Couldn’t satisfy the selected lines for this trip.",
+    defaultBody: "Couldn’t satisfy your preferred lines for this trip.",
     testId: "error-state",
   },
   insufficient_candidate_coverage: {
-    phase: "error",
-    title: "Couldn’t find routes",
-    defaultBody: "Not enough candidate routes were available for this trip.",
-    testId: "error-state",
+    phase: "coverage_failure",
+    title: "Couldn’t cover your preferred lines",
+    defaultBody:
+      "Not enough preference-covering route candidates were available within the search budget. Try again or adjust preferred lines.",
+    testId: "coverage-failure-state",
   },
   stale_realtime: {
     phase: "error",
@@ -102,3 +107,39 @@ export const NETWORK_UNAVAILABLE_UI: ErrorUi = {
     "Could not reach the BetterMTA API. Check your connection and try again.",
   testId: "unavailable-state",
 };
+
+type CoverageDetails = {
+  requestedLineIds?: unknown;
+  preferenceCoveringCandidateCount?: unknown;
+  candidateCount?: unknown;
+  budgetExhausted?: unknown;
+  status?: unknown;
+  familiesAttempted?: unknown;
+};
+
+/** Extra rider-facing detail lines for insufficient_candidate_coverage. */
+export function coverageFailureDetails(
+  body: ApiErrorBody | null | undefined,
+  lines: Line[] = [],
+): string[] {
+  if (!body || body.error.code !== "insufficient_candidate_coverage") {
+    return [];
+  }
+  const d = (body.error.details ?? {}) as CoverageDetails;
+  const out: string[] = [];
+  if (Array.isArray(d.requestedLineIds) && d.requestedLineIds.length > 0) {
+    const ids = d.requestedLineIds.filter(
+      (x): x is string => typeof x === "string",
+    );
+    out.push(`Preferred lines: ${formatLineIdList(ids, lines)}`);
+  }
+  if (typeof d.preferenceCoveringCandidateCount === "number") {
+    out.push(
+      `Preference-covering candidates found: ${d.preferenceCoveringCandidateCount}`,
+    );
+  }
+  if (d.budgetExhausted === true || d.status === "exhausted") {
+    out.push("Search budget was exhausted before a trustworthy match.");
+  }
+  return out;
+}

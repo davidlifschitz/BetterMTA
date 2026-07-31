@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   apiMode,
+  isAddressPoiSearchEnabled,
   isFeedbackEnabled,
   isFixtureMode,
   isLiveMode,
@@ -73,6 +74,25 @@ describe("mode flags", () => {
     expect(shouldOfferArriveBy({ NEXT_PUBLIC_API_MODE: "live" })).toBe(false);
     expect(shouldOfferArriveBy({ NEXT_PUBLIC_API_MODE: "fixture" })).toBe(
       true,
+    );
+  });
+
+  it("defaults address/POI flag off (station-first)", () => {
+    expect(isAddressPoiSearchEnabled({})).toBe(false);
+    expect(isAddressPoiSearchEnabled({ NEXT_PUBLIC_FLAG_ADDRESS_POI: "false" })).toBe(
+      false,
+    );
+  });
+
+  it("enables address/POI only for true/1", () => {
+    expect(isAddressPoiSearchEnabled({ NEXT_PUBLIC_FLAG_ADDRESS_POI: "true" })).toBe(
+      true,
+    );
+    expect(isAddressPoiSearchEnabled({ NEXT_PUBLIC_FLAG_ADDRESS_POI: "1" })).toBe(
+      true,
+    );
+    expect(isAddressPoiSearchEnabled({ NEXT_PUBLIC_FLAG_ADDRESS_POI: "yes" })).toBe(
+      false,
     );
   });
 });

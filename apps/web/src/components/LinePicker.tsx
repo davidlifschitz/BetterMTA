@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { Line } from "@/lib/contracts";
 import { LineBadge } from "@/components/LineBadge";
 import { MAX_SELECTED_LINES } from "@/lib/contracts";
 import { summarizeSelectedLines } from "@/lib/format";
+import { lineMatchesQuery } from "@/lib/line-display";
+import {
+  PREFERRED_LINES_HINT,
+  PREFERRED_LINES_PICKER_TITLE,
+} from "@/lib/preference-copy";
 
 type LinePickerProps = {
   open: boolean;
@@ -27,11 +32,16 @@ export function LinePicker({
 }: LinePickerProps) {
   const titleId = useId();
   const summaryId = useId();
+  const filterId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const selected = new Set(selectedLineIds);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setFilter("");
+      return;
+    }
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const first =
       panelRef.current?.querySelector<HTMLButtonElement>("button.line-badge");
@@ -50,6 +60,11 @@ export function LinePicker({
     };
   }, [open, onClose]);
 
+  const activeLines = useMemo(() => {
+    const base = lines.filter((l) => l.isActive);
+    return base.filter((l) => lineMatchesQuery(l, filter));
+  }, [lines, filter]);
+
   if (!open) return null;
 
   function toggle(lineId: string) {
@@ -61,7 +76,6 @@ export function LinePicker({
     onChange([...selectedLineIds, lineId]);
   }
 
-  const activeLines = lines.filter((l) => l.isActive);
   const summary = summarizeSelectedLines(lines, selectedLineIds);
   const atMax = selectedLineIds.length >= MAX_SELECTED_LINES;
 
@@ -77,12 +91,12 @@ export function LinePicker({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sheet__header">
-          <h2 id={titleId}>Lines to use</h2>
+          <h2 id={titleId}>{PREFERRED_LINES_PICKER_TITLE}</h2>
           <button
             type="button"
             className="text-btn"
             onClick={onClose}
-            aria-label="Close line picker"
+            aria-label="Close preferred lines picker"
           >
             Close
           </button>
@@ -93,11 +107,20 @@ export function LinePicker({
           {atMax ? ` (max ${MAX_SELECTED_LINES})` : ""}
         </p>
 
-        <div
-          className="line-grid"
-          role="group"
-          aria-label="Subway lines"
-        >
+        <label className="field field--compact" htmlFor={filterId}>
+          <span className="sr-only">Filter preferred lines</span>
+          <input
+            id={filterId}
+            type="search"
+            value={filter}
+            placeholder="Filter lines (try S for shuttle)"
+            onChange={(e) => setFilter(e.target.value)}
+            autoComplete="off"
+            data-testid="line-filter"
+          />
+        </label>
+
+        <div className="line-grid" role="group" aria-label="Preferred subway lines">
           {activeLines.map((line) => (
             <span key={line.lineId} className="line-grid__item">
               <LineBadge
@@ -110,6 +133,13 @@ export function LinePicker({
           ))}
         </div>
 
+        {activeLines.length === 0 ? (
+          <p className="hint" role="status">
+            No lines match that filter.
+          </p>
+        ) : null}
+
+        <p className="hint">{PREFERRED_LINES_HINT}</p>
         <p className="hint">
           Selected lines keep their color. A ring and “Selected” label mark
           selection — not color alone.

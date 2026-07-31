@@ -17,6 +17,7 @@ import {
   summarizeSelectedLines,
 } from "@/lib/format";
 import {
+  coverageFailureDetails,
   errorUiForCode,
   NETWORK_UNAVAILABLE_UI,
   type ErrorUiPhase,
@@ -25,14 +26,24 @@ import {
   placeFromGeolocation,
   toPlaceRef,
 } from "@/lib/geolocation-place";
+import { withShuttleLine } from "@/lib/line-display";
 import {
+  collectPlaceAttribution,
+  filterPlacesForFlag,
+} from "@/lib/place-display";
+import {
+  anyConnectorFilled,
+  PREFERRED_LINES_ROW_LABEL,
+} from "@/lib/preference-copy";
+import {
+  isAddressPoiSearchEnabled,
   isFixtureMode,
   shouldOfferArriveBy,
   shouldShowFeedback,
 } from "@/lib/mode";
 import { LinePicker } from "@/components/LinePicker";
 import { DataModeBanner } from "@/components/DataModeBanner";
-import { PartialSatisfactionBanner, RouteCard } from "@/components/RouteCard";
+import { PreferenceStateBanner, RouteCard } from "@/components/RouteCard";
 import { LoadingState, StateMessage } from "@/components/StateMessage";
 import { RouteDetail } from "@/components/RouteDetail";
 import { PlaceSuggest } from "@/components/PlaceSuggest";
@@ -49,7 +60,8 @@ type UiPhase =
   | "no_route"
   | "unavailable"
   | "timeout"
-  | "rate_limited";
+  | "rate_limited"
+  | "coverage_failure";
 
 type PlaceField = {
   query: string;
@@ -129,6 +141,10 @@ export function TripApp() {
   const fixture = isFixtureMode();
   const showFeedback = shouldShowFeedback();
   const offerArriveBy = shouldOfferArriveBy();
+  const addressPoiEnabled = isAddressPoiSearchEnabled();
+  const placePlaceholder = addressPoiEnabled
+    ? "Station, address, or place"
+    : "Station name";
 
   const [lines, setLines] = useState<Line[]>([]);
   const [origin, setOrigin] = useState<PlaceField>(initialOrigin);
@@ -146,6 +162,10 @@ export function TripApp() {
   const [hasSearched, setHasSearched] = useState(false);
   const [originSuggestions, setOriginSuggestions] = useState<Place[]>([]);
   const [destSuggestions, setDestSuggestions] = useState<Place[]>([]);
+  const [originAttribution, setOriginAttribution] = useState<string | null>(
+    null,
+  );
+  const [destAttribution, setDestAttribution] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const originDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const destDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,7 +175,7 @@ export function TripApp() {
     const originTimer = originDebounce;
     const destTimer = destDebounce;
     api.getLines().then((res) => {
-      if (!cancelled) setLines(res.lines);
+      if (!cancelled) setLines(withShuttleLine(res.lines));
     });
     return () => {
       cancelled = true;
@@ -318,26 +338,50 @@ export function TripApp() {
     try {
       const remote = await api.searchPlaces(query);
       // Live: API only. Fixture: merge local demos for presets.
-      const merged = isFixtureMode()
+      const mergedRaw = isFixtureMode()
         ? [...local, ...remote.places].filter(
             (p, i, arr) => arr.findIndex((x) => x.placeId === p.placeId) === i,
           )
         : remote.places;
-      if (field === "origin") setOriginSuggestions(merged);
-      else setDestSuggestions(merged);
+      // Flag-off: station-first UX (ADR-0022). Flag-on: unified station/address/POI.
+      const merged = filterPlacesForFlag(mergedRaw);
+      const attribution = collectPlaceAttribution(
+        merged,
+        remote.attribution,
+      );
+      if (field === "origin") {
+        setOriginSuggestions(merged);
+        setOriginAttribution(attribution);
+      } else {
+        setDestSuggestions(merged);
+        setDestAttribution(attribution);
+      }
     } catch {
-      if (field === "origin") setOriginSuggestions(local);
-      else setDestSuggestions(local);
+      const filtered = filterPlacesForFlag(local);
+      if (field === "origin") {
+        setOriginSuggestions(filtered);
+        setOriginAttribution(null);
+      } else {
+        setDestSuggestions(filtered);
+        setDestAttribution(null);
+      }
     }
   }
 
   function selectPlace(field: "origin" | "destination", place: Place) {
+    // Never persist or display opaque vendor providerPlaceId in the query field.
+    const display =
+      place.formattedAddress && place.kind !== "station"
+        ? place.label
+        : place.label;
     if (field === "origin") {
-      setOrigin({ query: place.label, selected: place });
+      setOrigin({ query: display, selected: place });
       setOriginSuggestions([]);
+      setOriginAttribution(place.attribution ?? null);
     } else {
-      setDestination({ query: place.label, selected: place });
+      setDestination({ query: display, selected: place });
       setDestSuggestions([]);
+      setDestAttribution(place.attribution ?? null);
     }
     track("place_selected", {
       field,
@@ -443,6 +487,9 @@ export function TripApp() {
   const shown = response ? displayItineraries(response) : null;
 
   const locationMessage = (() => {
+    const fallbackPlace = addressPoiEnabled
+      ? "Enter a starting station, address, or place instead."
+      : "Enter a starting station instead.";
     switch (locationStatus) {
       case "requesting":
         return "Requesting location permission…";
@@ -451,13 +498,13 @@ export function TripApp() {
           ? "Location granted — origin set to a fixture station near you (demo mapping)."
           : "Location granted — origin set to your current coordinates.";
       case "denied":
-        return "Location permission denied. Enter a starting station instead.";
+        return `Location permission denied. ${fallbackPlace}`;
       case "unsupported":
         return "Location is not supported in this browser.";
       case "timeout":
-        return "Location request timed out. Enter a starting station instead.";
+        return `Location request timed out. ${fallbackPlace}`;
       case "error":
-        return "Couldn’t read your location. Enter a starting station instead.";
+        return `Couldn’t read your location. ${fallbackPlace}`;
       default:
         return null;
     }
@@ -466,6 +513,11 @@ export function TripApp() {
   function errorBody(fallback: string): string {
     return error?.error.message ?? fallback;
   }
+
+  const coverageDetails = coverageFailureDetails(error, lines);
+  const showConnectorHint = shown
+    ? anyConnectorFilled(shown.itineraries)
+    : false;
 
   return (
     <div className="app-shell">
@@ -477,13 +529,19 @@ export function TripApp() {
       <section className="search-panel" aria-label="Trip search">
         <PlaceSuggest
           label="From"
-          placeholder="Starting station"
+          placeholder={
+            addressPoiEnabled ? `From — ${placePlaceholder}` : "Starting station"
+          }
           value={origin.query}
           suggestions={originSuggestions}
           listLabel="Origin suggestions"
+          attribution={originAttribution}
           onQueryChange={(q) => onPlaceQuery("origin", q)}
           onSelect={(p) => selectPlace("origin", p)}
-          onCloseSuggestions={() => setOriginSuggestions([])}
+          onCloseSuggestions={() => {
+            setOriginSuggestions([]);
+            setOriginAttribution(null);
+          }}
         />
 
         <div className="location-row">
@@ -508,13 +566,21 @@ export function TripApp() {
 
         <PlaceSuggest
           label="To"
-          placeholder="Destination station"
+          placeholder={
+            addressPoiEnabled
+              ? `To — ${placePlaceholder}`
+              : "Destination station"
+          }
           value={destination.query}
           suggestions={destSuggestions}
           listLabel="Destination suggestions"
+          attribution={destAttribution}
           onQueryChange={(q) => onPlaceQuery("destination", q)}
           onSelect={(p) => selectPlace("destination", p)}
-          onCloseSuggestions={() => setDestSuggestions([])}
+          onCloseSuggestions={() => {
+            setDestSuggestions([]);
+            setDestAttribution(null);
+          }}
         />
 
         <label className="field">
@@ -552,7 +618,7 @@ export function TripApp() {
           aria-haspopup="dialog"
           data-testid="open-line-picker"
         >
-          <span className="lines-row__label">Lines to use</span>
+          <span className="lines-row__label">{PREFERRED_LINES_ROW_LABEL}</span>
           <span className="lines-row__value">{lineSummary}</span>
         </button>
 
@@ -639,6 +705,34 @@ export function TripApp() {
           />
         ) : null}
 
+        {phase === "coverage_failure" ? (
+          <StateMessage
+            title={
+              errorUiForCode("insufficient_candidate_coverage").title
+            }
+            body={errorBody(
+              errorUiForCode("insufficient_candidate_coverage").defaultBody,
+            )}
+            testId="coverage-failure-state"
+            actionLabel="Edit preferred lines"
+            onAction={() => {
+              setPhase("search");
+              setPickerOpen(true);
+            }}
+          >
+            {coverageDetails.length > 0 ? (
+              <ul
+                className="coverage-details"
+                data-testid="coverage-failure-details"
+              >
+                {coverageDetails.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </StateMessage>
+        ) : null}
+
         {phase === "empty" && response ? (
           <>
             <DataModeBanner
@@ -647,7 +741,7 @@ export function TripApp() {
             />
             <StateMessage
               title="No routes to show"
-              body="Try different stations or clear some selected lines."
+              body="Try different places or adjust your preferred lines."
               testId="empty-state"
             />
             {showFeedback ? (
@@ -662,22 +756,23 @@ export function TripApp() {
               dataMode={response.dataMode}
               freshness={response.freshness}
             />
-            <PartialSatisfactionBanner
+            <PreferenceStateBanner
               summary={response.constrained.satisfactionSummary}
+              showConnectorHint={showConnectorHint}
             />
 
             <div className="results-header">
               <h2>
                 {shown.source === "baseline"
                   ? "Suggested routes"
-                  : "Routes using your lines"}
+                  : "Routes using your preferred lines"}
               </h2>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={openPicker}
               >
-                Customize lines
+                Customize preferred lines
               </button>
             </div>
 
@@ -716,8 +811,10 @@ export function TripApp() {
 
         {phase === "search" && fixture ? (
           <p className="hint-block" data-testid="fixture-hint">
-            Tip: pick F + B for a complete match demo, A + G + L for partial, or
-            only the 7 for a stale-data warning. Fixture mode is active.
+            Tip: F + B = complete + connector fill; A + G + L = partial; 7 =
+            stale; 2 + 7 + S = coverage failure. Enable{" "}
+            <code>NEXT_PUBLIC_FLAG_ADDRESS_POI</code> for address/POI search
+            demos. Fixture mode is active.
           </p>
         ) : null}
       </main>

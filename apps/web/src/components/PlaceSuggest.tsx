@@ -2,6 +2,12 @@
 
 import { useId, useState, type KeyboardEvent } from "react";
 import type { Place } from "@/lib/contracts";
+import {
+  placeKindLabel,
+  placeOptionAriaLabel,
+  placeOptionSecondary,
+  placeSourceLabel,
+} from "@/lib/place-display";
 
 type PlaceSuggestProps = {
   label: string;
@@ -9,6 +15,8 @@ type PlaceSuggestProps = {
   value: string;
   suggestions: Place[];
   listLabel: string;
+  /** Response-level or aggregated geocode attribution (ADR-0022). */
+  attribution?: string | null;
   onQueryChange: (query: string) => void;
   onSelect: (place: Place) => void;
   onCloseSuggestions: () => void;
@@ -16,6 +24,8 @@ type PlaceSuggestProps = {
 
 /**
  * Combobox-style place field with listbox keyboard navigation.
+ * Shows kind/source labels for additive place fields when present.
+ * Never renders providerPlaceId or vendor hostnames.
  */
 export function PlaceSuggest({
   label,
@@ -23,12 +33,14 @@ export function PlaceSuggest({
   value,
   suggestions,
   listLabel,
+  attribution,
   onQueryChange,
   onSelect,
   onCloseSuggestions,
 }: PlaceSuggestProps) {
   const listId = useId();
   const inputId = useId();
+  const statusId = useId();
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const open = suggestions.length > 0;
@@ -43,7 +55,12 @@ export function PlaceSuggest({
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (!open) return;
+    if (!open) {
+      if (e.key === "Escape") {
+        onCloseSuggestions();
+      }
+      return;
+    }
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -68,7 +85,7 @@ export function PlaceSuggest({
   }
 
   return (
-    <label className="field" htmlFor={inputId}>
+    <label className="field field--suggest" htmlFor={inputId}>
       <span>{label}</span>
       <input
         id={inputId}
@@ -85,8 +102,14 @@ export function PlaceSuggest({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-activedescendant={activeId}
+        aria-describedby={statusId}
         placeholder={placeholder}
       />
+      <span id={statusId} className="sr-only" role="status" aria-live="polite">
+        {open
+          ? `${suggestions.length} suggestion${suggestions.length === 1 ? "" : "s"} available. Use up and down arrows to navigate.`
+          : "No suggestions open."}
+      </span>
       {open ? (
         <ul
           id={listId}
@@ -97,6 +120,9 @@ export function PlaceSuggest({
           {suggestions.map((p, index) => {
             const optionId = `${listId}-option-${index}`;
             const active = index === activeIndex;
+            const secondary = placeOptionSecondary(p);
+            const source = placeSourceLabel(p.provider);
+            const kind = placeKindLabel(p.kind);
             return (
               <li key={p.placeId} role="presentation">
                 <button
@@ -104,16 +130,30 @@ export function PlaceSuggest({
                   id={optionId}
                   role="option"
                   aria-selected={active}
+                  aria-label={placeOptionAriaLabel(p)}
                   className={active ? "is-active" : undefined}
                   onMouseEnter={() => setActiveIndex(index)}
                   onClick={() => selectIndex(index)}
                 >
-                  {p.label}
-                  {p.borough ? ` · ${p.borough}` : ""}
+                  <span className="suggest__primary">{p.label}</span>
+                  <span className="suggest__meta">
+                    <span className="suggest__kind">{kind}</span>
+                    {source && source !== kind ? (
+                      <span className="suggest__source"> · {source}</span>
+                    ) : null}
+                    {secondary ? (
+                      <span className="suggest__secondary"> · {secondary}</span>
+                    ) : null}
+                  </span>
                 </button>
               </li>
             );
           })}
+          {attribution ? (
+            <li className="suggest__attribution" role="note">
+              {attribution}
+            </li>
+          ) : null}
         </ul>
       ) : null}
     </label>
