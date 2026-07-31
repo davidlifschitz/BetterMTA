@@ -1,10 +1,10 @@
 /**
  * Structural mirror of conductor-owned types from contracts/typescript/index.ts.
  * Do not diverge silently — propose contract changes under docs/proposals/.
- * Contract version: 2026-07-30
+ * Contract version: 2026-07-31 (Wave 0B additive lock; consume only — do not edit contracts/**).
  */
 
-export const CONTRACT_VERSION = "2026-07-30" as const;
+export const CONTRACT_VERSION = "2026-07-31" as const;
 export type ContractVersion = typeof CONTRACT_VERSION;
 
 export type DataMode =
@@ -27,6 +27,17 @@ export type CandidateFamily =
   | "constrained"
   | "preference_biased"
   | "targeted_combination";
+
+/** Privacy-safe candidate-generation outcome (ADR-0023). */
+export type CandidateCoverageStatus = "adequate" | "degraded" | "exhausted";
+
+export interface CandidateCoverage {
+  status: CandidateCoverageStatus;
+  familiesAttempted: CandidateFamily[];
+  candidateCount: number;
+  preferenceCoveringCandidateCount: number;
+  budgetExhausted: boolean;
+}
 
 export type PlaceRef =
   | { placeId: string }
@@ -57,7 +68,8 @@ export interface ExplanationFact {
     | "wait"
     | "realtime"
     | "baseline_delta"
-    | "alert";
+    | "alert"
+    | "connector_filled";
   message: string;
   lineId?: string;
   seconds?: number;

@@ -13,6 +13,8 @@ export function buildExplanation(input: {
   realtimeConfidence: RealtimeConfidence;
   baselineDeltaSeconds?: number | null;
   alertCount?: number;
+  /** Unselected connector lineIds used on the itinerary (fill-the-gaps). */
+  connectorLineIds?: readonly string[];
 }): Explanation {
   const facts: ExplanationFact[] = [];
 
@@ -29,6 +31,17 @@ export function buildExplanation(input: {
       message: `Could not include the ${lineId} train.`,
       lineId,
     });
+  }
+
+  // Unselected transit lines used to complete the trip (fill-the-gaps / ADR-0023).
+  if (input.connectorLineIds) {
+    for (const lineId of input.connectorLineIds) {
+      facts.push({
+        type: "connector_filled",
+        message: `Filled a gap with the ${lineId} train.`,
+        lineId,
+      });
+    }
   }
 
   if (input.transferCount > 0) {

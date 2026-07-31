@@ -32,6 +32,7 @@ export class FixtureCandidateProvider implements CandidateProvider {
         | "diverse_rank"
         | "five_lines"
         | "ranking_demo"
+        | "midtown_penn_preference"
         | "empty";
     } = {},
   ) {}
@@ -83,6 +84,9 @@ export class FixtureCandidateProvider implements CandidateProvider {
       case "ranking_demo":
         // Explicit ranking-demo: varies realtimeConfidence for ADR-0007 demos.
         return rankingDemoDrafts(request.selectedLineIds);
+      case "midtown_penn_preference":
+        // Midtown-ish → Penn: baseline 0-of-N (B/D); orchestration families recover 7/GS/2.
+        return midtownPennPreferenceDrafts();
       case "complete_f_b":
       default:
         return [baselineF(), completeFB(), partialFOnly(), slowCompleteFB()];
@@ -109,12 +113,119 @@ function inferScenario(
   | "diverse_rank"
   | "five_lines"
   | "ranking_demo"
+  | "midtown_penn_preference"
   | "empty" {
   if (selected.length === 0) return "baseline_only";
   if (selected.length === 5) return "five_lines";
   if (selected.includes("G") && selected.includes("A")) return "partial_a_g_l";
   if (selected.includes("F") && selected.includes("B")) return "complete_f_b";
+  if (
+    selected.includes("7") &&
+    (selected.includes("2") || selected.includes("GS"))
+  ) {
+    return "midtown_penn_preference";
+  }
   return "diverse_rank";
+}
+
+/**
+ * Synthetic Midtown East → Penn Station preference regression (ADR-0023).
+ * Baseline OTP-like top set uses B/D only (0-of-N for 7/2/GS).
+ * Preference-biased + via families recover partial preference coverage.
+ * PlaceRefs: st_midtown_east_office / st_penn_34 (public fixtures only).
+ */
+function midtownPennPreferenceDrafts(): RawCandidateDraft[] {
+  return [
+    {
+      itineraryId: "itin_midtown_baseline_bd",
+      durationSeconds: 1200,
+      arrivalTime: "2026-07-30T13:20:00.000Z",
+      walkingSeconds: 360,
+      waitingSeconds: 120,
+      transferCount: 0,
+      realtimeConfidence: "none",
+      candidateFamily: "baseline",
+      legs: [
+        walk("leg_m_w1", 180),
+        transit(
+          "leg_m_b",
+          "B",
+          "47-50 Sts-Rockefeller Ctr",
+          "34 St-Herald Sq",
+          "2026-07-30T13:05:00.000Z",
+          "2026-07-30T13:12:00.000Z",
+          "trip_b_mid",
+        ),
+        walk("leg_m_w2", 180),
+      ],
+    },
+    {
+      // Via Grand Central / Times Sq: prefers 7 then 2 to Penn (2-of-3).
+      itineraryId: "itin_midtown_via_7_2",
+      durationSeconds: 1560,
+      arrivalTime: "2026-07-30T13:26:00.000Z",
+      walkingSeconds: 420,
+      waitingSeconds: 180,
+      transferCount: 1,
+      realtimeConfidence: "none",
+      candidateFamily: "targeted_combination",
+      legs: [
+        walk("leg_v_w1", 240),
+        transit(
+          "leg_v_7",
+          "7",
+          "Grand Central-42 St",
+          "Times Sq-42 St",
+          "2026-07-30T13:06:00.000Z",
+          "2026-07-30T13:10:00.000Z",
+          "trip_7_mid",
+        ),
+        transit(
+          "leg_v_2",
+          "2",
+          "Times Sq-42 St",
+          "34 St-Penn Station",
+          "2026-07-30T13:14:00.000Z",
+          "2026-07-30T13:22:00.000Z",
+          "trip_2_via",
+        ),
+        walk("leg_v_w2", 180),
+      ],
+    },
+    {
+      // Preference-biased: GS shuttle + connector 1 fill-gap (1-of-3, GS used).
+      itineraryId: "itin_midtown_bias_gs",
+      durationSeconds: 1620,
+      arrivalTime: "2026-07-30T13:27:00.000Z",
+      walkingSeconds: 360,
+      waitingSeconds: 200,
+      transferCount: 1,
+      realtimeConfidence: "none",
+      candidateFamily: "preference_biased",
+      legs: [
+        walk("leg_g_w1", 180),
+        transit(
+          "leg_g_gs",
+          "GS",
+          "Grand Central-42 St",
+          "Times Sq-42 St",
+          "2026-07-30T13:07:00.000Z",
+          "2026-07-30T13:09:00.000Z",
+          "trip_gs_mid",
+        ),
+        transit(
+          "leg_g_1",
+          "1",
+          "Times Sq-42 St",
+          "34 St-Penn Station",
+          "2026-07-30T13:12:00.000Z",
+          "2026-07-30T13:20:00.000Z",
+          "trip_1_penn",
+        ),
+        walk("leg_g_w2", 180),
+      ],
+    },
+  ];
 }
 
 function walk(
