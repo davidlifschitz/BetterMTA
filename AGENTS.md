@@ -11,7 +11,7 @@ Before changing the product or implementation, read:
 
 ## Product invariant
 
-Given an origin, destination, and selected subway lines, BetterMTA should use every selected line when feasible. When that is not feasible, it should rank routes that use the maximum feasible number of selected lines. Within the same satisfaction level, rank primarily by expected arrival time, then deterministic tie-breakers.
+Given an origin, destination, and selected subway lines (preferred lines), BetterMTA should use every selected line when feasible. When that is not feasible, it should rank routes that use the maximum feasible number of selected lines. Unselected connector lines may fill gaps. Within the same satisfaction level, rank primarily by expected arrival time, then deterministic tie-breakers (ADR-0023).
 
 ## Workstream rules
 

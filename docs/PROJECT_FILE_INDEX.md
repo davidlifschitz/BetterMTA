@@ -14,7 +14,7 @@
 - `DOMAIN_MODEL.md`
 - `API_CONTRACT.md`
 - `DATA_CONTRACT.md`
-- `ARCHITECTURE_DECISIONS.md` — locked ADRs (incl. ADR-0021 controlled alpha)
+- `ARCHITECTURE_DECISIONS.md` — locked ADRs (incl. ADR-0021 controlled alpha; ADR-0022 places; ADR-0023 preferred lines)
 - `INTEGRATION_SEQUENCE.md`
 - `ACCEPTANCE_CRITERIA.md`
 - `RISK_REGISTER.md`
@@ -46,7 +46,7 @@
 - `../deployments/README.md` — Phase 12A.8 immutable release IDs + deploy/rollback
 - `../docker-compose.release.yml` — release image-tag overrides for alpha compose
 - `../infra/alpha/cloudflared/config.template.yml` — tunnel ingress template (placeholders only)
-- `../docs/proposals/address-preferred-lines-fill-gaps.md` — PROPOSED: address/POI + preferred lines fill gaps (Controlled Alpha Review 1)
+- `../docs/proposals/address-preferred-lines-fill-gaps.md` — ACCEPTED P1: address/POI + preferred lines fill gaps (ADR-0022/0023)
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 
 ## Agent prompts

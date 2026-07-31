@@ -67,17 +67,32 @@
 |---|---|---|---|---|---|---|---|---|---|
 | 2026-07-31T12:40-04:00 | rel-20260731T155125Z-cert-distinct | Operator commute framing: Midtown office (~277 Park) → Penn Station (NYC), then onward NJ home | Expected rider set: 7, **S** (42 St Shuttle), 1/2/3 | Confusing — picker has no badge labeled **S**; 42 St Shuttle appears as **GS**. Lines **1/2/3/7 are present**. NJ Transit / PATH not in catalog (subway-only MVP). | n/a (picker) | n/a | UI / Product | major | Label GS as rider-facing **S** (keep `lineId` GS for GTFS); optional alias search. NJ out of scope — document. Do not change certification. |
 | 2026-07-31T12:42-04:00 | rel-20260731T155125Z-cert-distinct | ~277 Park (coordinate/address-like origin) → 34 St-Penn; selected **2, 7, GS** | 2, 7, GS | Failure/confusing — UI: “0 of 3 lines”, B/D/M only, ~19 min walk, omits all selected. Reproduced: place search `277 Park` → **0 hits**; coord≈Park/48th → OTP baseline only **D/M/B** (bestSatisfactionCount **0**). Same lines from **Grand Central-42 St → 34 St-Penn (128)** → **7+2** (2/3, omits GS). | live (itineraries schedule-labeled in UI) | ~22 min shown | Routing / Data | major | OTP natural-candidate diversity gap (open risk). Address/POI place search gap. Prefer station PlaceRefs (GCT). Don’t require GS+7+2 together for this OD — 7+2 is the practical pair. Product follow-up: constrained candidate generation / better origin resolution. |
-| 2026-07-31T12:46-04:00 | rel-20260731T155125Z-cert-distinct | Product direction from operator: any address → any address; user states preferred lines; app fills gaps (walks/transfers/unselected connectors) | preferred lines (not full line enumeration) | Product gap vs current alpha — today: ADR-0013 deferred address/POI geocode (station-index-first); OTP natural candidates + hard selected-line maximization can yield **0-of-N** when preferred lines aren’t in the OTP top set. PRD already lists address origins/destinations; implementation is narrower. | n/a | n/a | Product | blocking (for intended UX) | Proposal drafted: `docs/proposals/address-preferred-lines-fill-gaps.md` (P1 recommended). Escalate at Controlled Alpha Review 1. Do **not** silently change locked ADRs; do **not** change certification. |
+| 2026-07-31T12:46-04:00 | rel-20260731T155125Z-cert-distinct | Product direction from operator: any address → any address; user states preferred lines; app fills gaps (walks/transfers/unselected connectors) | preferred lines (not full line enumeration) | Product gap vs current alpha — today: ADR-0013 deferred address/POI geocode (station-index-first); OTP natural candidates + hard selected-line maximization can yield **0-of-N** when preferred lines aren’t in the OTP top set. PRD already lists address origins/destinations; implementation is narrower. | n/a | n/a | Product | blocking (for intended UX) | **P1 ACCEPTED.** Wave 0A docs: ADR-0022 (places), ADR-0023 (preferred lines / candidate coverage). Runtime/certification unchanged until later waves behind flags. |
+
+## P1 acceptance notes (docs / semantics only)
+
+**Certification:** `READY_FOR_CONTROLLED_ALPHA` — **unchanged**. These notes do not authorize redeploy or claim a new go/no-go.
+
+| Topic | Accepted semantics | Alpha implication until implementation waves |
+|---|---|---|
+| Places | Station index authoritative; address/POI via geocoder abstraction; attribution; no default precise-coord retention; honest failure; feature-flagged (ADR-0022) | Live alpha remains station-index + geolocation; `277 Park`-style queries still miss until flag-on geocode ships |
+| Preferences | Selected lines = preferred lines; maximize coverage; unselected connectors allowed; complete > partial > tie-breakers (ADR-0023) | Rider-facing “required” copy and hard-require framing are obsolete in docs; runtime ranking/copy still reflect pre-P1 behavior until FE/routing waves |
+| Candidate coverage | BetterMTA owns coverage; OTP substrate; exhausted budget → `insufficient_candidate_coverage`; explain omissions (ADR-0023) | 0-of-N from OTP top-N remains an open product/routing risk (**R26**); not fixed by docs alone |
+| S / GS | Rider-facing **S**; internal `lineId` `GS` | Presentation debt (**R27**); no lineId rename in Wave 0A |
+| Out of scope | D1–D6 deferred backlog unchanged | Do not reopen bus/NJ/maps/accounts/etc. under P1 |
+
+Proposal authority: `docs/proposals/address-preferred-lines-fill-gaps.md` (disposition ACCEPTED — P1).
 
 ## Review checkpoint — Controlled Alpha Review 1
 
 Evaluate before expanding beyond the initial solo / 2–3 tester cohort:
 
-- [ ] Real-use findings reviewed (this log)
+- [x] Real-use findings reviewed (this log) — product direction accepted as P1; ops residuals unchanged
 - [ ] Operational uptime / tunnel interruptions noted
 - [ ] Route quality and OTP candidate-diversity cases catalogued
 - [ ] Tester feedback (if any) summarized
-- [ ] Open risks (`R19`–`R24`, `FU-*`) reassessed
+- [ ] Open risks (`R19`–`R27`, `FU-*`) reassessed
 - [ ] Decision recorded: routing-quality work / broader alpha / cloud migration / private-beta prep
 
-**Decision (fill at review):** _pending_
+**Decision (product semantics):** P1 accepted — address/POI + preferred-line fill-gaps + BetterMTA candidate coverage (ADR-0022/0023). Implementation via `agent/p1-address-preferred-lines` waves; certification unchanged.  
+**Decision (ops / cohort expansion):** _pending Review 1_
