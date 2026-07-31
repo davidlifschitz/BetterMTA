@@ -42,7 +42,7 @@ A mobile-first prototype has been designed with origin/destination entry, line s
 - `PRODUCTION_CHECKLIST.md`
 
 ## Conductor lock status
-Shared architecture and contracts remain locked (`docs/CONDUCTOR_PACKAGE.md`, `docs/*CONTRACT*`, `contracts/**`, contract version `2026-07-30`) until Wave 0B proposes additive contract changes. Step 2 parallel workstreams are merged into `agent/integration-live`. Phase 1 production decisions are closed in `ARCHITECTURE_DECISIONS.md` (ADR-0011–ADR-0021). P1 product semantics are closed in **ADR-0022** (places) and **ADR-0023** (preferred lines / candidate coverage). Implementation workstreams must consume those artifacts and must not silently fork them. Deferred epics D1–D6 stay in `docs/DEFERRED_BACKLOG.md`.
+Shared architecture and contracts are locked (`docs/CONDUCTOR_PACKAGE.md`, `docs/*CONTRACT*`, `contracts/**`, contract version `2026-07-31`) after Wave 0 (ADR-0022/0023 + additive contracts). Step 2 parallel workstreams are merged into `agent/integration-live`. Phase 1 production decisions are closed in `ARCHITECTURE_DECISIONS.md` (ADR-0011–ADR-0021). P1 product semantics are closed in **ADR-0022** (places) and **ADR-0023** (preferred lines / candidate coverage). Implementation workstreams must consume those artifacts and must not silently fork them. Deferred epics D1–D6 stay in `docs/DEFERRED_BACKLOG.md`.
 
 ## Most important unresolved work
 1. ~~Routing engine selection.~~ Closed: OTP 2.9.0 substrate (ADR-0011); live OTP wiring remains.
