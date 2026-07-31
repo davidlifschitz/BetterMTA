@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assessCandidateCoverage,
   buildOrchestrationQueryPlan,
+  createSeededTopology,
   dedupeDraftsByFingerprint,
   DEFAULT_CANDIDATE_BUDGET,
   FixtureCandidateProvider,
@@ -88,6 +89,55 @@ describe("topology sensibility + via selection", () => {
         destination: PENN,
       }),
     ).toBe(false);
+  });
+
+  it("marks Queens E/F corridor as topologically sensible", () => {
+    const jacksonHts = { lat: 40.7466, lon: -73.8913 };
+    const forestHills = { lat: 40.7216, lon: -73.8448 };
+    expect(
+      isTopologicallySensible({
+        preferredLineIds: ["E", "F"],
+        origin: jacksonHts,
+        destination: forestHills,
+      }),
+    ).toBe(true);
+  });
+
+  it("marks Astoria N/W corridor as topologically sensible", () => {
+    const ditmars = { lat: 40.775, lon: -73.912 };
+    const timesSq = { lat: 40.7553, lon: -73.9874 };
+    expect(
+      isTopologicallySensible({
+        preferredLineIds: ["N", "W"],
+        origin: ditmars,
+        destination: timesSq,
+      }),
+    ).toBe(true);
+  });
+
+  it("marks Bronx 2/5 corridor as topologically sensible", () => {
+    const grandConcourse = { lat: 40.8183, lon: -73.9271 };
+    const fulton = { lat: 40.7094, lon: -74.0083 };
+    expect(
+      isTopologicallySensible({
+        preferredLineIds: ["2", "5"],
+        origin: grandConcourse,
+        destination: fulton,
+      }),
+    ).toBe(true);
+  });
+
+  it("fail-closes incomplete seed lines inside NYC (no silent not-sensible)", () => {
+    // Empty topology: known preferred line must still be sensible in NYC.
+    const empty = createSeededTopology([]);
+    expect(
+      isTopologicallySensible({
+        preferredLineIds: ["G"],
+        origin: MIDTOWN_EAST,
+        destination: PENN,
+        topology: empty,
+      }),
+    ).toBe(true);
   });
 
   it("selects stable via hubs for preferred lines", () => {

@@ -48,6 +48,7 @@ export {
 export {
   assessCandidateCoverage,
   buildOrchestrationQueryPlan,
+  createSeededTopology,
   DEFAULT_CANDIDATE_BUDGET,
   dedupeDraftsByFingerprint,
   defaultPreferredLineTopology,
