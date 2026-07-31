@@ -1,6 +1,9 @@
 export { OtpProviderError } from "./errors.ts";
 export type { OtpProviderErrorKind } from "./errors.ts";
-export { createOtpCandidateProvider } from "./provider.ts";
+export {
+  createOtpCandidateProvider,
+  nonBaselineTimeoutMs,
+} from "./provider.ts";
 export {
   DEFAULT_SEARCH_WINDOW_SECONDS,
   OTP_GRAPH_TIME_ZONE,

@@ -16,10 +16,13 @@ import {
   type OtpCandidateProviderOptions,
   type RoutingSnapshotHandle,
 } from "../src/index.ts";
+import { DEFAULT_UNPREFERRED_COST } from "../src/orchestration/budgets.ts";
 import {
+  buildPlanRequestBody,
   epochToNyDateTimeParts,
   isoToEpochMs,
   mapOtpItineraries,
+  nonBaselineTimeoutMs,
 } from "../src/otp-provider/index.ts";
 import type { OtpItinerary, OtpPlanResponse } from "../src/otp-provider/types.ts";
 
@@ -117,6 +120,64 @@ function providerWithFetch(
     ...overrides,
   });
 }
+
+describe("buildPlanRequestBody preference knobs", () => {
+  const baseOpts = {
+    fromLat: 40.7553,
+    fromLon: -73.9755,
+    toLat: 40.7506,
+    toLon: -73.9935,
+    date: "2026-07-30",
+    time: "09:00:00",
+    numItineraries: 8,
+    searchWindow: 2700,
+    dateTime: Date.parse("2026-07-30T13:00:00.000Z"),
+  };
+
+  it("baseline: omits unpreferred and via from the GraphQL document", () => {
+    const { query, variables } = buildPlanRequestBody(baseOpts);
+    expect(query).not.toMatch(/\bunpreferred\b/);
+    expect(query).not.toMatch(/\bvia\b/);
+    expect(variables.unpreferredRoutes).toBeUndefined();
+    expect(variables.unpreferredCost).toBeUndefined();
+    expect(variables.via).toBeUndefined();
+  });
+
+  it("preference_biased: includes unpreferred in query and routes+cost variables", () => {
+    const { query, variables } = buildPlanRequestBody({
+      ...baseOpts,
+      unpreferredRoutes: ["MTASBWY:A", "MTASBWY:B", "MTASBWY:C"],
+      unpreferredCost: DEFAULT_UNPREFERRED_COST,
+    });
+    expect(query).toMatch(/unpreferred:\s*\{\s*routes:\s*\$unpreferredRoutes/);
+    expect(query).toMatch(/\$unpreferredRoutes:\s*String/);
+    expect(query).toMatch(/\$unpreferredCost:\s*String/);
+    expect(variables.unpreferredRoutes).toBe("MTASBWY:A,MTASBWY:B,MTASBWY:C");
+    expect(variables.unpreferredCost).toBe(DEFAULT_UNPREFERRED_COST);
+  });
+
+  it("via: includes via in query and visit coordinate variables", () => {
+    const { query, variables } = buildPlanRequestBody({
+      ...baseOpts,
+      via: {
+        label: "Times Sq-42 St",
+        lat: 40.7553,
+        lon: -73.9874,
+      },
+    });
+    expect(query).toMatch(/\bvia:\s*\$via\b/);
+    expect(query).toMatch(/\$via:\s*\[PlanViaLocationInput!\]/);
+    expect(variables.via).toEqual([
+      {
+        visit: {
+          label: "Times Sq-42 St",
+          coordinate: { lat: 40.7553, lon: -73.9874 },
+          minimumWaitTime: "0s",
+        },
+      },
+    ]);
+  });
+});
 
 describe("OTP mapping from recorded fixtures", () => {
   it("maps (a) Carroll→Bryant drafts: F legs, chronology, sourceEngineIds", () => {
@@ -356,6 +417,106 @@ describe("OTP provider failure taxonomy", () => {
     );
     const result = await runRouteSearch(provider, baseOtpRequest(["F"]));
     expect(result.kind).toBe("data_unavailable");
+  });
+});
+
+describe("OTP preference query concurrency", () => {
+  it("shortens non-baseline AbortController budgets", () => {
+    expect(nonBaselineTimeoutMs(4000)).toBe(2000);
+    expect(nonBaselineTimeoutMs(6000)).toBe(2500);
+    expect(nonBaselineTimeoutMs(50)).toBe(50);
+  });
+
+  it("runs preference/via bodies concurrently after baseline (overlapping in-flight)", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const bodies: Array<{
+      query?: string;
+      variables?: {
+        unpreferredRoutes?: string;
+        unpreferredCost?: string;
+        via?: unknown;
+      };
+    }> = [];
+
+    const provider = providerWithFetch(
+      async (_url, init) => {
+        inFlight += 1;
+        maxInFlight = Math.max(maxInFlight, inFlight);
+        bodies.push(
+          JSON.parse(String(init?.body)) as (typeof bodies)[number],
+        );
+        await new Promise((resolve) => setTimeout(resolve, 35));
+        inFlight -= 1;
+        // Empty plans: no complete match after baseline → fan-out must run.
+        return jsonResponse({ data: { plan: { itineraries: [] } } });
+      },
+      { timeoutMs: 4000 },
+    );
+
+    await provider.generateCandidates(
+      baseOtpRequest(["7", "2", "GS"], {
+        origin: {
+          label: "Midtown East office",
+          lat: 40.7553,
+          lon: -73.9755,
+        },
+        destination: {
+          label: "34 St-Penn Station",
+          lat: 40.7506,
+          lon: -73.9935,
+        },
+      }),
+    );
+
+    expect(bodies.length).toBeGreaterThan(2);
+    expect(bodies[0]?.query ?? "").not.toMatch(/\bunpreferred\b/);
+    expect(bodies[0]?.query ?? "").not.toMatch(/\bvia:\s*\$via\b/);
+
+    const preferenceBodies = bodies.slice(1);
+    expect(
+      preferenceBodies.some((b) => (b.query ?? "").includes("unpreferred")),
+    ).toBe(true);
+    expect(
+      preferenceBodies.some((b) => Boolean(b.variables?.unpreferredRoutes)),
+    ).toBe(true);
+    expect(
+      preferenceBodies.some((b) => (b.query ?? "").includes("via: $via")),
+    ).toBe(true);
+    expect(preferenceBodies.some((b) => Boolean(b.variables?.via))).toBe(true);
+
+    // Baseline is awaited alone; remaining preference/via/subset overlap.
+    expect(maxInFlight).toBeGreaterThan(1);
+  });
+
+  it("soft-skips non-baseline unavailable while still issuing parallel preference bodies", async () => {
+    let call = 0;
+    const provider = providerWithFetch(async () => {
+      call += 1;
+      if (call === 1) {
+        return jsonResponse({ data: { plan: { itineraries: [] } } });
+      }
+      return jsonResponse({ error: "upstream" }, { status: 503 });
+    });
+
+    const drafts = await provider.generateCandidates(
+      baseOtpRequest(["7", "2", "GS"], {
+        origin: {
+          label: "Midtown East office",
+          lat: 40.7553,
+          lon: -73.9755,
+        },
+        destination: {
+          label: "34 St-Penn Station",
+          lat: 40.7506,
+          lon: -73.9935,
+        },
+      }),
+    );
+
+    expect(drafts).toEqual([]);
+    expect(call).toBeGreaterThan(2);
+    expect(provider.lastCandidateCoverage?.budgetExhausted).toBe(true);
   });
 });
 

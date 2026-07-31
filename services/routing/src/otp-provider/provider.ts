@@ -36,6 +36,27 @@ import type {
 
 const DEFAULT_TIMEOUT_MS = 4000;
 const DEFAULT_NUM_ITINERARIES = 8;
+/** Floor for shortened non-baseline OTP AbortController budgets. */
+const NON_BASELINE_TIMEOUT_FLOOR_MS = 500;
+/** Cap for non-baseline queries so preference fan-out cannot match full baseline budget. */
+const NON_BASELINE_TIMEOUT_CAP_MS = 2500;
+
+/**
+ * Shorter per-query budget for preference/via/subset families.
+ * Keeps worst-case wall time near baseline + one shortened parallel batch
+ * instead of N sequential full timeouts.
+ */
+export function nonBaselineTimeoutMs(baselineTimeoutMs: number): number {
+  if (!Number.isFinite(baselineTimeoutMs) || baselineTimeoutMs <= 0) {
+    return NON_BASELINE_TIMEOUT_FLOOR_MS;
+  }
+  const half = Math.floor(baselineTimeoutMs / 2);
+  return Math.min(
+    baselineTimeoutMs,
+    NON_BASELINE_TIMEOUT_CAP_MS,
+    Math.max(NON_BASELINE_TIMEOUT_FLOOR_MS, half),
+  );
+}
 
 function emptyRejectionCounts(): Record<OtpRejectReason, number> {
   return {
@@ -133,6 +154,7 @@ export function createOtpCandidateProvider(
     date: string;
     time: string;
     dateTime: number;
+    queryTimeoutMs: number;
   }): Promise<RawCandidateDraft[]> {
     const started = now();
     const queryId = randomUUID();
@@ -163,7 +185,7 @@ export function createOtpCandidateProvider(
     });
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const timer = setTimeout(() => controller.abort(), input.queryTimeoutMs);
 
     let response: Response;
     try {
@@ -361,43 +383,89 @@ export function createOtpCandidateProvider(
       let queriesExecuted = 0;
       let stoppedEarlyWithCoverage = false;
 
-      for (const spec of queryPlan) {
-        if (queriesExecuted >= maxQueries) {
-          budgetExhausted = true;
-          break;
-        }
-        if (dedupeDraftsByFingerprint(collected).length >= candidateBudget) {
-          budgetExhausted = true;
-          break;
-        }
+      const baselineSpec = queryPlan[0];
+      const remainingSpecs = queryPlan.slice(1);
 
-        try {
-          const drafts = await executeOnePlan({
-            request,
-            spec,
-            date,
-            time,
-            dateTime,
-          });
+      // Baseline is always first and hard-fails on timeout/unavailable/bad_response.
+      if (baselineSpec) {
+        const drafts = await executeOnePlan({
+          request,
+          spec: baselineSpec,
+          date,
+          time,
+          dateTime,
+          queryTimeoutMs: timeoutMs,
+        });
+        queriesExecuted += 1;
+        if (!familiesAttempted.includes(baselineSpec.candidateFamily)) {
+          familiesAttempted.push(baselineSpec.candidateFamily);
+        }
+        for (const draft of drafts) {
+          collected.push(draft);
+        }
+      }
+
+      const dedupedAfterBaseline = dedupeDraftsByFingerprint(collected);
+      if (dedupedAfterBaseline.length >= candidateBudget) {
+        budgetExhausted = true;
+      }
+      // Rare for multi-line prefs; common for single-line when baseline already
+      // satisfies — skip preference fan-out to cut OTP load/latency.
+      if (
+        !budgetExhausted &&
+        preferredLineIds.length > 0 &&
+        hasCompleteMatch(dedupedAfterBaseline, preferredLineIds)
+      ) {
+        stoppedEarlyWithCoverage = true;
+      }
+
+      // Preference/via/subset families run concurrently under the remaining query budget.
+      if (
+        !stoppedEarlyWithCoverage &&
+        !budgetExhausted &&
+        remainingSpecs.length > 0 &&
+        queriesExecuted < maxQueries
+      ) {
+        const slots = maxQueries - queriesExecuted;
+        const toRun = remainingSpecs.slice(0, slots);
+        const preferenceTimeoutMs = nonBaselineTimeoutMs(timeoutMs);
+
+        const settled = await Promise.allSettled(
+          toRun.map((spec) =>
+            executeOnePlan({
+              request,
+              spec,
+              date,
+              time,
+              dateTime,
+              queryTimeoutMs: preferenceTimeoutMs,
+            }),
+          ),
+        );
+
+        let timeoutError: unknown = null;
+        for (let i = 0; i < settled.length; i++) {
+          const spec = toRun[i]!;
+          const outcome = settled[i]!;
           queriesExecuted += 1;
           if (!familiesAttempted.includes(spec.candidateFamily)) {
             familiesAttempted.push(spec.candidateFamily);
           }
-          for (const draft of drafts) {
-            collected.push(draft);
+
+          if (outcome.status === "fulfilled") {
+            for (const draft of outcome.value) {
+              collected.push(draft);
+            }
+            continue;
           }
-        } catch (err) {
-          // Timeouts always propagate. Baseline unavailable/bad_response hard-fail.
-          // Other family failures soft-skip (never infer impossibility from one bias miss).
-          if (
-            spec.kind === "baseline" ||
-            (err instanceof OtpProviderError && err.kind === "timeout")
-          ) {
-            throw err;
-          }
-          queriesExecuted += 1;
-          if (!familiesAttempted.includes(spec.candidateFamily)) {
-            familiesAttempted.push(spec.candidateFamily);
+
+          const err = outcome.reason;
+          // Timeouts still hard-fail (after the parallel batch settles).
+          // Other non-baseline failures soft-skip — never infer impossibility
+          // from one bias/via miss.
+          if (err instanceof OtpProviderError && err.kind === "timeout") {
+            timeoutError = err;
+            continue;
           }
           lastQueryStats = {
             durationMs: lastQueryStats?.durationMs ?? 0,
@@ -411,20 +479,22 @@ export function createOtpCandidateProvider(
           };
           opts.onQuery?.(lastQueryStats);
         }
+        if (timeoutError) {
+          throw timeoutError;
+        }
+      }
 
-        const dedupedSoFar = dedupeDraftsByFingerprint(collected);
-        if (dedupedSoFar.length >= candidateBudget) {
-          budgetExhausted = true;
-          break;
-        }
-        if (
-          preferredLineIds.length > 0 &&
-          hasCompleteMatch(dedupedSoFar, preferredLineIds) &&
-          familiesAttempted.length >= 2
-        ) {
-          stoppedEarlyWithCoverage = true;
-          break;
-        }
+      const dedupedSoFar = dedupeDraftsByFingerprint(collected);
+      if (dedupedSoFar.length >= candidateBudget) {
+        budgetExhausted = true;
+      }
+      if (
+        !stoppedEarlyWithCoverage &&
+        preferredLineIds.length > 0 &&
+        hasCompleteMatch(dedupedSoFar, preferredLineIds) &&
+        familiesAttempted.length >= 2
+      ) {
+        stoppedEarlyWithCoverage = true;
       }
 
       if (
