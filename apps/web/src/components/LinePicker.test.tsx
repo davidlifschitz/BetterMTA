@@ -121,4 +121,31 @@ describe("LinePicker", () => {
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("traps Tab focus inside the dialog", async () => {
+    const user = userEvent.setup();
+    render(
+      <LinePicker
+        open
+        lines={lines}
+        selectedLineIds={[]}
+        onChange={() => undefined}
+        onClose={() => undefined}
+        onApply={() => undefined}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const focusable = dialog.querySelectorAll<HTMLElement>(
+      "button:not([disabled]), input:not([disabled])",
+    );
+    expect(focusable.length).toBeGreaterThan(1);
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    last.focus();
+    await user.tab();
+    expect(first).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(last).toHaveFocus();
+  });
 });

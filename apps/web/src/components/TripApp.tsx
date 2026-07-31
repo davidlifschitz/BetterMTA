@@ -616,6 +616,7 @@ export function TripApp() {
           className="lines-row"
           onClick={openPicker}
           aria-haspopup="dialog"
+          aria-expanded={pickerOpen}
           data-testid="open-line-picker"
         >
           <span className="lines-row__label">{PREFERRED_LINES_ROW_LABEL}</span>

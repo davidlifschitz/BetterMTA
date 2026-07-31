@@ -43,14 +43,41 @@ export function LinePicker({
       return;
     }
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    const first =
-      panelRef.current?.querySelector<HTMLButtonElement>("button.line-badge");
-    first?.focus();
+    const panel = panelRef.current;
+    const firstBadge =
+      panel?.querySelector<HTMLButtonElement>("button.line-badge");
+    firstBadge?.focus();
+
+    function focusableInPanel(): HTMLElement[] {
+      if (!panelRef.current) return [];
+      const nodes = panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), [href], select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      return Array.from(nodes).filter(
+        (el) => !el.hasAttribute("disabled") && el.getAttribute("aria-hidden") !== "true",
+      );
+    }
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
         onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const list = focusableInPanel();
+      if (list.length === 0) return;
+      const first = list[0]!;
+      const last = list[list.length - 1]!;
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !panelRef.current?.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last || !panelRef.current?.contains(active)) {
+        e.preventDefault();
+        first.focus();
       }
     }
     document.addEventListener("keydown", onKeyDown);
