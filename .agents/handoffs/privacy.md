@@ -3,7 +3,7 @@
 **Branch:** `agent/p1-wave1-privacy`  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-p1-wave1-privacy`  
 **Lock tip (start):** `b9139fb`  
-**Tip SHA (this wave):** `5dcae5c` (branch HEAD)  
+**Tip SHA (this wave):** `2fae3f6e831e6882823a08e1eca22b57f978a4ec` (branch HEAD)  
 **Implementation commit:** `e600ef2`  
 **Date:** 2026-07-31  
 **Contract version consumed:** `2026-07-31` (read-only; no `contracts/**` edits)
