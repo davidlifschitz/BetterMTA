@@ -1,7 +1,7 @@
 # Conductor Package Index
 
 **Branch:** `agent/conductor`  
-**Contract version:** `2026-07-30`  
+**Contract version:** `2026-07-31`  
 **Status:** Ready for review; do not start parallel implementation until merged to `main`
 
 ## What this package locks
