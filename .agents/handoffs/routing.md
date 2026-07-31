@@ -2,7 +2,7 @@
 
 **Branch:** `agent/p1-address-preferred-lines`  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
-**Tip SHA:** `e8c368fd9034101f29e2733fb4ead6377de26ecc`  
+**Branch tip:** `origin/agent/p1-address-preferred-lines` (`git rev-parse`)  
 **Fix commit:** `d58051b1ab70f353e590a5b413353dfd93ad76fc`  
 **Date:** 2026-07-31  
 **Remote:** pushed to `origin/agent/p1-address-preferred-lines` (no merge to main; no alpha redeploy)  
