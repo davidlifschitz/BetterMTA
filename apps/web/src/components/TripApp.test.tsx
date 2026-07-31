@@ -10,6 +10,8 @@ import degradedRealtime from "../../../../contracts/fixtures/routes/degraded-rea
 import baselineOnly from "../../../../contracts/fixtures/routes/baseline-only.json";
 import noTransitPath from "../../../../contracts/fixtures/errors/no-transit-path.json";
 import unknownLine from "../../../../contracts/fixtures/errors/unknown-line.json";
+import insufficientCoverage from "../../../../contracts/fixtures/errors/insufficient-candidate-coverage.json";
+import addressPlaces from "../../../../contracts/fixtures/places/place-search-address.json";
 import linesFixture from "../../../../contracts/fixtures/lines/subway-lines.json";
 import type {
   ApiErrorBody,
@@ -45,6 +47,7 @@ vi.mock("@/lib/api", async () => {
 afterEach(() => {
   cleanup();
   setAnalyticsDispatcher(() => undefined);
+  vi.unstubAllEnvs();
 });
 
 describe("TripApp states", () => {
@@ -76,7 +79,7 @@ describe("TripApp states", () => {
     searchRoutes.mockResolvedValue(completeMatch as RouteSearchResponse);
     render(<TripApp />);
 
-    await user.click(screen.getByRole("button", { name: /Lines to use/i }));
+    await user.click(screen.getByRole("button", { name: /Preferred lines/i }));
     await user.click(screen.getByRole("button", { name: /F train, not selected/i }));
     await user.click(screen.getByRole("button", { name: /B train, not selected/i }));
     await user.click(screen.getByRole("button", { name: /Save lines/i }));
@@ -89,9 +92,12 @@ describe("TripApp states", () => {
       );
     });
     expect(screen.getAllByTestId("route-card").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("complete-banner")).toHaveTextContent(
+      /Using your preferred lines/i,
+    );
   });
 
-  it("renders partial satisfaction messaging", async () => {
+  it("renders partial preferred-line messaging", async () => {
     const user = userEvent.setup();
     searchRoutes.mockResolvedValue(partialMatch as RouteSearchResponse);
     render(<TripApp />);
@@ -100,6 +106,9 @@ describe("TripApp states", () => {
     await waitFor(() => {
       expect(screen.getByTestId("partial-banner")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("partial-banner")).toHaveTextContent(
+      /Couldn’t use all preferences/i,
+    );
   });
 
   it("renders stale warning", async () => {
@@ -247,7 +256,9 @@ describe("TripApp states", () => {
     await user.click(screen.getByRole("button", { name: /Find routes/i }));
     await waitFor(() => expect(searchRoutes).toHaveBeenCalledTimes(1));
 
-    await user.click(screen.getByRole("button", { name: /Customize lines/i }));
+    await user.click(
+      screen.getByRole("button", { name: /Customize preferred lines/i }),
+    );
     await user.click(screen.getByRole("button", { name: /7 train, not selected/i }));
     await user.click(screen.getByRole("button", { name: /Update routes/i }));
 
@@ -385,6 +396,50 @@ describe("TripApp states", () => {
     expect(
       screen.queryByRole("listbox", { name: /Origin suggestions/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it("renders insufficient_candidate_coverage failure UI", async () => {
+    const user = userEvent.setup();
+    searchRoutes.mockRejectedValue(
+      new ApiClientError(503, insufficientCoverage as ApiErrorBody),
+    );
+    render(<TripApp />);
+    await user.click(screen.getByRole("button", { name: /Find routes/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("coverage-failure-state")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("coverage-failure-details")).toHaveTextContent(
+      /Preferred lines: 2, 7, S/,
+    );
+  });
+
+  it("keeps station-first suggestions when address/POI flag is off", async () => {
+    const user = userEvent.setup();
+    searchPlaces.mockResolvedValue(addressPlaces as PlaceSearchResponse);
+    render(<TripApp />);
+    const from = screen.getByPlaceholderText(/Starting station/i);
+    await user.clear(from);
+    await user.type(from, "277");
+    await waitFor(() => expect(searchPlaces).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("option", { name: /277 Park/i }),
+    ).toBeNull();
+  });
+
+  it("shows address/POI suggestions when flag is on", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("NEXT_PUBLIC_FLAG_ADDRESS_POI", "true");
+    searchPlaces.mockResolvedValue(addressPlaces as PlaceSearchResponse);
+    render(<TripApp />);
+    const from = screen.getByPlaceholderText(/From — Station, address, or place/i);
+    await user.clear(from);
+    await user.type(from, "277");
+    await waitFor(() => {
+      expect(
+        screen.getByRole("option", { name: /277 Park/i }),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/prov_opaque/)).toBeNull();
   });
 
   it("derives viewport from matchMedia for search analytics", async () => {

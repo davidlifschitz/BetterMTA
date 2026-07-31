@@ -4,6 +4,7 @@ import type {
   Line,
   RealtimeConfidence,
 } from "@/lib/contracts";
+import { riderLineLabel } from "@/lib/line-display";
 
 export function formatDuration(seconds: number): string {
   const mins = Math.round(seconds / 60);
@@ -74,14 +75,16 @@ export function summarizeSelectedLines(
   lines: Line[],
   selectedIds: string[],
 ): string {
-  if (selectedIds.length === 0) return "Any lines";
-  const labels = selectedIds.map(
-    (id) => lineById(lines, id)?.label ?? id,
+  if (selectedIds.length === 0) return "Any preferred lines";
+  const labels = selectedIds.map((id) =>
+    riderLineLabel(id, lineById(lines, id)),
   );
-  if (labels.length === 1) return `Using the ${labels[0]}`;
-  if (labels.length === 2) return `Using the ${labels[0]} and ${labels[1]}`;
+  if (labels.length === 1) return `Preferring the ${labels[0]}`;
+  if (labels.length === 2) {
+    return `Preferring the ${labels[0]} and ${labels[1]}`;
+  }
   const last = labels[labels.length - 1];
-  return `Using the ${labels.slice(0, -1).join(", ")}, and ${last}`;
+  return `Preferring the ${labels.slice(0, -1).join(", ")}, and ${last}`;
 }
 
 export type DataModeNotice = {

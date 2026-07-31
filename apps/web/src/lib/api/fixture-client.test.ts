@@ -44,4 +44,46 @@ describe("fixture API client", () => {
       }),
     ).rejects.toBeInstanceOf(ApiClientError);
   });
+
+  it("throws insufficient_candidate_coverage for 2+7+GS", async () => {
+    try {
+      await api.searchRoutes({
+        origin: { placeId: "pl_a" },
+        destination: { placeId: "pl_b" },
+        timing: { type: "depart_now" },
+        selectedLineIds: ["2", "7", "GS"],
+      });
+      throw new Error("expected coverage failure");
+    } catch (err) {
+      expect(err).toBeInstanceOf(ApiClientError);
+      expect((err as ApiClientError).body.error.code).toBe(
+        "insufficient_candidate_coverage",
+      );
+    }
+  });
+
+  it("returns address/POI places for park queries and includes GS in lines", async () => {
+    const lines = await api.getLines();
+    expect(lines.lines.some((l) => l.lineId === "GS")).toBe(true);
+    const places = await api.searchPlaces("277 Park");
+    expect(places.places.some((p) => p.kind === "address")).toBe(true);
+    expect(places.attribution).toMatch(/geocoder adapter/i);
+    expect(
+      places.places.every((p) => !("host" in p) && p.provider !== "mapbox.com"),
+    ).toBe(true);
+  });
+
+  it("adds connector_filled fact on complete-match demos", async () => {
+    const res = await api.searchRoutes({
+      origin: { placeId: "pl_a" },
+      destination: { placeId: "pl_b" },
+      timing: { type: "depart_now" },
+      selectedLineIds: ["F", "B"],
+    });
+    expect(
+      res.constrained.itineraries[0].explanation.facts.some(
+        (f) => f.type === "connector_filled",
+      ),
+    ).toBe(true);
+  });
 });

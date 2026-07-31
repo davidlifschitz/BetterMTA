@@ -51,3 +51,16 @@ export function resultCountCap(env?: NodeJS.ProcessEnv): number | null {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : null;
 }
+
+/**
+ * Address/POI geocode results in place search (ADR-0022).
+ * Default OFF — flag-off keeps prior station-index-first UX.
+ * Only "true" / "1" enable. Backend may still omit address/POI;
+ * when present, the UI surfaces kind/source/attribution.
+ */
+export function isAddressPoiSearchEnabled(env?: NodeJS.ProcessEnv): boolean {
+  const v = env
+    ? env.NEXT_PUBLIC_FLAG_ADDRESS_POI
+    : process.env.NEXT_PUBLIC_FLAG_ADDRESS_POI;
+  return v === "true" || v === "1";
+}

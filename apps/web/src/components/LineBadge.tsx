@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import type { Line } from "@/lib/contracts";
+import { riderLineDisplayName, riderLineLabel } from "@/lib/line-display";
 
 type LineBadgeProps = {
   line: Line;
@@ -16,9 +17,9 @@ export function LineBadge({
   onToggle,
   disabled = false,
 }: LineBadgeProps) {
-  const label = selected
-    ? `${line.displayName}, selected`
-    : `${line.displayName}, not selected`;
+  const face = riderLineLabel(line.lineId, line);
+  const name = riderLineDisplayName(line.lineId, line);
+  const label = selected ? `${name}, selected` : `${name}, not selected`;
 
   return (
     <button
@@ -32,11 +33,12 @@ export function LineBadge({
       }
       aria-pressed={selected}
       aria-label={label}
+      data-line-id={line.lineId}
       disabled={disabled}
       onClick={() => onToggle(line.lineId)}
     >
       <span className="line-badge__disc" aria-hidden="true">
-        {line.label}
+        {face}
       </span>
       <span className="line-badge__state" aria-hidden="true">
         {selected ? "Selected" : "Add"}
