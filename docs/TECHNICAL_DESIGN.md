@@ -13,18 +13,21 @@
 ## 2. Transit graph
 Model stations, platforms/stop IDs, transfer pathways, walking access edges, scheduled ride edges, and service-calendar validity. Preserve service IDs separately from physical trunk lines because NYC services can reroute.
 
-## 3. Constraint semantics
-Input: origin, destination, departure/arrival time, selected service IDs.
+## 3. Preference / constraint semantics
+Input: origin, destination, departure/arrival time, preferred (selected) service IDs.
 
-Ranking tuple:
-1. Complete required-line coverage.
-2. Number of required lines covered.
+Product semantics (ADR-0023): selected lines are **preferred lines**. Maximize distinct preference coverage; permit unselected connector lines, walks, and transfers to complete a practical trip. Complete preference match outranks partial; higher coverage before convenience tie-breakers. OTP 2 remains the candidate-generation substrate (ADR-0011); BetterMTA owns orchestration so preference-covering candidates appear when topologically sensible. Exhausted budget → `insufficient_candidate_coverage`. Omissions must be explained.
+
+Ranking tuple (aligned with ADR-0007):
+1. Complete preferred-line coverage.
+2. Number of preferred lines covered (satisfaction count).
 3. Arrival time / generalized travel cost.
 4. Transfers.
 5. Walking.
-6. Reliability penalty.
+6. Reliability penalty / realtime confidence.
+7. Stable fingerprint.
 
-The system should search state `(node, time, requiredLineMask)` so line coverage is part of the path state rather than a post-processing filter. For small selected sets, a bitmask is practical. Candidate generation should use a time-dependent multi-criteria Dijkstra or RAPTOR-family algorithm, followed by exact itinerary validation.
+The system should treat preference coverage as part of path state (e.g. `(node, time, preferredLineMask)`) rather than a post-processing filter alone. For small selected sets, a bitmask is practical. Candidate generation uses the OTP substrate plus BetterMTA multi-family / via orchestration, followed by exact itinerary validation and ranking outside OTP.
 
 ## 4. “Manually checking” interpretation
 The application cannot rely on human review per request. Production implementation should emulate a careful manual check by generating multiple candidate families, replaying each itinerary against the same live snapshot, and comparing complete door-to-door time. Low-confidence disagreements can be sampled into an offline human benchmark queue.
