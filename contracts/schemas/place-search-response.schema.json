@@ -6,8 +6,13 @@
   "additionalProperties": false,
   "required": ["contractVersion", "query", "places"],
   "properties": {
-    "contractVersion": { "const": "2026-07-30" },
+    "contractVersion": { "const": "2026-07-31" },
     "query": { "type": "string" },
+    "attribution": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Optional response-level attribution for UI chrome when any geocode-backed results are present (ADR-0022)."
+    },
     "places": {
       "type": "array",
       "items": {
@@ -15,16 +20,40 @@
         "additionalProperties": false,
         "required": ["placeId", "label", "kind"],
         "properties": {
-          "placeId": { "type": "string" },
+          "placeId": {
+            "type": "string",
+            "description": "Stable BetterMTA place identifier for PlaceRef.placeId. Do not rename."
+          },
           "label": { "type": "string" },
           "kind": {
             "type": "string",
-            "enum": ["station", "address", "poi", "current_location", "coordinate"]
+            "enum": ["station", "address", "poi", "current_location", "coordinate"],
+            "description": "Place type discriminator (equivalent to placeType)."
           },
           "stationId": { "type": "string" },
           "borough": { "type": "string" },
           "lat": { "type": "number" },
-          "lon": { "type": "number" }
+          "lon": { "type": "number" },
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "description": "BetterMTA provider id (e.g. station_index, geocoder). Never a vendor hostname or secret."
+          },
+          "providerPlaceId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque upstream place id for attribution/debug. Clients must use placeId in PlaceRef, not this field."
+          },
+          "formattedAddress": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Postal-style display address when available (address/POI)."
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Vendor-required attribution string for this result when kind is address or poi from a geocoder."
+          }
         }
       }
     }

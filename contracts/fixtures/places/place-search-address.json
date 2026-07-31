@@ -1,0 +1,29 @@
+{
+  "contractVersion": "2026-07-31",
+  "query": "277 Park",
+  "attribution": "Address results via BetterMTA geocoder adapter",
+  "places": [
+    {
+      "placeId": "pl_geo_277_park_ave",
+      "label": "277 Park Avenue",
+      "kind": "address",
+      "lat": 40.7553,
+      "lon": -73.975,
+      "provider": "geocoder",
+      "providerPlaceId": "prov_opaque_277_park",
+      "formattedAddress": "277 Park Avenue, New York, NY 10017",
+      "attribution": "Address results via BetterMTA geocoder adapter"
+    },
+    {
+      "placeId": "pl_geo_park_ave_tower",
+      "label": "Park Avenue Tower",
+      "kind": "poi",
+      "lat": 40.7557,
+      "lon": -73.9744,
+      "provider": "geocoder",
+      "providerPlaceId": "prov_opaque_park_ave_tower",
+      "formattedAddress": "65 E 55th St, New York, NY 10022",
+      "attribution": "Address results via BetterMTA geocoder adapter"
+    }
+  ]
+}

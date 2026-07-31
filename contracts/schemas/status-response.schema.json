@@ -12,7 +12,7 @@
     "messages"
   ],
   "properties": {
-    "contractVersion": { "const": "2026-07-30" },
+    "contractVersion": { "const": "2026-07-31" },
     "dataMode": {
       "type": "string",
       "enum": ["live", "schedule_only", "stale", "synthetic", "unavailable"]

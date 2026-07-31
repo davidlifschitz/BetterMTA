@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["contractVersion", "staticDatasetVersion", "lines"],
   "properties": {
-    "contractVersion": { "const": "2026-07-30" },
+    "contractVersion": { "const": "2026-07-31" },
     "staticDatasetVersion": { "type": "string" },
     "lines": {
       "type": "array",

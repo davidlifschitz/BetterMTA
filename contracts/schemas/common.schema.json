@@ -6,7 +6,7 @@
   "$defs": {
     "contractVersion": {
       "type": "string",
-      "const": "2026-07-30"
+      "const": "2026-07-31"
     },
     "dataMode": {
       "type": "string",
