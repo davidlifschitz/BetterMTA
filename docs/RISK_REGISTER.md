@@ -2,7 +2,7 @@
 
 **Owner:** Conductor  
 **Status:** Initial register for public-beta experiment  
-**Last updated:** 2026-07-31 (Phase 12A.13 local remediations; remote CA gates still open; disk ~1 Gi)
+**Last updated:** 2026-07-31 (Phase 12A final certification → `READY_FOR_CONTROLLED_ALPHA`)
 
 Severity: `critical` \| `high` \| `medium` \| `low`  
 Likelihood: `high` \| `medium` \| `low`
@@ -29,9 +29,9 @@ Likelihood: `high` \| `medium` \| `low`
 | R18 | Experiment analysis without enough volume | low | high | Keep instrumentation minimal; do not block launch | Backend + FE |
 | R19 | Home power or ISP outage takes down controlled alpha | high | medium | ADR-0021 honesty; no SLA; pause invites during outages; later hosted beta separate | Infra + Integration |
 | R20 | macOS sleep / lid-close / idle suspend stops origin | high | high | Keep host awake during alpha windows; document in runbook; do not claim always-on | Infra + Integration |
-| R21 | Docker Desktop quit / crash / resource exhaustion | high | medium | Disk/CPU watch (data ~6 GiB); compose health checks; restart runbook. Host ~1 Gi free (2026-07-31) blocks distinct-digest rebuild/rollback | Infra + Data |
-| R22 | Cloudflare Tunnel or Access misconfiguration exposes origin or locks out testers | critical | medium | Deny-by-default Access; no port forward; secrets out of repo; verify Access before sharing URL. CA03–CA05 still PENDING until operator evidence | Infra |
-| R23 | Self-hosted origin treated as cloud-grade / public-beta ready | high | medium | Status vocabulary: `READY_FOR_CONTROLLED_ALPHA` ≠ private/public beta; ADR-0021; final status remains `BLOCKED` until remote gates | Conductor + Integration |
+| R21 | Docker Desktop quit / crash / resource exhaustion | high | medium | Disk/CPU watch; compose health checks; restart runbook. Distinct-digest rollback proven 2026-07-31; keep ≥6 Gi free for rebuilds | Infra + Data |
+| R22 | Cloudflare Tunnel or Access misconfiguration exposes origin or locks out testers | critical | low | Deny-by-default Access verified; approved/denied auth PASS; remote monitor PASS; secrets out of repo; LaunchAgent canonical runner | Infra |
+| R23 | Self-hosted origin treated as cloud-grade / public-beta ready | high | medium | Status vocabulary: `READY_FOR_CONTROLLED_ALPHA` ≠ private/public beta; ADR-0021 honesty in handoff + gate report | Conductor + Integration |
 
 ## Top watchlist for first integration
 
@@ -42,12 +42,11 @@ Likelihood: `high` \| `medium` \| `low`
 
 ## Controlled-alpha watchlist (Phase 12A)
 
-1. R22 Tunnel/Access misconfig (Access env unset; approved/denied login not evidenced)  
-2. R20 host sleep  
-3. R19 home power/internet  
-4. R21 Docker Desktop / disk (blocks distinct-digest CA08)  
-5. R23 over-claiming readiness (do not mark `READY_FOR_CONTROLLED_ALPHA` while `BLOCKED`)
-
+1. R20 host sleep / user logout (LaunchAgent RunAtLoad)  
+2. R19 home power/internet  
+3. R21 Docker/Colima resource pressure  
+4. R23 over-claiming (do not equate controlled alpha with Fly private/public beta)  
+5. R22 Access allowlist drift / token rotation hygiene
 ## Risk update protocol
 
 Workstreams must update this register in handoffs when a new production risk is discovered. Do not delete closed risks; mark `Mitigation status: closed` in the handoff notes and leave a row footnote in a future conductor revision.

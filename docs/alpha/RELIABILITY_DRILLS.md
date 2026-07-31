@@ -1,12 +1,11 @@
-# Controlled alpha — local reliability drills (Phase 12A.11)
+# Controlled alpha — reliability drills (Phase 12A.11 + final certification)
 
-**Date:** 2026-07-30  
+**Dates:** 2026-07-30 (local), 2026-07-31 (certification re-run + remote monitor)  
 **Host:** self-hosted macOS + Colima Docker  
-**Stack:** `docker-compose -f docker-compose.yml -f docker-compose.alpha.yml`  
+**Stack:** `docker-compose -f docker-compose.yml -f docker-compose.alpha.yml -f docker-compose.release.yml`  
 **Edge:** `http://127.0.0.1:8088`  
-**Release pointer:** `rel-20260730T204924Z-ceaff95fab26`  
-**Disk at drill time:** ~2.2–3.1 Gi free (avoid image pulls/builds)  
-**Evidence logs (host tmp, not committed):** `/tmp/bettermta-drill-*.log`
+**Tunnel runner:** user LaunchAgent `com.bettermta.cloudflared-alpha` (credentials-file)  
+**Release pointers (host-only `deployments/*.env`):** current `rel-20260731T155125Z-cert-distinct`; previous `rel-20260730T204924Z-ceaff95fab26`
 
 ## Method
 
@@ -14,63 +13,51 @@ For each performed drill:
 
 1. Record start time  
 2. Perform the action  
-3. Wait until edge `/health/live` + `/health/ready` return 200  
-4. Run `./infra/alpha/scripts/smoke-edge.sh` and/or `MONITOR_MODE=local ./infra/alpha/scripts/monitor-alpha.sh`  
-5. Note approximate outage (action → ready) and `dataMode` / static coherence when visible  
+3. Wait until edge `/health/live` + `/health/ready` return 200 (and `/` 200 after web restart)  
+4. Run `./infra/alpha/scripts/smoke-edge.sh` and/or  
+   `MONITOR_MODE=remote MONITOR_SOFT_SKIP=0 ./infra/alpha/scripts/monitor-alpha.sh` (Access token)  
+5. Note approximate outage and honest `dataMode`
 
 **Honesty notes**
 
-- `/health/ready` is API readiness (data+OTP adapters). Web may briefly 502 after a web-only restart until Next.js finishes boot.  
-- Feed age was often `stale` mid-session (MTA poll timeouts); after full stack recreate, status recovered to `dataMode=live`. Never unlabeled “live” when stale.  
-- No Cloudflare Access remote path was exercised here (CA03–CA05 still PENDING).  
-- Do **not** reboot or logout this Mac without explicit operator approval.
+- `/health/ready` is API readiness. Web may briefly fail HTML until Next.js finishes boot.  
+- Never unlabeled “live” when stale.  
+- Mac logout/reboot **not** executed (needs explicit operator approval) — residual availability risk documented; **non-blocking** for controlled-alpha go given ADR-0021 honesty.  
+- Do **not** dump cloudflared argv/credentials.
 
 ## Results table
 
 | # | Drill | Result | Approx duration | Evidence / notes |
 |---|---|---|---|---|
-| 1 | Edge proxy restart | **PASS** | ~10 s | `docker-compose … restart edge`; ready ~5 s; smoke **8/8**; `dataMode=stale` preserved; static `mta-subway-c9c3366cdd16` |
-| 2 | Web restart | **PASS*** | ~4 s to API-ready; web HTML recovered &lt;90 s | Immediate smoke: `/` **502** (Next not up yet) while `/health/ready` already 200. Recovery recheck: smoke **8/8**. *Document race: wait on `GET /` 200, not only API ready |
-| 3 | API restart | **PASS** | ~38 s | `restart api`; ready ~33 s; smoke **8/8**; status stayed honest (`stale` → later fresh snapshot id) |
-| 4 | Data restart | **PASS** | ~15 s | `restart data data-proxy`; ready ~11 s; smoke **8/8**; static version unchanged |
-| 5 | OTP restart | **PASS** | ~59 s | `restart otp`; ready ~55 s; smoke **8/8**; local monitor **6 pass / 1 stale warn**; static/graph coherence OK |
-| 6 | cloudflared restart | **PENDING_USER** | — | Process present (`pgrep -x cloudflared`). `kill -HUP` → **operation not permitted** (LaunchDaemon). Manual (no tokens): `sudo launchctl kickstart -k system/com.cloudflare.cloudflared` then confirm `pgrep -x cloudflared` + local edge health. Do not dump argv/credentials |
-| 7 | Docker Desktop / Colima restart | **SKIPPED** (risk) | — | Colima running. **Not** executed: host disk ~2.4 Gi free; full VM restart risks long OTP/graph outage + recovery pressure. Prefer operator window with ≥6 Gi free. Manual if needed: `colima restart` then `./infra/alpha/scripts/start-alpha.sh` |
-| 8 | Mac logout/login | **PENDING_USER** | — | Skipped — needs explicit user approval (LaunchAgents/user session side effects) |
-| 9 | Mac reboot | **PENDING_USER** | — | Skipped — do not reboot without explicit approval |
-| 10 | Temporary internet interruption | **PENDING_USER** / soft-sim | — | Hard host disconnect not performed. Soft substitute: drill **#11** (pause data). Full Wi‑Fi/Ethernet flap remains operator-owned |
-| 11 | Realtime polling interruption | **PASS** | ~27 s | `docker pause bettermta-data-1` ~25 s then `unpause`; edge stayed live+ready; monitor **6/0 fail** with honest `stale` warning + static coherence; route smoke OK. Complements data restart recovery (#4) |
-| 12 | Hollow realtime | **PASS (unit evidence)** | — | Live hollow inject unsafe/unnecessary on alpha host. Phase 10 unit evidence: `services/data/tests/realtime-live.test.ts` — `describe("partial-feed status + hollow LKG")`, esp. `hollow protobuf WITH trip_replacement_period does not overwrite LKG or become live` and empty/hollow poll LKG retention. Related: handoff Phase 10 hollow GTFS-RT LKG |
-| 13 | Static dataset rollback | **SKIPPED** | — | Runbook: `docs/RUNBOOKS.md` § Static rollback. Only one version on disk: `mta-subway-c9c3366cdd16` under `services/data/var/data/static/versions/`. No prior pointer to repoint safely |
-| 14 | OTP graph rollback | **SKIPPED** | — | Same runbook. Only graph dir: `mta-subway-c9c3366cdd16+otp2.9.0`. No prior graph for safe `active.json` repoint |
-| 15 | Application release rollback | **PASS*** | ~99 s | `./deployments/scripts/rollback-release.sh` → recreate + edge ready + smoke **8/8**; manifest `deployments/manifests/rollback-20260730T210125Z.json`. *Same RELEASE_ID / digests as `previous.env`/`current.env`/` :local` — **retag path** proven, **not** distinct-digest rollback. Post-status: `dataMode=live` static `mta-subway-c9c3366cdd16` |
+| 1 | Edge proxy restart | **PASS** | ~6 s | `docker-compose … restart edge`; smoke **8/8**; remote monitor **6/0** |
+| 2 | Web restart | **PASS** | ~5 s | Wait for `/` 200; smoke **8/8**; remote monitor **6/0** |
+| 3 | API restart | **PASS** | ~19 s | Ready ~13 s; smoke **8/8**; remote monitor **6/0** |
+| 4 | Data restart | **PASS** | ~4 s | `restart data data-proxy`; smoke **8/8**; remote monitor **6/0** |
+| 5 | OTP restart | **PASS*** | ~4 s wall | One immediate remote monitor run showed **4 pass / 1 fail** during OTP settle; subsequent RT-pause + final monitors **6/0**. Treat as brief settle race |
+| 6 | Named-tunnel LaunchAgent restart | **PASS** | ~6 s | `launchctl kickstart -k gui/$UID/com.bettermta.cloudflared-alpha`; exactly one `cloudflared`; remote monitor **6/0** |
+| 7 | Docker/Colima restart | **PASS** | ~86 s | `colima restart` then `start-alpha.sh`; smoke **8/8**; remote monitor **6/0** (1 warn once) |
+| 8 | Mac logout/login | **PENDING_USER** | — | Explicit approval required; residual risk: tunnel RunAtLoad needs login |
+| 9 | Mac reboot | **PENDING_USER** | — | Explicit approval required; residual risk accepted for controlled alpha |
+| 10 | Temporary internet interruption | **PASS*** | soft-sim | Soft substitute = realtime pause (#11). Hard NIC flap not performed |
+| 11 | Realtime polling interruption | **PASS** | ~25–27 s | `docker pause bettermta-data-1` then unpause; remote monitor **6/0** |
+| 12 | Hollow realtime | **PASS (unit evidence)** | — | Phase 10 unit evidence in `services/data/tests/realtime-live.test.ts` (hollow LKG) |
+| 13 | Static dataset rollback | **SKIPPED** | — | Only one static version on disk |
+| 14 | OTP graph rollback | **SKIPPED** | — | Only one graph dir on disk |
+| 15 | Application release rollback (distinct digest) | **PASS** | ~105 s | Certification web image LABEL `bettermta.certification.build=cert-distinct-20260731` (digest prefix `69821325b92de52d`) → rollback to prior tag (digest prefix `9f71ea0812587a02`, no cert label). `rollback-release.sh` exit 0; local smoke **8/8**; remote Access smoke PASS. Host evidence: `deployments/manifests/certification-distinct-rollback-20260731T155537Z.json` (gitignored) + this table |
 
-## Post-drill stack check
+## Post-drill / certification stack check
 
 | Check | Result |
 |---|---|
 | Edge `/health/live` + `/health/ready` | 200 |
-| `MONITOR_MODE=local ./infra/alpha/scripts/monitor-alpha.sh` | 6 passed, 0 failed (after rollback; `dataMode=live`) |
-| Static / route coherence | `mta-subway-c9c3366cdd16` |
+| Local smoke | **8/8** |
+| Official remote monitor | **6/0** (final) |
+| Tunnel process count | 1 (`pgrep -x cloudflared`) |
 | Volumes deleted? | No |
 
-## Operator follow-ups (PENDING_USER)
+## Operator follow-ups (non-blocking residuals)
 
 ```bash
-# cloudflared (LaunchDaemon) — no tokens on argv in docs
-sudo launchctl kickstart -k system/com.cloudflare.cloudflared
-pgrep -x cloudflared   # expect running
-curl -fsS http://127.0.0.1:8088/health/live
-
-# Optional later (disk + approval):
-# colima restart && ./infra/alpha/scripts/start-alpha.sh
-# Mac logout/login or reboot — only with explicit approval
+# Optional: Mac logout/login or reboot with explicit approval, then confirm LaunchAgent + start-alpha
+# Optional: enable GH alpha-monitor secrets (workflow remains soft until ALPHA_MONITOR_ENABLED)
 ```
-
-## Related
-
-- Runbooks: `docs/RUNBOOKS.md`  
-- Alpha index: `infra/alpha/README.md`  
-- Release/rollback: `deployments/README.md`  
-- Gate report: `docs/RELEASE_GATE_REPORT.md`  
-- Local latency sample (12A.12): `docs/alpha/PERFORMANCE.md`

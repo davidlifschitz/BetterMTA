@@ -114,7 +114,63 @@ intentionally does **not** print cloudflared argv for that reason.
 
 Leave this running in a dedicated terminal during bring-up, or install as a service (next).
 
-## Install as macOS service
+## Canonical runner (Phase 12A certification): user LaunchAgent
+
+**Canonical alpha tunnel runner on this host:** a **user-level** LaunchAgent that runs the named tunnel with **credentials-file** config (not legacy `--token` argv).
+
+Do **not** install a second official `cloudflared service install` LaunchDaemon alongside this agent (duplicate connectors cause flapping / 502s).
+
+| Item | Value |
+|---|---|
+| Label | `com.bettermta.cloudflared-alpha` |
+| Plist | `~/Library/LaunchAgents/com.bettermta.cloudflared-alpha.plist` |
+| Program | `cloudflared tunnel --config ~/.cloudflared/config.yml run <TUNNEL_NAME>` |
+| Auth mode | credentials-file (from local `config.yml`) |
+| KeepAlive | `true` |
+| RunAtLoad | `true` (starts at user login) |
+| Logs | `~/.config/bettermta/logs/tunnel-launchd.out.log` / `tunnel-launchd.err.log` |
+
+### Presence-only inspection
+
+```bash
+pgrep -x cloudflared >/dev/null && echo "cloudflared running" || echo "cloudflared not running"
+# Exactly one intended process after restart:
+pgrep -x cloudflared | wc -l
+# Do NOT use pgrep -lf / full ps argv (credential paths can appear).
+```
+
+### Restart
+
+```bash
+launchctl kickstart -k "gui/$(id -u)/com.bettermta.cloudflared-alpha"
+```
+
+### Bootstrap / reload plist (after editing)
+
+```bash
+launchctl bootout "gui/$(id -u)/com.bettermta.cloudflared-alpha" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" ~/Library/LaunchAgents/com.bettermta.cloudflared-alpha.plist
+```
+
+### Removal
+
+```bash
+launchctl bootout "gui/$(id -u)/com.bettermta.cloudflared-alpha" 2>/dev/null || true
+rm -f ~/Library/LaunchAgents/com.bettermta.cloudflared-alpha.plist
+```
+
+### Log inspection
+
+```bash
+tail -n 50 ~/.config/bettermta/logs/tunnel-launchd.err.log
+# Redact UUIDs/hostnames before sharing logs outside the host.
+```
+
+Availability still depends on **user login** (RunAtLoad), host awake, power, and network — see ADR-0021 honesty.
+
+## Optional: official macOS system service
+
+Only if you intentionally replace the LaunchAgent (not in addition to it):
 
 ```bash
 sudo cloudflared service install
@@ -126,21 +182,17 @@ Useful controls (exact labels may vary slightly by version):
 
 ```bash
 sudo launchctl list | grep -i cloudflared || true
-# Restart / stop via launchctl or:
 sudo cloudflared service uninstall   # only when intentionally removing
 ```
 
 Prefer documenting the UUID/name in your private ops notes, not in the repo.
 
-## Logs / restart
+## Logs / restart (generic)
 
 ```bash
-# If running in foreground: logs are stdout/stderr
-# If installed as a service, check Console.app or launchd log paths for cloudflared
-
-# Restart connector (service):
-sudo launchctl kickstart -k system/com.cloudflare.cloudflared 2>/dev/null || true
-# Or stop+start the foreground `cloudflared tunnel run` process
+# Foreground run: logs are stdout/stderr
+# LaunchAgent: see canonical runner section above
+# System service: Console.app / launchd paths for cloudflared
 ```
 
 Confirm locally after restart (presence only — do **not** use `pgrep -lf` /
