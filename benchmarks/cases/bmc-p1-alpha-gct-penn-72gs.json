@@ -1,0 +1,39 @@
+{
+  "caseId": "bmc-p1-alpha-gct-penn-72gs",
+  "title": "P1 alpha: GCT→Penn preferred 7,2,GS preserves 2-of-3 + explains GS",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_manhattan",
+    "lines_3",
+    "transfer",
+    "impossible_constraint"
+  ],
+  "origin": { "stationId": "st_gct" },
+  "destination": { "stationId": "st_penn" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T09:00:00-04:00" },
+  "selectedLineIds": ["7", "2", "GS"],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_gct",
+  "expectedDestinationStationId": "st_penn",
+  "humanReviewNotes": "Controlled-alpha regression oracle (privacy-safe station PlaceRefs). Must NOT silent 0-of-3; practical subset is 7+2 with GS omission explained. Live twin is pending Wave 1D.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": { "kind": "qa_fixture", "responseId": "p1-gct-penn-72gs-partial" },
+  "tags": ["p1_wave1e", "p1_ready", "alpha_regression", "privacy_safe_placeref"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

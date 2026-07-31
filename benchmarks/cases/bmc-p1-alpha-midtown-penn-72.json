@@ -1,0 +1,31 @@
+{
+  "caseId": "bmc-p1-alpha-midtown-penn-72",
+  "title": "TODO/SKIP LIVE: Midtown Park Ave→Penn preferred 7+2 uses prefs when feasible",
+  "classification": "pending_live_integration",
+  "categories": ["borough_manhattan", "lines_2", "transfer"],
+  "origin": {
+    "coordinate": { "lat": 40.7553, "lon": -73.9755 },
+    "label": "Midtown Park Ave area"
+  },
+  "destination": { "placeId": "st:128" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["7", "2"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Controlled-alpha regression LIVE slot. Must use preferred lines when feasible (not B/D/M-only 0-of-N). Privacy-safe PlaceRefs/labels only — no private office address text. Blocked on Wave 1A geocode + Wave 1D candidate coverage.",
+  "staticDatasetVersion": "mta-subway-pending",
+  "realtimeFixtureVersion": "live_at_gate_time",
+  "sut": { "kind": "live", "responseId": "live-p1-midtown-penn-72" },
+  "tags": ["p1_wave1e", "p1_pending", "alpha_regression", "soft_feasibility", "wave_1a", "wave_1d", "privacy_safe_placeref"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

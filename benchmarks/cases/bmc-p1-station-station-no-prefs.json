@@ -1,0 +1,42 @@
+{
+  "caseId": "bmc-p1-station-station-no-prefs",
+  "title": "P1: Station→station with no preferred lines (baseline)",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "off_peak",
+    "lines_0",
+    "baseline_only",
+    "no_transfer"
+  ],
+  "origin": { "placeId": "pl_church_av" },
+  "destination": { "placeId": "pl_times_sq" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T17:00:00-04:00" },
+  "selectedLineIds": [],
+  "expectedFeasibility": "not_applicable",
+  "minimumSatisfactionCount": 0,
+  "expectedOriginStationId": "st_church",
+  "expectedDestinationStationId": "st_times",
+  "humanReviewNotes": "P1 matrix #1. Empty preferred set → baseline only; must not invent preference satisfaction. Synthetic.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "none",
+  "sut": { "kind": "conductor_fixture", "responseId": "baseline-only" },
+  "tags": ["p1_wave1e", "p1_ready", "matrix_1"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

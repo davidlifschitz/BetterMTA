@@ -1,0 +1,28 @@
+{
+  "caseId": "bmc-p1-poi-address",
+  "title": "TODO/SKIP: POI→address preferred routing (Wave 1A+1D)",
+  "classification": "pending_live_integration",
+  "categories": ["borough_manhattan", "lines_1"],
+  "origin": { "placeId": "poi:pending-midtown-landmark" },
+  "destination": {
+    "coordinate": { "lat": 40.7505, "lon": -73.9934 },
+    "label": "Midtown west near Penn"
+  },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["7"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "P1 matrix #6 PENDING. POI placeId strategy owned by Wave 1A; placeholder placeId is not a live catalog entry.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "pending_wave_1a_1d",
+  "sut": { "kind": "conductor_fixture", "responseId": "degraded-realtime" },
+  "tags": ["p1_wave1e", "p1_pending", "matrix_6", "soft_feasibility", "wave_1a", "wave_1d"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

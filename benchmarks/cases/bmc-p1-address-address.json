@@ -1,0 +1,31 @@
+{
+  "caseId": "bmc-p1-address-address",
+  "title": "TODO/SKIP: Address→address preferred routing (Wave 1A+1D)",
+  "classification": "pending_live_integration",
+  "categories": ["borough_manhattan", "lines_2"],
+  "origin": {
+    "coordinate": { "lat": 40.7553, "lon": -73.9755 },
+    "label": "Midtown Park Ave area"
+  },
+  "destination": {
+    "coordinate": { "lat": 40.7505, "lon": -73.9934 },
+    "label": "Midtown west near Penn"
+  },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["7", "2"],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "P1 matrix #5 PENDING. Both ends geocoded PlaceRefs. Soft until Wave 1A+1D integrated.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "pending_wave_1a_1d",
+  "sut": { "kind": "qa_fixture", "responseId": "p1-midtown-penn-72-oracle" },
+  "tags": ["p1_wave1e", "p1_pending", "matrix_5", "soft_feasibility", "wave_1a", "wave_1d", "privacy_safe_placeref"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

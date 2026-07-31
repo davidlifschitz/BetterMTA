@@ -1,0 +1,39 @@
+{
+  "caseId": "bmc-p1-irrelevant-preferred",
+  "title": "P1: Topologically irrelevant preferred line (omit Z)",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_manhattan",
+    "lines_3",
+    "impossible_constraint",
+    "transfer"
+  ],
+  "origin": { "stationId": "st_gct" },
+  "destination": { "stationId": "st_penn" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T09:00:00-04:00" },
+  "selectedLineIds": ["7", "2", "Z"],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_gct",
+  "expectedDestinationStationId": "st_penn",
+  "humanReviewNotes": "P1 matrix #12. Z is irrelevant for GCT→Penn; still return maximal 7+2 and explain Z omission. Synthetic.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": { "kind": "qa_fixture", "responseId": "p1-irrelevant-preferred" },
+  "tags": ["p1_wave1e", "p1_ready", "matrix_12"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

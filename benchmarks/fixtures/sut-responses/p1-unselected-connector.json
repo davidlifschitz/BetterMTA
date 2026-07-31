@@ -1,0 +1,122 @@
+{
+  "contractVersion": "2026-07-31",
+  "requestId": "req_qa_p1_unselected_connector",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": { "itineraries": [] },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_p1_connector_al",
+        "fingerprint": "fp_p1_connector_a_c_l",
+        "durationSeconds": 2160,
+        "arrivalTime": "2026-07-30T15:11:00.000Z",
+        "walkingSeconds": 360,
+        "waitingSeconds": 300,
+        "transferCount": 2,
+        "lineSequence": ["A", "C", "L"],
+        "legs": [
+          {
+            "legId": "leg_p1c_w1",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_p1c_a",
+            "kind": "transit",
+            "lineId": "A",
+            "from": { "name": "Hoyt-Schermerhorn", "stationId": "st_hoyt" },
+            "to": { "name": "W 4 St-Wash Sq", "stationId": "st_w4" },
+            "departTime": "2026-07-30T14:40:00.000Z",
+            "arriveTime": "2026-07-30T14:55:00.000Z",
+            "durationSeconds": 900
+          },
+          {
+            "legId": "leg_p1c_t1",
+            "kind": "walk",
+            "durationSeconds": 120,
+            "outOfSystem": false,
+            "instruction": "Transfer to C within complex"
+          },
+          {
+            "legId": "leg_p1c_c",
+            "kind": "transit",
+            "lineId": "C",
+            "from": { "name": "W 4 St-Wash Sq", "stationId": "st_w4" },
+            "to": { "name": "14 St", "stationId": "st_14a" },
+            "departTime": "2026-07-30T14:58:00.000Z",
+            "arriveTime": "2026-07-30T15:02:00.000Z",
+            "durationSeconds": 240
+          },
+          {
+            "legId": "leg_p1c_t2",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": false,
+            "instruction": "Transfer to L"
+          },
+          {
+            "legId": "leg_p1c_l",
+            "kind": "transit",
+            "lineId": "L",
+            "from": { "name": "6 Av", "stationId": "st_6av" },
+            "to": { "name": "1 Av", "stationId": "st_1av" },
+            "departTime": "2026-07-30T15:04:00.000Z",
+            "arriveTime": "2026-07-30T15:09:00.000Z",
+            "durationSeconds": 300
+          },
+          {
+            "legId": "leg_p1c_w2",
+            "kind": "walk",
+            "durationSeconds": 60,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["A", "L"],
+          "satisfiedLineIds": ["A", "L"],
+          "omittedLineIds": [],
+          "satisfactionCount": 2,
+          "requestedCount": 2,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "medium",
+        "alerts": [],
+        "explanation": {
+          "summary": "Uses preferred A and L; C fills a gap as an unselected connector.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the A train.", "lineId": "A" },
+            { "type": "line_used", "message": "Uses the L train.", "lineId": "L" },
+            {
+              "type": "connector_filled",
+              "message": "Uses the C train as an unselected connector.",
+              "lineId": "C"
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "preference_biased"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 2,
+      "requestedCount": 2,
+      "completeMatchFound": true
+    }
+  },
+  "candidateCoverage": {
+    "status": "adequate",
+    "familiesAttempted": ["baseline", "preference_biased", "targeted_combination"],
+    "candidateCount": 8,
+    "preferenceCoveringCandidateCount": 3,
+    "budgetExhausted": false
+  }
+}

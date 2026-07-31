@@ -1,0 +1,110 @@
+{
+  "contractVersion": "2026-07-31",
+  "requestId": "req_qa_p1_gct_penn_72gs",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": [
+      {
+        "code": "incomplete_selected_line_satisfaction",
+        "message": "Could not satisfy every preferred line; showing the best feasible match."
+      }
+    ]
+  },
+  "baseline": { "itineraries": [] },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_p1_gct_penn_72",
+        "fingerprint": "fp_p1_gct_penn_7_2",
+        "durationSeconds": 720,
+        "arrivalTime": "2026-07-30T09:12:00.000Z",
+        "walkingSeconds": 120,
+        "waitingSeconds": 90,
+        "transferCount": 1,
+        "lineSequence": ["7", "2"],
+        "legs": [
+          {
+            "legId": "leg_p1g_w1",
+            "kind": "walk",
+            "durationSeconds": 60,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_p1g_7",
+            "kind": "transit",
+            "lineId": "7",
+            "from": { "name": "Grand Central-42 St", "stationId": "st_gct" },
+            "to": { "name": "Times Sq-42 St", "stationId": "st_times" },
+            "departTime": "2026-07-30T09:02:00.000Z",
+            "arriveTime": "2026-07-30T09:05:00.000Z",
+            "durationSeconds": 180
+          },
+          {
+            "legId": "leg_p1g_t",
+            "kind": "walk",
+            "durationSeconds": 90,
+            "outOfSystem": false,
+            "instruction": "Transfer within Times Square complex"
+          },
+          {
+            "legId": "leg_p1g_2",
+            "kind": "transit",
+            "lineId": "2",
+            "from": { "name": "Times Sq-42 St", "stationId": "st_times" },
+            "to": { "name": "34 St-Penn Station", "stationId": "st_penn" },
+            "departTime": "2026-07-30T09:07:00.000Z",
+            "arriveTime": "2026-07-30T09:11:00.000Z",
+            "durationSeconds": 240
+          },
+          {
+            "legId": "leg_p1g_w2",
+            "kind": "walk",
+            "durationSeconds": 30,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["7", "2", "GS"],
+          "satisfiedLineIds": ["7", "2"],
+          "omittedLineIds": ["GS"],
+          "satisfactionCount": 2,
+          "requestedCount": 3,
+          "isComplete": false,
+          "feasibility": "partial"
+        },
+        "realtimeConfidence": "medium",
+        "alerts": [],
+        "explanation": {
+          "summary": "Best practical subset uses 7 and 2; GS omitted for this OD.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the 7 train.", "lineId": "7" },
+            { "type": "line_used", "message": "Uses the 2 train.", "lineId": "2" },
+            {
+              "type": "line_omitted",
+              "message": "Could not include the 42 St Shuttle (GS) without worsening the practical subset.",
+              "lineId": "GS"
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "targeted_combination"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 2,
+      "requestedCount": 3,
+      "completeMatchFound": false
+    }
+  },
+  "candidateCoverage": {
+    "status": "adequate",
+    "familiesAttempted": ["baseline", "preference_biased", "targeted_combination"],
+    "candidateCount": 12,
+    "preferenceCoveringCandidateCount": 5,
+    "budgetExhausted": false
+  }
+}

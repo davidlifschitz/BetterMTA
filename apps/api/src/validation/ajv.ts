@@ -33,6 +33,8 @@ export function loadValidators(contractsRoot: string): CompiledValidators {
     "satisfaction.schema.json",
     "candidate-coverage.schema.json",
     "itinerary.schema.json",
+    // Must load before route-search-response ($ref target from Wave 0 / ADR-0023).
+    "candidate-coverage.schema.json",
     "route-search-request.schema.json",
     "route-search-response.schema.json",
     "lines-response.schema.json",
