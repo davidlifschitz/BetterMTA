@@ -91,7 +91,7 @@ Preflight is read-only. Before each alpha window, the operator should still:
 4. **Confirm Docker memory ~≥12 GiB** and Resource Saver will not interrupt the window.
 5. **Confirm Software Update** will not force a reboot during the window.
 6. **Confirm free disk** is adequate for images + graphs.
-7. **Start alpha stack** (`./infra/alpha/scripts/start-alpha.sh`) and **tunnel** (`TUNNEL.md`) only when ready for testers.
+7. **Start alpha stack** (`./infra/alpha/scripts/start-alpha.sh`) and **tunnel** (`TUNNEL.md`) only when ready for testers. After a release deploy, prefer these start/stop scripts — they auto-pick `deployments/current.env` + `docker-compose.release.yml` so image pins are preserved (alpha-only compose would silently use `:local`).
 8. **Confirm Access allowlist** is current (`ACCESS.md`) — never commit tester emails.
 
 ## Related scripts
@@ -99,6 +99,6 @@ Preflight is read-only. Before each alpha window, the operator should still:
 | Script | Role |
 |---|---|
 | `scripts/preflight-host.sh` | Read-only host / Docker / tunnel / health report |
-| `scripts/start-alpha.sh` | Compose up + wait + edge smoke |
-| `scripts/stop-alpha.sh` | Compose down (volumes preserved) |
+| `scripts/start-alpha.sh` | Compose up + wait + edge smoke (release pins when `deployments/current.env` exists) |
+| `scripts/stop-alpha.sh` | Compose down (volumes preserved; same release-pin selection as start) |
 | `scripts/smoke-edge.sh` | Local edge HTTP smoke (no Cloudflare) |

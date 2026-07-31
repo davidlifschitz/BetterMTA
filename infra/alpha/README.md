@@ -105,6 +105,17 @@ cd /path/to/bettermta   # integration-live worktree
 ./infra/alpha/scripts/stop-alpha.sh       # compose down (volumes preserved)
 ```
 
+**Release pin awareness:** after a `deploy-release` / `rollback-release`, always use
+`start-alpha.sh` / `stop-alpha.sh` (they auto-pick `deployments/current.env`).
+
+| `deployments/current.env` | Compose files | Images |
+|---|---|---|
+| readable | `docker-compose.yml` + `docker-compose.alpha.yml` + `docker-compose.release.yml` | pins from `current.env` (`set -a` / source / `set +a`, same as `deployments/scripts/common.sh`) |
+| missing | alpha pair only | `:local` defaults; scripts print a clear NOTE |
+
+Do not tear down with alpha-only compose after a release deploy — that ignores
+image pins. `stop-alpha.sh` never passes `-v` (volumes preserved either way).
+
 Environment knobs for `start-alpha.sh`:
 
 | Var | Default | Meaning |
@@ -121,7 +132,7 @@ Public health (preflight only when set — secrets outside Git):
 | `CF_ACCESS_CLIENT_ID` | Access service token client id |
 | `CF_ACCESS_CLIENT_SECRET` | Access service token secret |
 
-Manual equivalent:
+Manual equivalent (no release pins):
 
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.alpha.yml build
@@ -131,6 +142,9 @@ docker-compose -f docker-compose.yml -f docker-compose.alpha.yml up -d
 # Tear down WITHOUT deleting volumes:
 docker-compose -f docker-compose.yml -f docker-compose.alpha.yml down
 ```
+
+When `deployments/current.env` exists, prefer the scripts (or add
+`-f docker-compose.release.yml` and source that env first).
 
 `stop-alpha.sh` / `down` intentionally omit `-v` so bind-mounted data and OTP
 graph artifacts persist across restarts.
@@ -149,6 +163,9 @@ Uses `docker-compose.release.yml` image env overrides. Real `deployments/current
 `previous.env` are host-local and gitignored — only `*.env.example` is tracked.
 Full rebuild is refused under ~6Gi free disk (`BLOCKED-for-disk`); prefer `--retag-only`.
 
+After a release is active, day-to-day start/stop should go through
+`./infra/alpha/scripts/start-alpha.sh` / `stop-alpha.sh` so `current.env` pins
+are loaded automatically (see Bring-up / tear-down above).
 ## External health monitor (12A.9)
 
 Lightweight probe for public reachability, `/health/live`, `/health/ready`, `/v1/status`,

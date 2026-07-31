@@ -169,6 +169,10 @@ deployments/failed-*.env
 deployments/manifests/*
 !deployments/manifests/.gitkeep
 
+# Accidental cloudflared credentials dropped in-repo (template stays tracked)
+infra/alpha/cloudflared/*.json
+**/credentials.json
+
 # Re-include infra environment templates (env/ and ENV/ above would match infra/env/)
 !infra/env/
 !infra/env/**

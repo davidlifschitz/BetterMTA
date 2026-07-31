@@ -143,10 +143,12 @@ sudo launchctl kickstart -k system/com.cloudflare.cloudflared 2>/dev/null || tru
 # Or stop+start the foreground `cloudflared tunnel run` process
 ```
 
-Confirm locally after restart:
+Confirm locally after restart (presence only — do **not** use `pgrep -lf` /
+`ps` full argv; tokens or credential paths can appear in process listings.
+Preflight detects presence the same way and intentionally omits argv):
 
 ```bash
-pgrep -lf cloudflared || echo "cloudflared not running"
+pgrep -x cloudflared >/dev/null && echo "cloudflared running" || echo "cloudflared not running"
 curl -fsS http://127.0.0.1:8088/health/live
 ```
 

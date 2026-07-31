@@ -59,9 +59,15 @@ Compose files used together:
 docker-compose.yml + docker-compose.alpha.yml + docker-compose.release.yml
 ```
 
+After a release (or rollback) is live, day-to-day lifecycle should use
+`../infra/alpha/scripts/start-alpha.sh` / `stop-alpha.sh`. Those scripts auto-detect
+`deployments/current.env`: when present they source it and include
+`docker-compose.release.yml` (same env-load pattern as `scripts/common.sh`); when
+absent they keep alpha-only `:local` compose and print a NOTE. Stop never deletes
+volumes (`down` without `-v`).
+
 Failure behavior: deploy/rollback exit non-zero on smoke/readiness failure **without**
 `docker compose down -v` and **without** deleting `previous.env`.
-
 ### Remote smoke
 
 When all three are set, post-deploy smoke also hits the public hostname via

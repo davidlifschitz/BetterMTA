@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # Phase 12A.4 — bring up controlled-alpha Compose stack and smoke the edge.
 # Idempotent: safe to re-run when the stack is already up.
+#
+# When deployments/current.env exists, includes docker-compose.release.yml and
+# sources image pins (same pattern as deployments/scripts/common.sh) so a later
+# start/stop does not silently fall back to :local.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$ROOT"
 
+CURRENT_ENV="${ROOT}/deployments/current.env"
 COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.alpha.yml)
 EDGE_BASE="${EDGE_BASE:-http://127.0.0.1:8088}"
 WAIT_SECS="${ALPHA_WAIT_SECS:-420}"
@@ -22,6 +27,15 @@ require_file() {
   [[ -f "$1" ]] || die "required file missing: $1"
 }
 
+# Mirror deployments/scripts/common.sh load_env_file (set -a / source / set +a).
+load_current_env() {
+  local file="$1"
+  set -a
+  # shellcheck disable=SC1090
+  source "$file"
+  set +a
+}
+
 log "repo root: $ROOT"
 
 require_cmd docker
@@ -35,6 +49,17 @@ require_file docker-compose.alpha.yml
 require_file infra/alpha/Caddyfile
 require_file infra/alpha/scripts/smoke-edge.sh
 
+if [[ -f "$CURRENT_ENV" && -r "$CURRENT_ENV" ]]; then
+  require_file docker-compose.release.yml
+  COMPOSE_FILES+=(-f docker-compose.release.yml)
+  load_current_env "$CURRENT_ENV"
+  log "release pins: using deployments/current.env + docker-compose.release.yml (RELEASE_ID=${RELEASE_ID:-unknown})"
+  log "  images: data=${BETTERMTA_IMAGE_DATA:-?} otp=${BETTERMTA_IMAGE_OTP:-?} api=${BETTERMTA_IMAGE_API:-?} web=${BETTERMTA_IMAGE_WEB:-?}"
+else
+  log "NOTE: no readable deployments/current.env — alpha compose only (:local image defaults)"
+  log "NOTE: after a release deploy, prefer start/stop so current.env pins are preserved"
+fi
+
 # Soft prerequisites (warn; OTP/API ready will fail closed if missing).
 if [[ ! -f services/otp/var/otp/graphs/active.json ]]; then
   log "WARN: services/otp/var/otp/graphs/active.json missing — OTP/API may not become ready"
@@ -43,7 +68,7 @@ if [[ ! -d services/data/var/data/static ]]; then
   log "WARN: services/data/var/data/static missing — data may not become ready"
 fi
 
-log "starting alpha stack (docker-compose.yml + docker-compose.alpha.yml)"
+log "starting alpha stack (${COMPOSE_FILES[*]})"
 docker-compose "${COMPOSE_FILES[@]}" up -d --remove-orphans
 
 log "waiting up to ${WAIT_SECS}s for edge health at ${EDGE_BASE}/health/live and /health/ready"
