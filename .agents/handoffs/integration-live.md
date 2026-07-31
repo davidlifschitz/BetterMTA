@@ -28,7 +28,7 @@ READY_FOR_CONTROLLED_ALPHA
 
 | SHA | Summary |
 |---|---|
-| *(pending)* | Phase 12A final certification docs + go decision (`READY_FOR_CONTROLLED_ALPHA`) — **pending certification commit after `130c4b3`** |
+| `1b1f600` | Phase 12A final certification docs + go decision (`READY_FOR_CONTROLLED_ALPHA`) |
 | `130c4b3` | 12A completion package (prior BLOCKED baseline + live Dockerfile verify gate) |
 | `7f26e1c` | 12A.13 remediations: release-pin start/stop; TUNNEL `pgrep` presence-only; gitignore cloudflared creds |
 | `c30bcd4` | 12A.11–12A.12: local reliability drills + latency sample |
