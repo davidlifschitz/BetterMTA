@@ -31,6 +31,7 @@ export function loadValidators(contractsRoot: string): CompiledValidators {
   const schemaFiles = [
     "common.schema.json",
     "satisfaction.schema.json",
+    "candidate-coverage.schema.json",
     "itinerary.schema.json",
     "route-search-request.schema.json",
     "route-search-response.schema.json",

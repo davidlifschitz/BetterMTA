@@ -1,6 +1,6 @@
 # Structured log field conventions
 
-**Owner:** Infrastructure  
+**Owner:** Infrastructure (+ Wave 1D privacy helpers in `apps/api`)  
 **Applies to:** `apps/api`, `apps/web` (server), `services/data`, `services/routing`
 
 Emit JSON logs (one event per line). Separate operational logs from product analytics.
@@ -20,12 +20,26 @@ Emit JSON logs (one event per line). Separate operational logs from product anal
 | `dataMode` | string | `live\|schedule_only\|stale\|synthetic\|unavailable` when known |
 | `errorCode` | string | Typed API error code when known |
 
-## Privacy
+## Privacy (ADR-0022 / API_CONTRACT §11)
 
-- **Do not log precise coordinates** (lat/lon at full precision). If needed for debug, geohash ≤5 or station IDs only.
-- Do not log full addresses; prefer place IDs / station IDs.
-- Do not log secrets, `Authorization`, cookies, or raw DSNs.
-- Do not log complete selected-line payloads beyond counts + hashed/sorted line ID lists when diagnosing ranking.
+Default logs/analytics **MUST NOT** retain:
+
+- Precise geocode / proximity / reverse-geocode coordinates
+- Full street-address or POI query strings (`q`, `query`, `formattedAddress`, …)
+- Raw `providerPlaceId` / vendor IDs
+- Secrets, `Authorization`, cookies, DSNs
+
+**Prefer instead:**
+
+| Allowed | Avoid by default |
+|---|---|
+| `requestId`, `placeId`, `stationId`, `kind`, BetterMTA `provider` | Precise `lat`/`lon`, proximity pins |
+| `queryLength`, `placeQueryHash` (truncated SHA-256), `proximityProvided`, `proximityGrid` (~1 km) | Raw `q` / address text |
+| `selectedLineCount` (aggregates) | Raw preferred-line ID lists in ops logs |
+| `candidateCoverageStatus`, budget counters | OTP/vendor raw payloads |
+
+TypeScript aids (contracts): `PrivacySafeRouteSearchLog` / `PrivacySafePlaceLogRef`.  
+API helpers (call from places/geocode/routing waves): `apps/api/src/logging/privacy.ts`, `redactSensitive` in `apps/api/src/logging/logger.ts`.
 
 ## Correlation
 

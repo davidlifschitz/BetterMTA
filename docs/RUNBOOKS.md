@@ -511,3 +511,38 @@ Rollback pointers: this doc § Deployment rollback / § Rollback; `infra/fly/DEP
 ## Quick reference — flags
 
 See `infra/flags/flags.json`. Emergency product off switch: `maintenance_mode=true`.
+
+---
+
+## Place/geocode & candidate-coverage privacy (Wave 1D)
+
+**Related:** ADR-0022, API_CONTRACT §11, `infra/observability/log-fields.md`, `infra/observability/metrics.md`, R10/R25.
+
+### What must never appear in default logs/analytics
+
+- Raw place-search `q` / street address / POI free text
+- Precise proximity or OD coordinates
+- Raw `providerPlaceId` / vendor payloads
+- Preferred-line ID lists in operational metrics (use counts/buckets)
+
+### Safe substitutes already emitted by API
+
+| Signal | Where |
+|---|---|
+| `placeQueryHash`, `queryLength`, `proximityGrid`, `proximityProvided` | `places_ok` logs |
+| `selectedLineCount`, PrivacySafe OD refs (`placeId` / `stationId` / `coarseGrid`) | `route_search_ok` logs |
+| `bettermta_place_provider_*`, `bettermta_candidate_*`, `bettermta_preference_coverage_total` | in-process `PrivacySafeMetrics` |
+
+### Suspected privacy leak
+
+1. Grep recent API logs for `places_ok` / `route_search_ok` — confirm no decimal coords beyond 2 places and no address substrings.
+2. Confirm geocode flag-off path still station-index only until attribution + privacy checklist pass.
+3. Do **not** enable durable retention of precise pins without a reviewed transport (ADR-0017 family).
+4. Regression: `npm --prefix apps/api test -- test/privacy.test.ts`.
+
+### Hooks for other waves
+
+| Wave | Call |
+|---|---|
+| Places / geocode adapter | `hashPlaceQuery`, `coarseGridId`, `hashVendorId`, `PrivacySafeMetrics.recordPlaceProvider` |
+| Routing candidate orchestration | `PrivacySafeMetrics.recordCandidateCoverage` / `recordPreferenceCoverage` (or API `recordRouteSearchPrivacySignals`) |

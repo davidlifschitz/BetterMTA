@@ -1,9 +1,14 @@
 import type { FastifyInstance } from "fastify";
 import { ApiError } from "../../errors/apiError.js";
 import { MAX_PAYLOAD_BYTES } from "../../constants.js";
+import { buildPrivacySafeRouteSearchLog } from "../../logging/privacy.js";
 import { formatAjvErrors } from "../../validation/ajv.js";
 import type { RouteSearchRequest } from "../../types.js";
 import { executeRouteSearch, newRequestId } from "../../services/routeSearch.js";
+import {
+  recordInsufficientCoveragePrivacySignals,
+  recordRouteSearchPrivacySignals,
+} from "../../services/privacySignals.js";
 import {
   assertRateLimit,
   sendApiError,
@@ -19,6 +24,7 @@ export async function registerRouteSearch(
     const requestId = newRequestId(request.headers["x-request-id"]);
     request.requestId = requestId;
     setContractHeaders(reply, requestId);
+    let body: RouteSearchRequest | undefined;
 
     try {
       assertRateLimit(deps, request, requestId);
@@ -33,7 +39,7 @@ export async function registerRouteSearch(
         );
       }
 
-      const body = request.body as RouteSearchRequest | undefined;
+      body = request.body as RouteSearchRequest | undefined;
       if (!body || typeof body !== "object") {
         throw new ApiError(
           "invalid_input",
@@ -93,13 +99,13 @@ export async function registerRouteSearch(
 
       try {
         const result = await Promise.race([work, hardTimeout]);
-        deps.logger.info("route_search_ok", {
+        recordRouteSearchPrivacySignals({
+          body,
+          result,
           requestId,
-          route: "/v1/routes/search",
-          method: "POST",
-          statusCode: 200,
           durationMs: Date.now() - request.startedAt,
-          dataMode: result.dataMode,
+          logger: deps.logger,
+          privacyMetrics: deps.privacyMetrics,
         });
         return reply.status(200).send(result);
       } catch (err) {
@@ -120,6 +126,32 @@ export async function registerRouteSearch(
       }
     } catch (err) {
       if (err instanceof ApiError) {
+        if (err.code === "insufficient_candidate_coverage" && body) {
+          recordInsufficientCoveragePrivacySignals({
+            privacyMetrics: deps.privacyMetrics,
+            details: err.details as
+              | {
+                  status?: string;
+                  familiesAttempted?: string[];
+                  candidateCount?: number;
+                  preferenceCoveringCandidateCount?: number;
+                  budgetExhausted?: boolean;
+                }
+              | undefined,
+          });
+          deps.logger.warn("route_search_coverage_exhausted", {
+            route: "/v1/routes/search",
+            errorCode: err.code,
+            statusCode: err.httpStatus,
+            ...buildPrivacySafeRouteSearchLog({
+              requestId,
+              origin: body.origin,
+              destination: body.destination,
+              timingType: body.timing.type,
+              selectedLineIds: body.selectedLineIds,
+            }),
+          });
+        }
         sendApiError(reply, err, deps.logger);
         return;
       }

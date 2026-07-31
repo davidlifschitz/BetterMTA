@@ -61,6 +61,7 @@ Secret scanning: rely on GitHub push protection + never commit `.env` (see `infr
 | Monthly spend alert | $75 (human-configured in Fly billing) |
 | Hard rethink threshold | $150/mo sustained without traffic justification |
 | Preview apps | api+web only; do not run duplicate production pollers per PR |
+| Geocode / place provider | Feature-flagged; no default precise-coord retention; do not log vendor hostnames or raw query text (ADR-0022 / Wave 1D) |
 
 Do **not** scale the API above 1 Machine in public beta. Multi-replica API would
 partition rate-limit buckets and under-enforce Acceptance Criteria E.5.

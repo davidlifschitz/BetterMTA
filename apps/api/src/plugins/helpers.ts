@@ -5,6 +5,7 @@ import { ApiError } from "../errors/apiError.js";
 import type { Logger } from "../logging/logger.js";
 import type { MemoryCache } from "../cache/memoryCache.js";
 import type { LatencyHistogram } from "../metrics/latency.js";
+import type { PrivacySafeMetrics } from "../metrics/privacyMetrics.js";
 import type { FixedWindowRateLimiter } from "../plugins/rateLimit.js";
 import type { DataAdapter, RoutingAdapter } from "../adapters/types.js";
 import type { CompiledValidators } from "../validation/ajv.js";
@@ -22,6 +23,8 @@ export interface AppDeps {
   linesCache: MemoryCache<LinesResponse>;
   routeCache: MemoryCache<RouteSearchResponse>;
   latency: LatencyHistogram;
+  /** Place/geocode + candidate-coverage counters (privacy-bounded labels). */
+  privacyMetrics: PrivacySafeMetrics;
 }
 
 declare module "fastify" {

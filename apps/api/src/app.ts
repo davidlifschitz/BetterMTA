@@ -17,6 +17,7 @@ import { MAX_PAYLOAD_BYTES } from "./constants.js";
 import { ApiError } from "./errors/apiError.js";
 import { createLogger } from "./logging/logger.js";
 import { LatencyHistogram } from "./metrics/latency.js";
+import { PrivacySafeMetrics } from "./metrics/privacyMetrics.js";
 import { FixedWindowRateLimiter } from "./plugins/rateLimit.js";
 import {
   sendApiError,
@@ -72,6 +73,8 @@ export async function buildApp(
     options.deps?.routeCache ??
     new MemoryCache<RouteSearchResponse>(config.routeCacheTtlMs);
   const latency = options.deps?.latency ?? new LatencyHistogram();
+  const privacyMetrics =
+    options.deps?.privacyMetrics ?? new PrivacySafeMetrics();
 
   const deps: AppDeps = {
     config,
@@ -84,6 +87,7 @@ export async function buildApp(
     linesCache,
     routeCache,
     latency,
+    privacyMetrics,
   };
 
   const app = Fastify({
