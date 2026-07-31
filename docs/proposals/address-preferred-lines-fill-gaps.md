@@ -1,11 +1,11 @@
 # Proposal: Address-to-address search + preferred lines that fill gaps
 
-> **Disposition (2026-07-31):** **PROPOSED** — for Controlled Alpha Review 1 / conductor. Do **not** treat as accepted until an ADR supersedes or amends ADR-0013 and product wording in `PROJECT_CONTEXT.md` / `PRD.md`.  
+> **Disposition (2026-07-31):** **ACCEPTED — P1** by conductor/product owner. Authorizes ADR-0013 amendment, preferred-line semantics, and BetterMTA-owned candidate coverage. All other deferred epics (D1–D6) remain out of scope until separately authorized. Implementation proceeds only via the bounded multi-agent program (`agent/p1-address-preferred-lines`); Wave 0 contract lock must land before application code.  
 > **Triggered by:** controlled-alpha solo findings (277 Park → Penn; 0-of-3 with preferred 2/7/GS). See `docs/alpha/CONTROLLED_ALPHA_LOG.md`.
 
 **From:** Operator / Integration (controlled-alpha learning)  
 **Date:** 2026-07-31  
-**Status:** Proposed  
+**Status:** Accepted — **P1**  
 **Impacts:** Product, Backend (places), Routing (candidate orchestration), Frontend (copy + place entry), Data (geocode adapter), Infra (vendor secrets / cost), Privacy
 
 ---

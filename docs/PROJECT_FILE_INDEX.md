@@ -18,6 +18,7 @@
 - `INTEGRATION_SEQUENCE.md`
 - `ACCEPTANCE_CRITERIA.md`
 - `RISK_REGISTER.md`
+- `DEFERRED_BACKLOG.md` — post-P1 deferred epics D1–D6 (do not implement in P1)
 - `WORKSTREAM_OWNERSHIP.md`
 - `CONDUCTOR_PACKAGE.md`
 - `../contracts/**` — OpenAPI, JSON Schema, TypeScript types, fixtures
