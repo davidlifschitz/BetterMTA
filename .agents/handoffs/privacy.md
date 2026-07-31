@@ -3,7 +3,8 @@
 **Branch:** `agent/p1-wave1-privacy`  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-p1-wave1-privacy`  
 **Lock tip (start):** `b9139fb`  
-**Tip SHA (this wave):** `858f69e` (branch HEAD; includes this handoff)  
+**Tip SHA (this wave):** `5dcae5c` (branch HEAD)  
+**Implementation commit:** `e600ef2`  
 **Date:** 2026-07-31  
 **Contract version consumed:** `2026-07-31` (read-only; no `contracts/**` edits)
 **Remote:** `origin/agent/p1-wave1-privacy` pushed (no main merge; no redeploy)
