@@ -65,11 +65,9 @@
 
 | Date/time | Build/release | Search scenario | Selected lines | Outcome | Data mode | Latency | Classification | Severity | Follow-up |
 |---|---|---|---|---|---|---|---|---|---|
-| _solo window start — append rows below_ | | | | | | | | | |
-
-<!-- Example row (delete when real findings exist):
-| 2026-07-31T13:00-04:00 | certified-alpha | Carroll St → Bryant Park | F | Success / complete match | stale | ~2.1s | Observation | observation | — |
--->
+| 2026-07-31T12:40-04:00 | rel-20260731T155125Z-cert-distinct | Operator commute framing: Midtown office (~277 Park) → Penn Station (NYC), then onward NJ home | Expected rider set: 7, **S** (42 St Shuttle), 1/2/3 | Confusing — picker has no badge labeled **S**; 42 St Shuttle appears as **GS**. Lines **1/2/3/7 are present**. NJ Transit / PATH not in catalog (subway-only MVP). | n/a (picker) | n/a | UI / Product | major | Label GS as rider-facing **S** (keep `lineId` GS for GTFS); optional alias search. NJ out of scope — document. Do not change certification. |
+| 2026-07-31T12:42-04:00 | rel-20260731T155125Z-cert-distinct | ~277 Park (coordinate/address-like origin) → 34 St-Penn; selected **2, 7, GS** | 2, 7, GS | Failure/confusing — UI: “0 of 3 lines”, B/D/M only, ~19 min walk, omits all selected. Reproduced: place search `277 Park` → **0 hits**; coord≈Park/48th → OTP baseline only **D/M/B** (bestSatisfactionCount **0**). Same lines from **Grand Central-42 St → 34 St-Penn (128)** → **7+2** (2/3, omits GS). | live (itineraries schedule-labeled in UI) | ~22 min shown | Routing / Data | major | OTP natural-candidate diversity gap (open risk). Address/POI place search gap. Prefer station PlaceRefs (GCT). Don’t require GS+7+2 together for this OD — 7+2 is the practical pair. Product follow-up: constrained candidate generation / better origin resolution. |
+| 2026-07-31T12:46-04:00 | rel-20260731T155125Z-cert-distinct | Product direction from operator: any address → any address; user states preferred lines; app fills gaps (walks/transfers/unselected connectors) | preferred lines (not full line enumeration) | Product gap vs current alpha — today: ADR-0013 deferred address/POI geocode (station-index-first); OTP natural candidates + hard selected-line maximization can yield **0-of-N** when preferred lines aren’t in the OTP top set. PRD already lists address origins/destinations; implementation is narrower. | n/a | n/a | Product | blocking (for intended UX) | Proposal drafted: `docs/proposals/address-preferred-lines-fill-gaps.md` (P1 recommended). Escalate at Controlled Alpha Review 1. Do **not** silently change locked ADRs; do **not** change certification. |
 
 ## Review checkpoint — Controlled Alpha Review 1
 

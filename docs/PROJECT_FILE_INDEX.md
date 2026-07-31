@@ -18,6 +18,7 @@
 - `INTEGRATION_SEQUENCE.md`
 - `ACCEPTANCE_CRITERIA.md`
 - `RISK_REGISTER.md`
+- `DEFERRED_BACKLOG.md` — post-P1 deferred epics D1–D6 (do not implement in P1)
 - `WORKSTREAM_OWNERSHIP.md`
 - `CONDUCTOR_PACKAGE.md`
 - `../contracts/**` — OpenAPI, JSON Schema, TypeScript types, fixtures
@@ -45,6 +46,7 @@
 - `../deployments/README.md` — Phase 12A.8 immutable release IDs + deploy/rollback
 - `../docker-compose.release.yml` — release image-tag overrides for alpha compose
 - `../infra/alpha/cloudflared/config.template.yml` — tunnel ingress template (placeholders only)
+- `../docs/proposals/address-preferred-lines-fill-gaps.md` — PROPOSED: address/POI + preferred lines fill gaps (Controlled Alpha Review 1)
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 
 ## Agent prompts
