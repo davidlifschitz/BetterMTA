@@ -1,0 +1,19 @@
+{
+  "error": {
+    "code": "insufficient_candidate_coverage",
+    "message": "Could not generate enough preference-covering route candidates within the search budget. Try again or adjust preferred lines.",
+    "requestId": "req_fixture_coverage",
+    "details": {
+      "requestedLineIds": ["2", "7", "GS"],
+      "status": "exhausted",
+      "familiesAttempted": [
+        "baseline",
+        "preference_biased",
+        "targeted_combination"
+      ],
+      "candidateCount": 6,
+      "preferenceCoveringCandidateCount": 0,
+      "budgetExhausted": true
+    }
+  }
+}

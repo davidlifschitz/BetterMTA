@@ -1,6 +1,6 @@
 {
   "name": "@bettermta/contracts",
-  "version": "2026.7.30",
+  "version": "2026.7.31",
   "private": true,
   "description": "Implementation-neutral BetterMTA shared contracts (conductor-owned)",
   "type": "module",

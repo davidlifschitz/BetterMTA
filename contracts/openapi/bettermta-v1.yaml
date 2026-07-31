@@ -1,10 +1,14 @@
 openapi: 3.0.3
 info:
   title: BetterMTA Application API
-  version: "2026-07-30"
+  version: "2026-07-31"
   description: |
-    Locked v1 contract for BetterMTA public-beta experiment.
+    Locked v1 contract for BetterMTA public-beta experiment (Wave 0B additive lock 2026-07-31).
     Implementation-neutral. Owned by the conductor workstream.
+    Additive since 2026-07-30: place provider/attribution fields (ADR-0022),
+    optional candidateCoverage diagnostics, connector_filled explanation fact,
+    and explicit insufficient_candidate_coverage error fixture semantics (ADR-0023).
+    PlaceRef shapes and internal lineId values are unchanged.
 servers:
   - url: /
     description: Relative to API host
@@ -19,7 +23,7 @@ paths:
     post:
       tags: [routes]
       operationId: searchRoutes
-      summary: Search baseline and selected-line constrained routes
+      summary: Search baseline and preferred-line constrained routes
       parameters:
         - $ref: "#/components/parameters/RequestIdHeader"
         - $ref: "#/components/parameters/ClientHeader"
@@ -39,7 +43,7 @@ paths:
             X-Request-Id:
               schema: { type: string }
             X-Contract-Version:
-              schema: { type: string, example: "2026-07-30" }
+              schema: { type: string, example: "2026-07-31" }
           content:
             application/json:
               schema:
@@ -75,7 +79,11 @@ paths:
     get:
       tags: [places]
       operationId: searchPlaces
-      summary: Place autocomplete
+      summary: Place autocomplete (stations + feature-flagged address/POI)
+      description: |
+        Station-index results remain authoritative for subway stations.
+        Address/POI geocode results are additive behind a feature flag (ADR-0022).
+        Do not log proximityLat/proximityLon precisely by default.
       parameters:
         - name: q
           in: query
@@ -100,6 +108,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlaceSearchResponse"
+              examples:
+                stations:
+                  $ref: "#/components/examples/PlaceSearchStations"
+                addressPoi:
+                  $ref: "#/components/examples/PlaceSearchAddress"
         "400":
           $ref: "#/components/responses/BadRequest"
         "429":
@@ -161,7 +174,7 @@ components:
   schemas:
     ContractVersion:
       type: string
-      enum: ["2026-07-30"]
+      enum: ["2026-07-31"]
     DataMode:
       type: string
       enum: [live, schedule_only, stale, synthetic, unavailable]
@@ -214,6 +227,7 @@ components:
           maxItems: 5
           items: { type: string, minLength: 1 }
           uniqueItems: true
+          description: Preferred subway lineIds to maximize (ADR-0023). Internal ids (GS stays GS).
         clientContext:
           type: object
           properties:
@@ -257,6 +271,7 @@ components:
           enum:
             - line_used
             - line_omitted
+            - connector_filled
             - transfer
             - walk
             - wait
@@ -266,6 +281,28 @@ components:
         message: { type: string }
         lineId: { type: string }
         seconds: { type: integer }
+      additionalProperties: false
+    CandidateCoverage:
+      type: object
+      description: Privacy-safe preferred-line candidate-generation diagnostics (ADR-0023).
+      required:
+        - status
+        - familiesAttempted
+        - candidateCount
+        - preferenceCoveringCandidateCount
+        - budgetExhausted
+      properties:
+        status:
+          type: string
+          enum: [adequate, degraded, exhausted]
+        familiesAttempted:
+          type: array
+          items:
+            type: string
+            enum: [baseline, constrained, preference_biased, targeted_combination]
+        candidateCount: { type: integer, minimum: 0 }
+        preferenceCoveringCandidateCount: { type: integer, minimum: 0 }
+        budgetExhausted: { type: boolean }
       additionalProperties: false
     Explanation:
       type: object
@@ -451,6 +488,8 @@ components:
                 completeMatchFound: { type: boolean }
               additionalProperties: false
           additionalProperties: false
+        candidateCoverage:
+          $ref: "#/components/schemas/CandidateCoverage"
         experiment:
           type: object
           properties:
@@ -485,15 +524,28 @@ components:
       type: object
       required: [placeId, label, kind]
       properties:
-        placeId: { type: string }
+        placeId:
+          type: string
+          description: Stable BetterMTA place id for PlaceRef.placeId
         label: { type: string }
         kind:
           type: string
           enum: [station, address, poi, current_location, coordinate]
+          description: Place type discriminator (placeType equivalent)
         stationId: { type: string }
         borough: { type: string }
         lat: { type: number }
         lon: { type: number }
+        provider:
+          type: string
+          description: BetterMTA provider id (e.g. station_index, geocoder); never a vendor hostname
+        providerPlaceId:
+          type: string
+          description: Opaque upstream id; clients must use placeId in PlaceRef
+        formattedAddress: { type: string }
+        attribution:
+          type: string
+          description: Required for UI when showing geocode-backed address/POI results
       additionalProperties: false
     PlaceSearchResponse:
       type: object
@@ -501,6 +553,9 @@ components:
       properties:
         contractVersion: { $ref: "#/components/schemas/ContractVersion" }
         query: { type: string }
+        attribution:
+          type: string
+          description: Optional response-level attribution for UI chrome
         places:
           type: array
           items: { $ref: "#/components/schemas/Place" }
@@ -597,10 +652,16 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ApiError" }
     ServiceUnavailable:
-      description: Data unavailable or insufficient coverage
+      description: |
+        Data unavailable or insufficient preferred-line candidate coverage.
+        When code is insufficient_candidate_coverage, details SHOULD include
+        CandidateCoverage fields (privacy-safe; no coordinates).
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ApiError" }
+          examples:
+            insufficientCandidateCoverage:
+              $ref: "#/components/examples/InsufficientCandidateCoverage"
     Timeout:
       description: Timeout
       content:
@@ -616,9 +677,9 @@ components:
         selectedLineIds: ["F", "D"]
         clientContext: { viewport: mobile, experimentOptIn: true }
     RouteSearchCompleteMatch:
-      summary: Complete selected-line match (synthetic fixture shape)
+      summary: Complete preferred-line match (synthetic fixture shape)
       value:
-        contractVersion: "2026-07-30"
+        contractVersion: "2026-07-31"
         requestId: "req_fixture_complete"
         staticDatasetVersion: "gtfs_fixture_v1"
         realtimeSnapshotId: "rt_fixture_v1"
@@ -635,5 +696,53 @@ components:
             bestSatisfactionCount: 2
             requestedCount: 2
             completeMatchFound: true
+        candidateCoverage:
+          status: adequate
+          familiesAttempted: [baseline, constrained, preference_biased]
+          candidateCount: 8
+          preferenceCoveringCandidateCount: 3
+          budgetExhausted: false
         experiment:
           explanationVariant: concise
+    PlaceSearchStations:
+      summary: Station-index autocomplete
+      value:
+        contractVersion: "2026-07-31"
+        query: "union"
+        places:
+          - placeId: "pl_union_sq"
+            label: "Union Square"
+            kind: station
+            stationId: "st_union_sq"
+            borough: "Manhattan"
+            provider: station_index
+    PlaceSearchAddress:
+      summary: Address/POI geocode results (feature-flagged)
+      value:
+        contractVersion: "2026-07-31"
+        query: "277 Park"
+        attribution: "Address results via BetterMTA geocoder adapter"
+        places:
+          - placeId: "pl_geo_277_park_ave"
+            label: "277 Park Avenue"
+            kind: address
+            provider: geocoder
+            providerPlaceId: "prov_opaque_277_park"
+            formattedAddress: "277 Park Avenue, New York, NY 10017"
+            attribution: "Address results via BetterMTA geocoder adapter"
+            lat: 40.7553
+            lon: -73.975
+    InsufficientCandidateCoverage:
+      summary: Preferred-line candidate budget exhausted (ADR-0023)
+      value:
+        error:
+          code: insufficient_candidate_coverage
+          message: "Could not generate enough preference-covering route candidates within the search budget."
+          requestId: "req_fixture_coverage"
+          details:
+            requestedLineIds: ["2", "7", "GS"]
+            status: exhausted
+            familiesAttempted: [baseline, preference_biased, targeted_combination]
+            candidateCount: 6
+            preferenceCoveringCandidateCount: 0
+            budgetExhausted: true

@@ -2,7 +2,7 @@
 
 **Owner:** Conductor  
 **Status:** Initial register for public-beta experiment  
-**Last updated:** 2026-07-31 (PR #3 merged to `main` @ `90b6462`; npm advisory follow-up R24)
+**Last updated:** 2026-07-31 (P1 Wave 0A ADR/product semantics: ADR-0022/0023; npm advisory follow-up R24 still open)
 
 Severity: `critical` \| `high` \| `medium` \| `low`  
 Likelihood: `high` \| `medium` \| `low`
@@ -12,8 +12,8 @@ Likelihood: `high` \| `medium` \| `low`
 | R1 | Parallel agents fork shared types/API | high | high | Conductor-owned `contracts/**`; ownership map; review gate before parallel start | Conductor |
 | R2 | Custom router delays MVP | high | medium | ADR-0002 prefer OTP/mature engine; ranking layer separable | Routing |
 | R3 | Stale realtime shown as live | critical | medium | `dataMode` required; UI labeling tests; stale alerts | Data + FE + QA |
-| R4 | Selected-line accounting bugs | critical | medium | Property tests; satisfaction schema; benchmark invariants | Routing + QA |
-| R5 | Place/geocode vendor gaps for NYC stations | high | medium | Station-first search; fixture places; explicit unknown_place | Backend |
+| R4 | Preferred-line satisfaction accounting bugs | critical | medium | Property tests; satisfaction schema; benchmark invariants; ADR-0023 ranking order | Routing + QA |
+| R5 | Place/geocode vendor gaps for NYC stations or addresses | high | medium | Station index authoritative (ADR-0022); geocoder abstraction; honest empty/`unknown_place`; feature flag | Backend |
 | R6 | p95 > 2s under load | high | medium | Candidate budgets; caching keyed by snapshot; probes | Routing + API + Infra |
 | R7 | GTFS route_id instability / shuttles break line mapping | high | medium | Versioned lineId mapping; quarantine unknowns | Data |
 | R8 | Over-scope (accounts, multi-modal, AI) | high | medium | MVP scope lock ADR-0001 | Conductor |
@@ -33,12 +33,15 @@ Likelihood: `high` \| `medium` \| `low`
 | R22 | Cloudflare Tunnel or Access misconfiguration exposes origin or locks out testers | critical | low | Deny-by-default Access verified; approved/denied auth PASS; remote monitor PASS; secrets out of repo; LaunchAgent canonical runner | Infra |
 | R23 | Self-hosted origin treated as cloud-grade / public-beta ready | high | medium | Status vocabulary: `READY_FOR_CONTROLLED_ALPHA` ≠ private/public beta; ADR-0021 honesty in handoff + gate report | Conductor + Integration |
 | R24 | High/critical npm advisories on pinned deps (incl. Next.js `15.3.5` in `apps/web`; also `services/data`) while CI `dependency-audit` remains warning-only | high | medium | Separate follow-up: inventory advisories from CI run logs, plan compatible upgrades, re-run live build + `verify:no-fixtures`; do **not** auto-rebuild/redeploy certified alpha for packaging-only merges | Frontend + Infra + Integration |
+| R25 | Geocode vendor privacy, cost, or attribution miss after ADR-0022 reopen | high | medium | Provider abstraction; no default precise-coord retention; attribution path before flag-on; secrets out of repo | Backend + FE + Infra |
+| R26 | Preferred-line candidate coverage gap (OTP top-N misses preferences → silent 0-of-N) | critical | high | ADR-0023 orchestration; multi-family/via budget; explicit `insufficient_candidate_coverage`; property + alpha corpus cases | Routing + API + QA |
+| R27 | Rider confusion: “required” copy vs fill-gaps connectors / GS vs S labeling | medium | medium | FE copy + S/GS presentation (ADR-0023 note); partial-match banners; no runtime lineId rename | Frontend + Product |
 
 ## Top watchlist for first integration
 
 1. R3 data honesty  
-2. R4 constraint accounting  
-3. R2 engine decision latency  
+2. R4 preferred-line satisfaction accounting  
+3. R26 candidate coverage / silent 0-of-N  
 4. R13 merge conflicts on shared files  
 
 ## Controlled-alpha watchlist (Phase 12A)
@@ -48,7 +51,9 @@ Likelihood: `high` \| `medium` \| `low`
 3. R21 Docker/Colima resource pressure  
 4. R23 over-claiming (do not equate controlled alpha with Fly private/public beta)  
 5. R22 Access allowlist drift / token rotation hygiene  
-6. R24 npm / Next.js advisory remediation (separate from alpha certification)
+6. R24 npm / Next.js advisory remediation (separate from alpha certification)  
+7. R26 preferred-line candidate coverage (P1 routing waves; docs-only until implemented)  
+8. R25 geocode privacy/attribution when address/POI flag enables
 
 ## Follow-ups (tracked, not blocking controlled alpha)
 

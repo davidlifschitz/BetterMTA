@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/schemas/candidate-coverage.schema.json",
+  "title": "CandidateCoverage",
+  "description": "Privacy-safe preferred-line candidate-generation diagnostics (ADR-0023). No coordinates, query text, or vendor payloads.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "familiesAttempted",
+    "candidateCount",
+    "preferenceCoveringCandidateCount",
+    "budgetExhausted"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["adequate", "degraded", "exhausted"],
+      "description": "adequate = preference-covering candidates found when topology allows; degraded = some coverage under budget pressure; exhausted = budget ended without trustworthy preference-covering candidates."
+    },
+    "familiesAttempted": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "baseline",
+          "constrained",
+          "preference_biased",
+          "targeted_combination"
+        ]
+      },
+      "description": "Candidate-generation families queried for this search."
+    },
+    "candidateCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Distinct candidates considered after dedupe."
+    },
+    "preferenceCoveringCandidateCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Candidates with satisfactionCount > 0 when preferred lines were requested; equals candidateCount when selectedLineIds is empty."
+    },
+    "budgetExhausted": {
+      "type": "boolean",
+      "description": "True when the candidate/time budget stopped generation."
+    }
+  }
+}

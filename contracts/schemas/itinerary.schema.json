@@ -145,6 +145,7 @@
                 "enum": [
                   "line_used",
                   "line_omitted",
+                  "connector_filled",
                   "transfer",
                   "walk",
                   "wait",

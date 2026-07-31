@@ -14,7 +14,7 @@
     "constrained"
   ],
   "properties": {
-    "contractVersion": { "const": "2026-07-30" },
+    "contractVersion": { "const": "2026-07-31" },
     "requestId": { "type": "string", "minLength": 1 },
     "staticDatasetVersion": { "type": "string", "minLength": 1 },
     "realtimeSnapshotId": { "type": ["string", "null"] },
@@ -80,6 +80,9 @@
           }
         }
       }
+    },
+    "candidateCoverage": {
+      "$ref": "candidate-coverage.schema.json"
     },
     "experiment": {
       "type": "object",
