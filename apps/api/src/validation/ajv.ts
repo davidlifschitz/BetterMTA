@@ -31,7 +31,6 @@ export function loadValidators(contractsRoot: string): CompiledValidators {
   const schemaFiles = [
     "common.schema.json",
     "satisfaction.schema.json",
-    "candidate-coverage.schema.json",
     "itinerary.schema.json",
     // Must load before route-search-response ($ref target from Wave 0 / ADR-0023).
     "candidate-coverage.schema.json",
