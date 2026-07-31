@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-30",
+  "notes": "PLACEHOLDER defaults for public beta. Runtime may override via env FEATURE_FLAGS_JSON or platform config. Owners must be humans/workstreams, not bots.",
+  "flags": {
+    "realtime_enabled": {
+      "default": true,
+      "type": "boolean",
+      "owner": "data",
+      "description": "When false, API/routing must operate in schedule_only and label results accordingly.",
+      "safeDisable": "Set false to stop consuming realtime; fall back to schedule_only. Prefer over serving unlabeled stale data."
+    },
+    "constraints_enabled": {
+      "default": true,
+      "type": "boolean",
+      "owner": "routing",
+      "description": "When false, skip selected-line constraint ranking path; still return baseline itineraries.",
+      "safeDisable": "Set false if constrained ranking misbehaves; baseline-only results remain available."
+    },
+    "explanation_variant": {
+      "default": "standard",
+      "type": "string",
+      "allowedValues": ["standard", "concise", "verbose"],
+      "owner": "frontend",
+      "description": "Controls explanation density returned/displayed.",
+      "safeDisable": "Set to concise to reduce payload/UI risk; does not change ranking."
+    },
+    "result_count": {
+      "default": 3,
+      "type": "number",
+      "min": 1,
+      "max": 3,
+      "owner": "backend",
+      "description": "Max itineraries returned for constrained and baseline lists (API contract: at most 3 per list).",
+      "safeDisable": "Lower toward 1 under load to protect latency SLOs (hard max remains 3)."
+    },
+    "maintenance_mode": {
+      "default": false,
+      "type": "boolean",
+      "owner": "infrastructure",
+      "description": "When true, API returns typed unavailable / maintenance responses; web shows maintenance UI.",
+      "safeDisable": "This flag IS the safe disable for the product surface — set true during incidents."
+    },
+    "candidate_strategy": {
+      "default": "default",
+      "type": "string",
+      "allowedValues": ["default", "baseline_only", "experimental_a"],
+      "owner": "routing",
+      "description": "Selects candidate-generation strategy variant for experiments.",
+      "safeDisable": "Set to default or baseline_only if experimental strategy regresses; keep ranking contract intact."
+    }
+  }
+}

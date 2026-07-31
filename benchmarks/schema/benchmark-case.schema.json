@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bettermta.local/benchmarks/schema/benchmark-case.schema.json",
+  "title": "BetterMTABenchmarkCase",
+  "description": "QA-owned benchmark case. References conductor domain concepts (feasibility, satisfaction, lineId, PlaceRef, Timing) without copying or modifying contracts/**.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "caseId",
+    "title",
+    "classification",
+    "origin",
+    "destination",
+    "timing",
+    "selectedLineIds",
+    "expectedFeasibility",
+    "minimumSatisfactionCount",
+    "invariantAssertions",
+    "humanReviewNotes",
+    "staticDatasetVersion",
+    "realtimeFixtureVersion",
+    "sut"
+  ],
+  "properties": {
+    "caseId": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^bmc-[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stable benchmark case ID (bmc-<slug>)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short human-readable title."
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "synthetic_contract_fixture",
+        "recorded_data",
+        "live",
+        "manually_reviewed_real_trip",
+        "pending_live_integration",
+        "external_comparison_manual"
+      ],
+      "description": "Honest provenance label. Never treat synthetic_contract_fixture as a verified real-world outcome. Use recorded_data only for responses saved under benchmarks/fixtures/recorded-responses/. Use live for cases that hit the live HTTP SUT at gate time. Use pending_live_integration when a slot is reserved but evidence is not yet collected (do not claim recorded_data or external_comparison_manual until real evidence exists)."
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "borough_manhattan",
+          "borough_brooklyn",
+          "borough_queens",
+          "borough_bronx",
+          "borough_staten_island",
+          "cross_borough",
+          "peak",
+          "off_peak",
+          "lines_1",
+          "lines_2",
+          "lines_3",
+          "lines_0",
+          "transfer",
+          "no_transfer",
+          "incompatible_lines",
+          "duplicate_selection",
+          "local_express",
+          "station_complex",
+          "od_on_selected_lines",
+          "impossible_constraint",
+          "baseline_only",
+          "degraded_realtime",
+          "ordering"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "origin": { "$ref": "#/$defs/placeRef" },
+    "destination": { "$ref": "#/$defs/placeRef" },
+    "timing": { "$ref": "#/$defs/timing" },
+    "selectedLineIds": {
+      "type": "array",
+      "maxItems": 5,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Selected lineIds (conductor domain). Duplicates allowed in cases that test dedupe behavior."
+    },
+    "expectedFeasibility": {
+      "type": "string",
+      "enum": ["complete", "partial", "none", "not_applicable"],
+      "description": "Expected SatisfactionResult.feasibility for the best constrained result (or not_applicable for baseline-only)."
+    },
+    "minimumSatisfactionCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minimum distinct selected lines the best constrained itinerary must satisfy (0 when not_applicable or none)."
+    },
+    "invariantAssertions": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "valid_itinerary_structure",
+          "origin_destination_consistency",
+          "chronological_legs",
+          "nonnegative_durations",
+          "satisfaction_accounting",
+          "complete_beats_partial",
+          "max_satisfaction_before_time",
+          "deterministic_order",
+          "max_three_itineraries",
+          "honest_data_mode",
+          "impossible_constraint_explanation",
+          "expected_feasibility",
+          "minimum_satisfaction"
+        ]
+      }
+    },
+    "humanReviewNotes": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Notes for human review checklist (physically valid, practical, constraint-correct, understandable, missing obvious route, preferable to baseline)."
+    },
+    "staticDatasetVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "realtimeFixtureVersion": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Realtime fixture / snapshot version pin (opaque string). Use 'none' when schedule-only."
+    },
+    "expectedOriginStationId": {
+      "type": "string",
+      "description": "Optional stationId expected near origin for OD consistency checks."
+    },
+    "expectedDestinationStationId": {
+      "type": "string",
+      "description": "Optional stationId expected near destination for OD consistency checks."
+    },
+    "sut": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "responseId"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "conductor_fixture",
+            "qa_fixture",
+            "recorded_response",
+            "live"
+          ],
+          "description": "conductor_fixture → contracts/fixtures/routes/*.json; qa_fixture → benchmarks/fixtures/sut-responses/*.json; recorded_response → benchmarks/fixtures/recorded-responses/*.json; live → HTTP POST /v1/routes/search when BETTERMTA_SUT=live."
+        },
+        "responseId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Filename stem without .json for fixture/recorded kinds (e.g. complete-match, recorded-f-carroll-bryant-complete). For kind=live, a stable key only (not loaded from disk)."
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "placeRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["placeId"],
+          "properties": {
+            "placeId": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stationId"],
+          "properties": {
+            "stationId": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["coordinate"],
+          "properties": {
+            "coordinate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["lat", "lon"],
+              "properties": {
+                "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+                "lon": { "type": "number", "minimum": -180, "maximum": 180 }
+              }
+            },
+            "label": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "timing": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "depart_now" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "time"],
+          "properties": {
+            "type": { "enum": ["depart_at", "arrive_by"] },
+            "time": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    }
+  }
+}

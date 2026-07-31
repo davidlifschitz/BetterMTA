@@ -1,0 +1,51 @@
+{
+  "caseId": "bmc-pending-complex-times-sq-transfer",
+  "title": "PENDING: Atlantic Av → Harlem-148 via Times Sq complex",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_2",
+    "transfer",
+    "station_complex"
+  ],
+  "origin": {
+    "stationId": "st_atlantic"
+  },
+  "destination": {
+    "stationId": "st_148_lenox"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T17:30:00-04:00"
+  },
+  "selectedLineIds": [
+    "2",
+    "3"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Station complex transfer quality TBD with live router. Placeholder fixture only.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "complete-match"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

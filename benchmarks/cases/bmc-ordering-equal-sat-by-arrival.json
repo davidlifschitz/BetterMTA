@@ -1,0 +1,52 @@
+{
+  "caseId": "bmc-ordering-equal-sat-by-arrival",
+  "title": "Equal satisfaction ranks by earlier arrival on 6",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_manhattan",
+    "peak",
+    "lines_1",
+    "ordering",
+    "od_on_selected_lines",
+    "no_transfer"
+  ],
+  "origin": {
+    "stationId": "st_bb"
+  },
+  "destination": {
+    "stationId": "st_59_lex"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T08:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "6"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "expectedOriginStationId": "st_bb",
+  "expectedDestinationStationId": "st_59_lex",
+  "humanReviewNotes": "QA synthetic: same sat count → earlier arrival first.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "qa_fixture",
+    "responseId": "ordering-equal-sat-by-time"
+  },
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

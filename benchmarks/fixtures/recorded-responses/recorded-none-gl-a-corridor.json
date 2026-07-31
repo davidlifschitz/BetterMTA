@@ -1,0 +1,463 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_29d1be0b36034d1f",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeSnapshotId": "rt_live_20260730_1c24a8f3d2",
+  "dataMode": "stale",
+  "freshness": {
+    "realtimeAgeSeconds": 477,
+    "staticActivatedAt": "2026-07-30T18:43:10.771Z",
+    "warnings": [
+      {
+        "code": "stale_realtime",
+        "message": "Live train times are delayed; showing last known updates."
+      },
+      {
+        "code": "incomplete_selected_line_satisfaction",
+        "message": "Could not satisfy every selected line; showing the best feasible match."
+      }
+    ]
+  },
+  "baseline": {
+    "itineraries": [
+      {
+        "itineraryId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_0",
+        "fingerprint": "fp_5bf8a1dff8d4659036e25c73",
+        "durationSeconds": 2010,
+        "arrivalTime": "2026-07-30T23:54:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "A"
+        ],
+        "legs": [
+          {
+            "legId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_0_0",
+            "kind": "transit",
+            "lineId": "A",
+            "tripId": "nyct-gtfs:BSP26GEN-A087-Weekday-00_112600_A..N55R",
+            "from": {
+              "name": "Euclid Av",
+              "stopId": "nyct-gtfs:A55N",
+              "stationId": "nyct-gtfs:A55N"
+            },
+            "to": {
+              "name": "34 St-Penn Station",
+              "stopId": "nyct-gtfs:A28N",
+              "stationId": "nyct-gtfs:A28N"
+            },
+            "departTime": "2026-07-30T23:20:30.000Z",
+            "arriveTime": "2026-07-30T23:54:00.000Z",
+            "durationSeconds": 2010,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "7e4d8529-e692-40d8-b8c6-f08e0060787d",
+              "itineraryIndex": "0",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-A087-Weekday-00_112600_A..N55R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_1",
+        "fingerprint": "fp_2eabb163757bf2fa11bc5d84",
+        "durationSeconds": 2010,
+        "arrivalTime": "2026-07-31T00:01:30.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "A"
+        ],
+        "legs": [
+          {
+            "legId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_1_0",
+            "kind": "transit",
+            "lineId": "A",
+            "tripId": "nyct-gtfs:BSP26GEN-A087-Weekday-00_115700_A..N54R",
+            "from": {
+              "name": "Euclid Av",
+              "stopId": "nyct-gtfs:A55N",
+              "stationId": "nyct-gtfs:A55N"
+            },
+            "to": {
+              "name": "34 St-Penn Station",
+              "stopId": "nyct-gtfs:A28N",
+              "stationId": "nyct-gtfs:A28N"
+            },
+            "departTime": "2026-07-30T23:28:00.000Z",
+            "arriveTime": "2026-07-31T00:01:30.000Z",
+            "durationSeconds": 2010,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "7e4d8529-e692-40d8-b8c6-f08e0060787d",
+              "itineraryIndex": "1",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-A087-Weekday-00_115700_A..N54R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_2",
+        "fingerprint": "fp_35fd268aa27b35a2d1da0297",
+        "durationSeconds": 2010,
+        "arrivalTime": "2026-07-31T00:10:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "A"
+        ],
+        "legs": [
+          {
+            "legId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_2_0",
+            "kind": "transit",
+            "lineId": "A",
+            "tripId": "nyct-gtfs:BSP26GEN-A087-Weekday-00_114300_A..N55R",
+            "from": {
+              "name": "Euclid Av",
+              "stopId": "nyct-gtfs:A55N",
+              "stationId": "nyct-gtfs:A55N"
+            },
+            "to": {
+              "name": "34 St-Penn Station",
+              "stopId": "nyct-gtfs:A28N",
+              "stationId": "nyct-gtfs:A28N"
+            },
+            "departTime": "2026-07-30T23:36:30.000Z",
+            "arriveTime": "2026-07-31T00:10:00.000Z",
+            "durationSeconds": 2010,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "7e4d8529-e692-40d8-b8c6-f08e0060787d",
+              "itineraryIndex": "2",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-A087-Weekday-00_114300_A..N55R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      }
+    ]
+  },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_0",
+        "fingerprint": "fp_5bf8a1dff8d4659036e25c73",
+        "durationSeconds": 2010,
+        "arrivalTime": "2026-07-30T23:54:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "A"
+        ],
+        "legs": [
+          {
+            "legId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_0_0",
+            "kind": "transit",
+            "lineId": "A",
+            "tripId": "nyct-gtfs:BSP26GEN-A087-Weekday-00_112600_A..N55R",
+            "from": {
+              "name": "Euclid Av",
+              "stopId": "nyct-gtfs:A55N",
+              "stationId": "nyct-gtfs:A55N"
+            },
+            "to": {
+              "name": "34 St-Penn Station",
+              "stopId": "nyct-gtfs:A28N",
+              "stationId": "nyct-gtfs:A28N"
+            },
+            "departTime": "2026-07-30T23:20:30.000Z",
+            "arriveTime": "2026-07-30T23:54:00.000Z",
+            "durationSeconds": 2010,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "7e4d8529-e692-40d8-b8c6-f08e0060787d",
+              "itineraryIndex": "0",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-A087-Weekday-00_112600_A..N55R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [
+            "G",
+            "L"
+          ],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [
+            "G",
+            "L"
+          ],
+          "satisfactionCount": 0,
+          "requestedCount": 2,
+          "isComplete": false,
+          "feasibility": "none"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "No selected lines appear on this itinerary.",
+          "facts": [
+            {
+              "type": "line_omitted",
+              "message": "Could not include the G train.",
+              "lineId": "G"
+            },
+            {
+              "type": "line_omitted",
+              "message": "Could not include the L train.",
+              "lineId": "L"
+            },
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_1",
+        "fingerprint": "fp_2eabb163757bf2fa11bc5d84",
+        "durationSeconds": 2010,
+        "arrivalTime": "2026-07-31T00:01:30.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "A"
+        ],
+        "legs": [
+          {
+            "legId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_1_0",
+            "kind": "transit",
+            "lineId": "A",
+            "tripId": "nyct-gtfs:BSP26GEN-A087-Weekday-00_115700_A..N54R",
+            "from": {
+              "name": "Euclid Av",
+              "stopId": "nyct-gtfs:A55N",
+              "stationId": "nyct-gtfs:A55N"
+            },
+            "to": {
+              "name": "34 St-Penn Station",
+              "stopId": "nyct-gtfs:A28N",
+              "stationId": "nyct-gtfs:A28N"
+            },
+            "departTime": "2026-07-30T23:28:00.000Z",
+            "arriveTime": "2026-07-31T00:01:30.000Z",
+            "durationSeconds": 2010,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "7e4d8529-e692-40d8-b8c6-f08e0060787d",
+              "itineraryIndex": "1",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-A087-Weekday-00_115700_A..N54R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [
+            "G",
+            "L"
+          ],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [
+            "G",
+            "L"
+          ],
+          "satisfactionCount": 0,
+          "requestedCount": 2,
+          "isComplete": false,
+          "feasibility": "none"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "No selected lines appear on this itinerary.",
+          "facts": [
+            {
+              "type": "line_omitted",
+              "message": "Could not include the G train.",
+              "lineId": "G"
+            },
+            {
+              "type": "line_omitted",
+              "message": "Could not include the L train.",
+              "lineId": "L"
+            },
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_2",
+        "fingerprint": "fp_35fd268aa27b35a2d1da0297",
+        "durationSeconds": 2010,
+        "arrivalTime": "2026-07-31T00:10:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "A"
+        ],
+        "legs": [
+          {
+            "legId": "otp_7e4d8529-e692-40d8-b8c6-f08e0060787d_2_0",
+            "kind": "transit",
+            "lineId": "A",
+            "tripId": "nyct-gtfs:BSP26GEN-A087-Weekday-00_114300_A..N55R",
+            "from": {
+              "name": "Euclid Av",
+              "stopId": "nyct-gtfs:A55N",
+              "stationId": "nyct-gtfs:A55N"
+            },
+            "to": {
+              "name": "34 St-Penn Station",
+              "stopId": "nyct-gtfs:A28N",
+              "stationId": "nyct-gtfs:A28N"
+            },
+            "departTime": "2026-07-30T23:36:30.000Z",
+            "arriveTime": "2026-07-31T00:10:00.000Z",
+            "durationSeconds": 2010,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "7e4d8529-e692-40d8-b8c6-f08e0060787d",
+              "itineraryIndex": "2",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-A087-Weekday-00_114300_A..N55R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [
+            "G",
+            "L"
+          ],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [
+            "G",
+            "L"
+          ],
+          "satisfactionCount": 0,
+          "requestedCount": 2,
+          "isComplete": false,
+          "feasibility": "none"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "No selected lines appear on this itinerary.",
+          "facts": [
+            {
+              "type": "line_omitted",
+              "message": "Could not include the G train.",
+              "lineId": "G"
+            },
+            {
+              "type": "line_omitted",
+              "message": "Could not include the L train.",
+              "lineId": "L"
+            },
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 0,
+      "requestedCount": 2,
+      "completeMatchFound": false
+    }
+  },
+  "experiment": {
+    "explanationVariant": "concise"
+  }
+}

@@ -1,0 +1,438 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_db91de38063f4e2f",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeSnapshotId": "rt_live_20260730_9b5fa26107",
+  "dataMode": "stale",
+  "freshness": {
+    "realtimeAgeSeconds": 510,
+    "staticActivatedAt": "2026-07-30T18:43:10.771Z",
+    "warnings": [
+      {
+        "code": "stale_realtime",
+        "message": "Live train times are delayed; showing last known updates."
+      }
+    ]
+  },
+  "baseline": {
+    "itineraries": [
+      {
+        "itineraryId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_0",
+        "fingerprint": "fp_80fe91b19477cd684d8485f2",
+        "durationSeconds": 330,
+        "arrivalTime": "2026-07-30T23:23:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "L"
+        ],
+        "legs": [
+          {
+            "legId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_0_0",
+            "kind": "transit",
+            "lineId": "L",
+            "tripId": "nyct-gtfs:BSP26GEN-L053-Weekday-00_115450_L..S01R",
+            "from": {
+              "name": "14 St-Union Sq",
+              "stopId": "nyct-gtfs:L03S",
+              "stationId": "nyct-gtfs:L03S"
+            },
+            "to": {
+              "name": "Bedford Av",
+              "stopId": "nyct-gtfs:L08S",
+              "stationId": "nyct-gtfs:L08S"
+            },
+            "departTime": "2026-07-30T23:17:30.000Z",
+            "arriveTime": "2026-07-30T23:23:00.000Z",
+            "durationSeconds": 330,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "6953a3f9-fac2-4628-94ef-c2603beb0221",
+              "itineraryIndex": "0",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-L053-Weekday-00_115450_L..S01R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_1",
+        "fingerprint": "fp_a27703791eaa2295781c168a",
+        "durationSeconds": 330,
+        "arrivalTime": "2026-07-30T23:27:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "L"
+        ],
+        "legs": [
+          {
+            "legId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_1_0",
+            "kind": "transit",
+            "lineId": "L",
+            "tripId": "nyct-gtfs:BSP26GEN-L053-Weekday-00_115850_L..S01R",
+            "from": {
+              "name": "14 St-Union Sq",
+              "stopId": "nyct-gtfs:L03S",
+              "stationId": "nyct-gtfs:L03S"
+            },
+            "to": {
+              "name": "Bedford Av",
+              "stopId": "nyct-gtfs:L08S",
+              "stationId": "nyct-gtfs:L08S"
+            },
+            "departTime": "2026-07-30T23:21:30.000Z",
+            "arriveTime": "2026-07-30T23:27:00.000Z",
+            "durationSeconds": 330,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "6953a3f9-fac2-4628-94ef-c2603beb0221",
+              "itineraryIndex": "1",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-L053-Weekday-00_115850_L..S01R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_2",
+        "fingerprint": "fp_1f4ffbeac7dbe49d4958d3d2",
+        "durationSeconds": 330,
+        "arrivalTime": "2026-07-30T23:31:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "L"
+        ],
+        "legs": [
+          {
+            "legId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_2_0",
+            "kind": "transit",
+            "lineId": "L",
+            "tripId": "nyct-gtfs:BSP26GEN-L053-Weekday-00_116250_L..S01R",
+            "from": {
+              "name": "14 St-Union Sq",
+              "stopId": "nyct-gtfs:L03S",
+              "stationId": "nyct-gtfs:L03S"
+            },
+            "to": {
+              "name": "Bedford Av",
+              "stopId": "nyct-gtfs:L08S",
+              "stationId": "nyct-gtfs:L08S"
+            },
+            "departTime": "2026-07-30T23:25:30.000Z",
+            "arriveTime": "2026-07-30T23:31:00.000Z",
+            "durationSeconds": 330,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "6953a3f9-fac2-4628-94ef-c2603beb0221",
+              "itineraryIndex": "2",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-L053-Weekday-00_116250_L..S01R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      }
+    ]
+  },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_0",
+        "fingerprint": "fp_80fe91b19477cd684d8485f2",
+        "durationSeconds": 330,
+        "arrivalTime": "2026-07-30T23:23:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "L"
+        ],
+        "legs": [
+          {
+            "legId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_0_0",
+            "kind": "transit",
+            "lineId": "L",
+            "tripId": "nyct-gtfs:BSP26GEN-L053-Weekday-00_115450_L..S01R",
+            "from": {
+              "name": "14 St-Union Sq",
+              "stopId": "nyct-gtfs:L03S",
+              "stationId": "nyct-gtfs:L03S"
+            },
+            "to": {
+              "name": "Bedford Av",
+              "stopId": "nyct-gtfs:L08S",
+              "stationId": "nyct-gtfs:L08S"
+            },
+            "departTime": "2026-07-30T23:17:30.000Z",
+            "arriveTime": "2026-07-30T23:23:00.000Z",
+            "durationSeconds": 330,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "6953a3f9-fac2-4628-94ef-c2603beb0221",
+              "itineraryIndex": "0",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-L053-Weekday-00_115450_L..S01R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [
+            "L"
+          ],
+          "satisfiedLineIds": [
+            "L"
+          ],
+          "omittedLineIds": [],
+          "satisfactionCount": 1,
+          "requestedCount": 1,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Uses all selected lines (L).",
+          "facts": [
+            {
+              "type": "line_used",
+              "message": "Uses the L train.",
+              "lineId": "L"
+            },
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_1",
+        "fingerprint": "fp_a27703791eaa2295781c168a",
+        "durationSeconds": 330,
+        "arrivalTime": "2026-07-30T23:27:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "L"
+        ],
+        "legs": [
+          {
+            "legId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_1_0",
+            "kind": "transit",
+            "lineId": "L",
+            "tripId": "nyct-gtfs:BSP26GEN-L053-Weekday-00_115850_L..S01R",
+            "from": {
+              "name": "14 St-Union Sq",
+              "stopId": "nyct-gtfs:L03S",
+              "stationId": "nyct-gtfs:L03S"
+            },
+            "to": {
+              "name": "Bedford Av",
+              "stopId": "nyct-gtfs:L08S",
+              "stationId": "nyct-gtfs:L08S"
+            },
+            "departTime": "2026-07-30T23:21:30.000Z",
+            "arriveTime": "2026-07-30T23:27:00.000Z",
+            "durationSeconds": 330,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "6953a3f9-fac2-4628-94ef-c2603beb0221",
+              "itineraryIndex": "1",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-L053-Weekday-00_115850_L..S01R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [
+            "L"
+          ],
+          "satisfiedLineIds": [
+            "L"
+          ],
+          "omittedLineIds": [],
+          "satisfactionCount": 1,
+          "requestedCount": 1,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Uses all selected lines (L).",
+          "facts": [
+            {
+              "type": "line_used",
+              "message": "Uses the L train.",
+              "lineId": "L"
+            },
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_2",
+        "fingerprint": "fp_1f4ffbeac7dbe49d4958d3d2",
+        "durationSeconds": 330,
+        "arrivalTime": "2026-07-30T23:31:00.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "L"
+        ],
+        "legs": [
+          {
+            "legId": "otp_6953a3f9-fac2-4628-94ef-c2603beb0221_2_0",
+            "kind": "transit",
+            "lineId": "L",
+            "tripId": "nyct-gtfs:BSP26GEN-L053-Weekday-00_116250_L..S01R",
+            "from": {
+              "name": "14 St-Union Sq",
+              "stopId": "nyct-gtfs:L03S",
+              "stationId": "nyct-gtfs:L03S"
+            },
+            "to": {
+              "name": "Bedford Av",
+              "stopId": "nyct-gtfs:L08S",
+              "stationId": "nyct-gtfs:L08S"
+            },
+            "departTime": "2026-07-30T23:25:30.000Z",
+            "arriveTime": "2026-07-30T23:31:00.000Z",
+            "durationSeconds": 330,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "6953a3f9-fac2-4628-94ef-c2603beb0221",
+              "itineraryIndex": "2",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-L053-Weekday-00_116250_L..S01R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [
+            "L"
+          ],
+          "satisfiedLineIds": [
+            "L"
+          ],
+          "omittedLineIds": [],
+          "satisfactionCount": 1,
+          "requestedCount": 1,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Uses all selected lines (L).",
+          "facts": [
+            {
+              "type": "line_used",
+              "message": "Uses the L train.",
+              "lineId": "L"
+            },
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 1,
+      "requestedCount": 1,
+      "completeMatchFound": true
+    }
+  },
+  "experiment": {
+    "explanationVariant": "detailed"
+  }
+}

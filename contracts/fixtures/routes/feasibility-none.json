@@ -1,0 +1,136 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_fixture_feasibility_none",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_none_base",
+        "fingerprint": "fp_none_base_4",
+        "durationSeconds": 2100,
+        "arrivalTime": "2026-07-30T12:35:00.000Z",
+        "walkingSeconds": 300,
+        "waitingSeconds": 240,
+        "transferCount": 0,
+        "lineSequence": ["4"],
+        "legs": [
+          {
+            "legId": "leg_nb_w1",
+            "kind": "walk",
+            "durationSeconds": 150,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_nb_4",
+            "kind": "transit",
+            "lineId": "4",
+            "from": { "name": "Crown Heights-Utica Av", "stationId": "st_utica" },
+            "to": { "name": "Bowling Green", "stationId": "st_bowling" },
+            "departTime": "2026-07-30T12:05:00.000Z",
+            "arriveTime": "2026-07-30T12:32:00.000Z",
+            "durationSeconds": 1620
+          },
+          {
+            "legId": "leg_nb_w2",
+            "kind": "walk",
+            "durationSeconds": 150,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline 4 train; selected lines are mutually infeasible for this OD.",
+          "facts": [
+            { "type": "walk", "message": "Includes walking access.", "seconds": 300 }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "baseline"
+      }
+    ]
+  },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_none_1",
+        "fingerprint": "fp_none_sir_z",
+        "durationSeconds": 3000,
+        "arrivalTime": "2026-07-30T12:50:00.000Z",
+        "walkingSeconds": 600,
+        "waitingSeconds": 480,
+        "transferCount": 1,
+        "lineSequence": ["G"],
+        "legs": [
+          {
+            "legId": "leg_nn_w1",
+            "kind": "walk",
+            "durationSeconds": 300,
+            "outOfSystem": true
+          },
+          {
+            "legId": "leg_nn_g",
+            "kind": "transit",
+            "lineId": "G",
+            "from": { "name": "Church Av", "stationId": "st_church_g" },
+            "to": { "name": "Court Sq", "stationId": "st_court_sq" },
+            "departTime": "2026-07-30T12:10:00.000Z",
+            "arriveTime": "2026-07-30T12:40:00.000Z",
+            "durationSeconds": 1800
+          },
+          {
+            "legId": "leg_nn_w2",
+            "kind": "walk",
+            "durationSeconds": 300,
+            "outOfSystem": true,
+            "instruction": "Long walk; selected Staten Island / J/Z corridor lines unused"
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["SIR", "Z"],
+          "satisfiedLineIds": [],
+          "omittedLineIds": ["SIR", "Z"],
+          "satisfactionCount": 0,
+          "requestedCount": 2,
+          "isComplete": false,
+          "feasibility": "none"
+        },
+        "realtimeConfidence": "low",
+        "alerts": [],
+        "explanation": {
+          "summary": "No practical itinerary can use SIR or Z for this Brooklyn–Manhattan OD; showing best available path with structured omissions.",
+          "facts": [
+            { "type": "line_omitted", "message": "Could not include the SIR.", "lineId": "SIR" },
+            { "type": "line_omitted", "message": "Could not include the Z train.", "lineId": "Z" }
+          ],
+          "baselineDeltaSeconds": 900
+        },
+        "candidateFamily": "constrained"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 0,
+      "requestedCount": 2,
+      "completeMatchFound": false
+    }
+  },
+  "experiment": {
+    "explanationVariant": "detailed"
+  }
+}

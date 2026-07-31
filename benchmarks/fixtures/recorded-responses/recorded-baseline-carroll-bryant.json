@@ -1,0 +1,221 @@
+{
+  "contractVersion": "2026-07-30",
+  "requestId": "req_d754b936315d4d4c",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeSnapshotId": "rt_live_20260730_1c24a8f3d2",
+  "dataMode": "stale",
+  "freshness": {
+    "realtimeAgeSeconds": 477,
+    "staticActivatedAt": "2026-07-30T18:43:10.771Z",
+    "warnings": [
+      {
+        "code": "stale_realtime",
+        "message": "Live train times are delayed; showing last known updates."
+      }
+    ]
+  },
+  "baseline": {
+    "itineraries": [
+      {
+        "itineraryId": "otp_e50f5994-5b31-40eb-be08-d44f1163fa07_0",
+        "fingerprint": "fp_d6aaf710ce52e4eac770be42",
+        "durationSeconds": 1440,
+        "arrivalTime": "2026-07-30T23:43:30.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "F"
+        ],
+        "legs": [
+          {
+            "legId": "otp_e50f5994-5b31-40eb-be08-d44f1163fa07_0_0",
+            "kind": "transit",
+            "lineId": "F",
+            "tripId": "nyct-gtfs:BSP26GEN-F081-Weekday-00_112550_F..N54R",
+            "from": {
+              "name": "Carroll St",
+              "stopId": "nyct-gtfs:F21N",
+              "stationId": "nyct-gtfs:F21N"
+            },
+            "to": {
+              "name": "42 St-Bryant Pk",
+              "stopId": "nyct-gtfs:D16N",
+              "stationId": "nyct-gtfs:D16N"
+            },
+            "departTime": "2026-07-30T23:19:30.000Z",
+            "arriveTime": "2026-07-30T23:43:30.000Z",
+            "durationSeconds": 1440,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "e50f5994-5b31-40eb-be08-d44f1163fa07",
+              "itineraryIndex": "0",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-F081-Weekday-00_112550_F..N54R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_e50f5994-5b31-40eb-be08-d44f1163fa07_1",
+        "fingerprint": "fp_c21873900208d7492d0ca61c",
+        "durationSeconds": 1440,
+        "arrivalTime": "2026-07-30T23:47:30.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "F"
+        ],
+        "legs": [
+          {
+            "legId": "otp_e50f5994-5b31-40eb-be08-d44f1163fa07_1_0",
+            "kind": "transit",
+            "lineId": "F",
+            "tripId": "nyct-gtfs:BSP26GEN-F081-Weekday-00_114050_F..N55R",
+            "from": {
+              "name": "Carroll St",
+              "stopId": "nyct-gtfs:F21N",
+              "stationId": "nyct-gtfs:F21N"
+            },
+            "to": {
+              "name": "42 St-Bryant Pk",
+              "stopId": "nyct-gtfs:D16N",
+              "stationId": "nyct-gtfs:D16N"
+            },
+            "departTime": "2026-07-30T23:23:30.000Z",
+            "arriveTime": "2026-07-30T23:47:30.000Z",
+            "durationSeconds": 1440,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "e50f5994-5b31-40eb-be08-d44f1163fa07",
+              "itineraryIndex": "1",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-F081-Weekday-00_114050_F..N55R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      },
+      {
+        "itineraryId": "otp_e50f5994-5b31-40eb-be08-d44f1163fa07_2",
+        "fingerprint": "fp_f3aeb13fc8120223185c02a9",
+        "durationSeconds": 1440,
+        "arrivalTime": "2026-07-30T23:52:30.000Z",
+        "walkingSeconds": 0,
+        "waitingSeconds": 0,
+        "transferCount": 0,
+        "lineSequence": [
+          "F"
+        ],
+        "legs": [
+          {
+            "legId": "otp_e50f5994-5b31-40eb-be08-d44f1163fa07_2_0",
+            "kind": "transit",
+            "lineId": "F",
+            "tripId": "nyct-gtfs:BSP26GEN-F081-Weekday-00_113450_F..N54R",
+            "from": {
+              "name": "Carroll St",
+              "stopId": "nyct-gtfs:F21N",
+              "stationId": "nyct-gtfs:F21N"
+            },
+            "to": {
+              "name": "42 St-Bryant Pk",
+              "stopId": "nyct-gtfs:D16N",
+              "stationId": "nyct-gtfs:D16N"
+            },
+            "departTime": "2026-07-30T23:28:30.000Z",
+            "arriveTime": "2026-07-30T23:52:30.000Z",
+            "durationSeconds": 1440,
+            "sourceEngineIds": {
+              "engine": "otp",
+              "graphVersion": "unknown",
+              "queryId": "e50f5994-5b31-40eb-be08-d44f1163fa07",
+              "itineraryIndex": "2",
+              "otpTripIds": "[\"nyct-gtfs:BSP26GEN-F081-Weekday-00_113450_F..N54R\"]"
+            }
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": [],
+          "satisfiedLineIds": [],
+          "omittedLineIds": [],
+          "satisfactionCount": 0,
+          "requestedCount": 0,
+          "isComplete": true,
+          "feasibility": "not_applicable"
+        },
+        "realtimeConfidence": "none",
+        "alerts": [],
+        "explanation": {
+          "summary": "Baseline itinerary without selected-line constraints.",
+          "facts": [
+            {
+              "type": "realtime",
+              "message": "Realtime feeds unavailable or unused; schedule used."
+            }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "reliability": null,
+        "candidateFamily": "baseline"
+      }
+    ]
+  },
+  "constrained": {
+    "itineraries": [],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 0,
+      "requestedCount": 0,
+      "completeMatchFound": true
+    }
+  },
+  "experiment": {
+    "explanationVariant": "detailed"
+  }
+}

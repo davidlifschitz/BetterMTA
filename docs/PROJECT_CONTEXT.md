@@ -40,21 +40,21 @@ A mobile-first prototype has been designed with origin/destination entry, line s
 - `PRODUCTION_CHECKLIST.md`
 
 ## Conductor lock status
-Shared architecture and contracts are defined in the conductor package (`docs/CONDUCTOR_PACKAGE.md`, `docs/*CONTRACT*`, `contracts/**`, contract version `2026-07-30`). Implementation workstreams must consume those artifacts and must not silently fork them.
+Shared architecture and contracts remain locked (`docs/CONDUCTOR_PACKAGE.md`, `docs/*CONTRACT*`, `contracts/**`, contract version `2026-07-30`). Step 2 parallel workstreams are merged into `agent/integration-live`. Step 3 Phase 1 production decisions are closed in `ARCHITECTURE_DECISIONS.md` (ADR-0011–ADR-0020). Implementation workstreams must consume those artifacts and must not silently fork them.
 
 ## Most important unresolved work
-1. Routing engine selection evidence + `ROUTING_ENGINE_SPEC.md` (domain/API contracts are locked).
-2. GTFS and GTFS-Realtime implementation + `DATA_SPEC.md` (data contract surface is locked).
+1. ~~Routing engine selection.~~ Closed: OTP 2.9.0 substrate (ADR-0011); live OTP wiring remains.
+2. Live GTFS / GTFS-Realtime ingestion, snapshot promotion, and freshness labeling in production (data contract surface locked).
 3. ~~Canonical domain model.~~ Locked in `DOMAIN_MODEL.md`.
 4. ~~Versioned API contract.~~ Locked in `API_CONTRACT.md` + `contracts/openapi/bettermta-v1.yaml`.
-5. Route-quality benchmark corpus.
-6. Detailed interaction and design system.
-7. Location-data privacy model (baseline rules locked; detailed threat model open).
-8. Observability, SLOs, incident response, and runbooks (requirements sketched; implementation open).
+5. Live route-quality benchmark runs against the production API (corpus exists; SI/ferry Must-set deferred per ADR-0020).
+6. Detailed interaction and design system polish for live mode (arrive-by and feedback controls hidden per ADR-0014 / ADR-0017).
+7. Location-data privacy model for any future feedback/geocode expansion (baseline rules locked; detailed threat model open).
+8. Observability, SLOs, incident response, and runbooks in the Fly.io environment (ADR-0012).
 9. Beta launch and user-research plan.
-10. Live-data implementation and production validation.
-11. Deploy platform vendor (ADR-0005 open).
-12. Geocoding / place provider.
+10. Live-data implementation phases: OTP graph build, API live mode fail-closed guards (ADR-0018), web production builds without fixtures, end-to-end production validation.
+11. ~~Deploy platform vendor.~~ Closed: Fly.io (ADR-0012); Postgres deferred (ADR-0016).
+12. ~~Geocoding / place provider.~~ Closed for beta: station-index-first + browser geolocation (ADR-0013); address/POI deferred.
 
 ## Parallel-chat rule
 Each chat should own one document or implementation workstream, read this file and the relevant source documents, avoid silently changing confirmed decisions, and explicitly propose any conflicting change.

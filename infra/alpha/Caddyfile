@@ -1,0 +1,23 @@
+# BetterMTA controlled-alpha edge (Phase 12A.3)
+# Single origin for Cloudflare Tunnel → http://127.0.0.1:8088
+#
+# /v1/* and /health/* → api
+# everything else → web (pages + assets)
+
+{
+	admin off
+}
+
+:8088 {
+	handle /v1/* {
+		reverse_proxy api:8080
+	}
+
+	handle /health/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+}

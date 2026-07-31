@@ -1,0 +1,32 @@
+{
+  "name": "@bettermta/data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BetterMTA transit data platform — static GTFS + GTFS-Realtime ingestion",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "capture:live": "tsx scripts/capture-live.ts"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.23.1",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.0",
+    "protobufjs": "^8.7.1"
+  }
+}

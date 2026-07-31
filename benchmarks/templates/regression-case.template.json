@@ -1,0 +1,30 @@
+{
+  "caseId": "bmc-reg-yyyy-mm-dd-short-slug",
+  "title": "REGRESSION: short description of the defect",
+  "classification": "synthetic_contract_fixture",
+  "categories": ["ordering"],
+  "origin": { "placeId": "pl_origin" },
+  "destination": { "placeId": "pl_destination" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T08:00:00-04:00" },
+  "selectedLineIds": ["A"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "honest_data_mode",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ],
+  "humanReviewNotes": "Describe the defect, expected correct behavior, and how it was discovered. Do not claim synthetic data is real.",
+  "staticDatasetVersion": "gtfs_REPLACE",
+  "realtimeFixtureVersion": "rt_REPLACE",
+  "sut": {
+    "kind": "qa_fixture",
+    "responseId": "REPLACE_RESPONSE_STEM"
+  },
+  "tags": ["regression"]
+}

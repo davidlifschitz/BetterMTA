@@ -1,0 +1,4 @@
+from_stop_id,to_stop_id,transfer_type,min_transfer_time
+A32N,D14N,2,180
+A31N,A31S,2,120
+GS01N,A32N,2,240

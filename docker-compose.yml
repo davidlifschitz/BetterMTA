@@ -1,0 +1,158 @@
+# BetterMTA local / prod-like stack (Step 3 Phase 8)
+#
+# Services: data → (socat proxy) → api + otp updaters; web → api (browser).
+# Graph: mount services/otp/var/otp/graphs (gitignored artifacts).
+#
+# Bring-up:
+#   docker compose build
+#   docker compose up -d
+#
+# Memory: OTP serve wants ~3.5g container RAM. If `docker info` MemTotal is
+# under ~4 GiB, OTP will OOM — raise Colima/Docker memory or run OTP via
+# services/otp/scripts/run-otp.sh on a larger VM. data/api/web still validate.
+#
+# Compose-only token (NOT for production):
+#   BETTERMTA_INTERNAL_TOKEN=dev-local-token
+
+name: bettermta
+
+services:
+  data:
+    build:
+      context: .
+      dockerfile: services/data/Dockerfile
+    image: bettermta-data:local
+    environment:
+      NODE_ENV: production
+      BETTERMTA_INTERNAL_PORT: "8081"
+      BETTERMTA_INTERNAL_TOKEN: dev-local-token
+      BETTERMTA_INTERNAL_ALLOW_ANON: "false"
+      BETTERMTA_STATIC_REFRESH_ON_BOOT: "true"
+      BETTERMTA_DATA_DIR: /var/bettermta/data
+      # Optional: point at a reachable GTFS zip for boot refresh
+      # BETTERMTA_STATIC_GTFS_URL: https://rrgtfsfeeds.s3.amazonaws.com/gtfs_subway.zip
+    volumes:
+      - ./services/data/var/data:/var/bettermta/data
+    # Process binds 127.0.0.1:8081 — host publish is via data-proxy (8082).
+    expose:
+      - "8081"
+      - "8082"
+    ports:
+      - "8081:8082"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS --max-time 2 -H 'Authorization: Bearer dev-local-token' http://127.0.0.1:8081/internal/health || exit 1",
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 60s
+    restart: unless-stopped
+
+  # data process listens on 127.0.0.1 only; bridge the Docker network on :8082.
+  data-proxy:
+    image: alpine/socat:1.8.0.1
+    network_mode: "service:data"
+    depends_on:
+      data:
+        condition: service_healthy
+    command:
+      - TCP-LISTEN:8082,fork,reuseaddr,bind=0.0.0.0
+      - TCP:127.0.0.1:8081
+    restart: unless-stopped
+
+  otp:
+    build:
+      context: ./services/otp
+      dockerfile: Dockerfile
+    image: bettermta-otp:local
+    environment:
+      BETTERMTA_DATA_HOST: data:8082
+      BETTERMTA_INTERNAL_TOKEN: dev-local-token
+      JAVA_XMX: 2g
+      OTP_GRAPHS_DIR: /otp-graphs
+    volumes:
+      - ./services/otp/var/otp/graphs:/otp-graphs:ro
+    ports:
+      - "8090:8080"
+    depends_on:
+      data:
+        condition: service_healthy
+      data-proxy:
+        condition: service_started
+    # Prefer 3.5g; if Docker MemTotal is too small, compose will OOM-kill.
+    mem_limit: 3584m
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/bettermta-otp-healthcheck.sh"]
+      interval: 20s
+      timeout: 5s
+      retries: 8
+      start_period: 180s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: bettermta-api:local
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      HOST: 0.0.0.0
+      BETTERMTA_ADAPTER_MODE: live
+      BETTERMTA_DATA_INTERNAL_URL: http://data:8082
+      BETTERMTA_DATA_INTERNAL_TOKEN: dev-local-token
+      BETTERMTA_OTP_URL: http://otp:8080
+      BETTERMTA_OTP_TIMEOUT_MS: "10000"
+      BETTERMTA_REQUEST_TIMEOUT_MS: "15000"
+      # Required in NODE_ENV=production — pin must match active OTP graph / static prefix.
+      BETTERMTA_OTP_GRAPH_VERSION: mta-subway-c9c3366cdd16+otp2.9.0
+      BETTERMTA_TRUST_PROXY: "1"
+      BETTERMTA_CONTRACTS_ROOT: /repo/contracts
+      BETTERMTA_LOG_LEVEL: info
+      FLAG_DEFAULTS_PATH: /app/config/flags.json
+      # Single replica — in-memory rate limit (do not scale api > 1 without shared store)
+    ports:
+      - "8080:8080"
+    depends_on:
+      data:
+        condition: service_healthy
+      data-proxy:
+        condition: service_started
+      otp:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health/live"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_MODE: live
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+        NEXT_PUBLIC_FLAG_FEEDBACK: "false"
+    image: bettermta-web:local
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      # NEXT_PUBLIC_* are compile-time; rebuild web image to change API URL.
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped

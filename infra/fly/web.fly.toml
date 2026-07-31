@@ -1,0 +1,63 @@
+# PLACEHOLDER — prepared, not activated (Phase 8).
+# App: bettermta-web (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
+#
+# Entrypoint: apps/web/Dockerfile → next start :3000
+# Build args must bake NEXT_PUBLIC_API_MODE=live and NEXT_PUBLIC_FLAG_FEEDBACK=false.
+#
+# FAIL-CLOSED (bake-time API URL):
+#   NEXT_PUBLIC_API_BASE_URL is compiled into the Next.js client bundle.
+#   Dockerfile defaults to http://localhost:8080 — shipping that to Fly breaks browsers.
+#   First (and every) web deploy MUST pass a real public API origin via:
+#     fly deploy ... --build-arg NEXT_PUBLIC_API_BASE_URL=https://<api-host>
+#   or set [build.args] below before deploy. Do not rely on runtime env for this value.
+#
+# Activate (BLOCKED until flyctl auth + app create):
+#   fly apps create bettermta-web
+#   fly secrets set -a bettermta-web --stage ...
+#   fly deploy -a bettermta-web -c infra/fly/web.fly.toml \
+#     --build-arg NEXT_PUBLIC_API_BASE_URL=https://bettermta-api.fly.dev
+#
+# One-action rollback:
+#   fly releases rollback -a bettermta-web
+
+app = 'bettermta-web'
+primary_region = 'ewr'
+
+[build]
+  dockerfile = 'apps/web/Dockerfile'
+  [build.args]
+    NEXT_PUBLIC_API_MODE = 'live'
+    NEXT_PUBLIC_FLAG_FEEDBACK = 'false'
+    # Intentionally unset — must be supplied at deploy time (see header).
+    # NEXT_PUBLIC_API_BASE_URL = 'https://bettermta-api.fly.dev'
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '3000'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 200
+    soft_limit = 100
+
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '3s'
+    grace_period = '30s'
+    method = 'GET'
+    path = '/'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+
+[deploy]
+  strategy = 'rolling'

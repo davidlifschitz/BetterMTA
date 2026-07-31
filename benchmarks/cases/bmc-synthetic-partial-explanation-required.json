@@ -1,0 +1,53 @@
+{
+  "caseId": "bmc-synthetic-partial-explanation-required",
+  "title": "Partial A+G+L requires line_omitted explanation for G",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "lines_3",
+    "impossible_constraint",
+    "transfer"
+  ],
+  "origin": {
+    "placeId": "pl_hoyt"
+  },
+  "destination": {
+    "placeId": "pl_1av"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T14:30:00-04:00"
+  },
+  "selectedLineIds": [
+    "A",
+    "G",
+    "L"
+  ],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_hoyt",
+  "expectedDestinationStationId": "st_1av",
+  "humanReviewNotes": "Focus human review on understandability of G omission copy derived from facts.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "partial-match"
+  },
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

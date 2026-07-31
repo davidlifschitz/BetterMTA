@@ -1,0 +1,43 @@
+{
+  "caseId": "bmc-recorded-fb-carroll-bryant-partial",
+  "title": "Recorded: Carroll → Bryant F+B partial (B omitted)",
+  "classification": "recorded_data",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "lines_2",
+    "incompatible_lines",
+    "impossible_constraint",
+    "degraded_realtime"
+  ],
+  "origin": { "placeId": "st:F21" },
+  "destination": { "placeId": "st:D16" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["F", "B"],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Captured 2026-07-30 :8080. At capture time complete F+B was infeasible; best uses F and names omitted B. static=mta-subway-c9c3366cdd16; dataMode=stale. Multi-line partial with named omission.",
+  "staticDatasetVersion": "mta-subway-c9c3366cdd16",
+  "realtimeFixtureVersion": "rt_live_20260730_9b5fa26107",
+  "sut": {
+    "kind": "recorded_response",
+    "responseId": "recorded-fb-carroll-bryant-partial"
+  },
+  "tags": ["nyc_live_capture", "named_omission"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

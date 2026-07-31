@@ -1,0 +1,25 @@
+{
+  "header": {
+    "gtfsRealtimeVersion": "2.0",
+    "timestamp": 1753876800,
+    "incrementality": "FULL_DATASET"
+  },
+  "_fixtureMeta": {
+    "feedId": "nyct-ace",
+    "feedTimestampIso": "2026-07-30T12:00:00.000Z"
+  },
+  "entity": [
+    {
+      "id": "tu_cancel_A",
+      "tripUpdate": {
+        "trip": {
+          "tripId": "A_DN_001",
+          "routeId": "A",
+          "startDate": "20260730",
+          "scheduleRelationship": "CANCELED"
+        },
+        "stopTimeUpdate": []
+      }
+    }
+  ]
+}

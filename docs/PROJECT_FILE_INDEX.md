@@ -14,7 +14,7 @@
 - `DOMAIN_MODEL.md`
 - `API_CONTRACT.md`
 - `DATA_CONTRACT.md`
-- `ARCHITECTURE_DECISIONS.md`
+- `ARCHITECTURE_DECISIONS.md` — locked ADRs (incl. ADR-0021 controlled alpha)
 - `INTEGRATION_SEQUENCE.md`
 - `ACCEPTANCE_CRITERIA.md`
 - `RISK_REGISTER.md`
@@ -32,9 +32,20 @@
 ## Engineering and readiness
 - `TECHNICAL_DESIGN.md` — directional design; API paths superseded by `API_CONTRACT.md`
 - `PRODUCTION_CHECKLIST.md`
+- `RUNBOOKS.md` — local compose bring-up, controlled-alpha pointer (`infra/alpha/`), drills, cost, go/no-go
+- `RELEASE_GATE_REPORT.md` — G01–G20 + CA gates; status vocabulary; final status still `BLOCKED` (not `READY_FOR_CONTROLLED_ALPHA`)
+- `alpha/REMOTE_VALIDATION.md` — Phase 12A.10 twenty remote tests (all PENDING_USER / not run)
+- `../infra/alpha/README.md` — controlled-alpha index (edge, host, tunnel, Access, scripts)
+- `../infra/alpha/HOST.md` — Phase 12A.5 macOS operating requirements + preflight
+- `../infra/alpha/TUNNEL.md` — Phase 12A.6 named Cloudflare Tunnel (interactive; secrets out of repo)
+- `../infra/alpha/ACCESS.md` — Phase 12A.7 Access allowlist + OTP + service token procedures
+- `../deployments/README.md` — Phase 12A.8 immutable release IDs + deploy/rollback
+- `../docker-compose.release.yml` — release image-tag overrides for alpha compose
+- `../infra/alpha/cloudflared/config.template.yml` — tunnel ingress template (placeholders only)
+- `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 
 ## Agent prompts
-The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts.
+The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts. Workstream handoffs live under `../.agents/handoffs/`.
 
 ## Binary backups
 The previously generated DOCX and PDF product packages are intentionally not committed through the GitHub text-file connector. Their source content is represented in the Markdown files above.

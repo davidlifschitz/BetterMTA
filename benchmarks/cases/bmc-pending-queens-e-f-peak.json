@@ -1,0 +1,50 @@
+{
+  "caseId": "bmc-pending-queens-e-f-peak",
+  "title": "PENDING: Jamaica Center → W4 peak with E+F",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_queens",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_2",
+    "transfer"
+  ],
+  "origin": {
+    "placeId": "pl_jamaica_center"
+  },
+  "destination": {
+    "placeId": "pl_w4"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T08:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "E",
+    "F"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Cross-borough peak; live data required for timing realism.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "complete-match"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

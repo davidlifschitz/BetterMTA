@@ -1,0 +1,50 @@
+{
+  "caseId": "bmc-pending-local-express-q",
+  "title": "PENDING: Coney Island → 96 St Q local vs express preference",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "off_peak",
+    "lines_1",
+    "local_express",
+    "od_on_selected_lines"
+  ],
+  "origin": {
+    "placeId": "pl_coney_stillwell"
+  },
+  "destination": {
+    "placeId": "pl_96_2av"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T13:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "Q"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 1,
+  "humanReviewNotes": "Local/express same lineId counts once. Needs live patterns.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "degraded-realtime"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

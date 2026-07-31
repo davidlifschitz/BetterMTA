@@ -1,0 +1,52 @@
+{
+  "caseId": "bmc-pending-coordinate-origin-poi",
+  "title": "PENDING: Coordinate pin near Barclays → Union Sq with B+D",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "off_peak",
+    "lines_2"
+  ],
+  "origin": {
+    "coordinate": {
+      "lat": 40.6848,
+      "lon": -73.9778
+    },
+    "label": "Near Barclays Center"
+  },
+  "destination": {
+    "placeId": "pl_union_sq"
+  },
+  "timing": {
+    "type": "depart_now"
+  },
+  "selectedLineIds": [
+    "B",
+    "D"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Coordinate origin needs geocode/station snap from backend; placeholder until place provider chosen.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "complete-match"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

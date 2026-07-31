@@ -1,0 +1,53 @@
+# PLACEHOLDER — prepared, not activated (Phase 8).
+# App: bettermta-otp (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
+#
+# Image: services/otp/Dockerfile FROM opentripplanner/opentripplanner:2.9.0
+# Graph volume required (active.json + graph.obj). Not baked into the image.
+#
+# Activate (BLOCKED until flyctl auth + app create + volume with graph):
+#   fly apps create bettermta-otp
+#   fly volumes create bettermta_otp_graphs -a bettermta-otp --region ewr --size 5
+#   # copy graph artifacts onto volume, then:
+#   fly secrets set -a bettermta-otp BETTERMTA_INTERNAL_TOKEN=... BETTERMTA_DATA_HOST=bettermta-data.internal:8081
+#   # Build context MUST be services/otp (Dockerfile COPY config/ + docker/ are relative).
+#   # fly.toml has no build.context — pass the directory as the first fly deploy arg.
+#   # --config/--dockerfile paths are then relative to that context:
+#   fly deploy services/otp -a bettermta-otp -c ../infra/fly/otp.fly.toml
+#
+# One-action rollback:
+#   fly releases rollback -a bettermta-otp
+
+app = 'bettermta-otp'
+primary_region = 'ewr'
+
+[build]
+  # Relative to deploy working directory / Docker context = services/otp
+  # (compose: context ./services/otp; Fly: `fly deploy services/otp ...`)
+  dockerfile = 'Dockerfile'
+
+[env]
+  JAVA_XMX = '2g'
+  OTP_GRAPHS_DIR = '/otp-graphs'
+  # BETTERMTA_DATA_HOST set via secrets to private data address
+  # BETTERMTA_INTERNAL_TOKEN set via secrets
+
+# No public http_service preferred — API reaches OTP on Fly private network.
+# Optional public check for staging only; leave commented until needed.
+# [http_service]
+#   internal_port = 8080
+#   force_https = true
+#   auto_stop_machines = 'off'
+#   min_machines_running = 1
+
+[[vm]]
+  size = 'shared-cpu-2x'
+  memory = '4gb'
+  cpus = 2
+
+[[mounts]]
+  source = 'bettermta_otp_graphs'
+  destination = '/otp-graphs'
+  initial_size = '5gb'
+
+[deploy]
+  strategy = 'rolling'

@@ -1,0 +1,54 @@
+{
+  "caseId": "bmc-ordering-complete-beats-faster-partial",
+  "title": "Complete A+C outranks faster A-only partial",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_queens",
+    "borough_manhattan",
+    "cross_borough",
+    "off_peak",
+    "lines_2",
+    "ordering",
+    "transfer"
+  ],
+  "origin": {
+    "stationId": "st_far_rock"
+  },
+  "destination": {
+    "stationId": "st_14ac"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T18:00:00-04:00"
+  },
+  "selectedLineIds": [
+    "A",
+    "C"
+  ],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_far_rock",
+  "expectedDestinationStationId": "st_14ac",
+  "humanReviewNotes": "QA synthetic multi-itinerary: complete must beat faster partial regardless of time.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "qa_fixture",
+    "responseId": "ordering-complete-beats-partial"
+  },
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

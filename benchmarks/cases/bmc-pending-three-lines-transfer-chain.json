@@ -1,0 +1,51 @@
+{
+  "caseId": "bmc-pending-three-lines-transfer-chain",
+  "title": "PENDING: Rockaway → Yankee Stadium with A+D+4",
+  "classification": "pending_live_integration",
+  "categories": [
+    "borough_queens",
+    "borough_bronx",
+    "cross_borough",
+    "peak",
+    "lines_3",
+    "transfer"
+  ],
+  "origin": {
+    "placeId": "pl_far_rockaway"
+  },
+  "destination": {
+    "placeId": "pl_yankee_stadium"
+  },
+  "timing": {
+    "type": "depart_at",
+    "time": "2026-07-30T17:45:00-04:00"
+  },
+  "selectedLineIds": [
+    "A",
+    "D",
+    "4"
+  ],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Likely partial; assert max feasible satisfaction once live. Fixture is structural placeholder.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": {
+    "kind": "conductor_fixture",
+    "responseId": "partial-match"
+  },
+  "tags": [
+    "corpus_placeholder",
+    "soft_feasibility"
+  ],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode"
+  ]
+}

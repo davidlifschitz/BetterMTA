@@ -1,0 +1,70 @@
+# PLACEHOLDER — prepared, not activated (Phase 8).
+# App: bettermta-api (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
+#
+# Health contract (locked):
+#   GET /health/live  — process liveness
+#   GET /health/ready — static OK + realtime OK or permitted degraded
+#
+# Entrypoint: apps/api/Dockerfile → CMD ["node", "dist/index.js"]
+# Single replica only — in-memory rate limiter. Do NOT scale >1 until a shared
+# rate-limit store exists (GUARDRAILS.md / DEPLOY.md).
+# FLAG_DEFAULTS_PATH=/app/config/flags.json is copied into the API image
+# from infra/flags/flags.json (apps/api/Dockerfile).
+#
+# Activate (BLOCKED until flyctl auth + app create):
+#   fly apps create bettermta-api
+#   fly secrets set -a bettermta-api --stage ...  # see infra/env/api/.env.example
+#   fly deploy -a bettermta-api -c infra/fly/api.fly.toml
+#   fly scale count 1 -a bettermta-api
+#
+# One-action rollback:
+#   fly releases rollback -a bettermta-api
+
+app = 'bettermta-api'
+primary_region = 'ewr'
+
+[build]
+  dockerfile = 'apps/api/Dockerfile'
+
+[env]
+  NODE_ENV = 'production'
+  PORT = '8080'
+  HOST = '0.0.0.0'
+  BETTERMTA_ADAPTER_MODE = 'live'
+  BETTERMTA_TRUST_PROXY = '1'
+  BETTERMTA_CONTRACTS_ROOT = '/repo/contracts'
+  FLAG_DEFAULTS_PATH = '/app/config/flags.json'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 100
+    soft_limit = 50
+
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '2s'
+    grace_period = '20s'
+    method = 'GET'
+    path = '/health/live'
+
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '5s'
+    grace_period = '45s'
+    method = 'GET'
+    path = '/health/ready'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'
+  cpus = 1
+
+[deploy]
+  strategy = 'rolling'

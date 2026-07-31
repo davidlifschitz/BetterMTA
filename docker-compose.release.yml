@@ -1,0 +1,21 @@
+# BetterMTA release image pins (Phase 12A.8)
+#
+# Loaded with alpha compose so deploy/rollback can switch immutable image tags
+# without editing Dockerfiles or rebuilding from source.
+#
+# Usage:
+#   set -a && source deployments/current.env && set +a
+#   docker-compose -f docker-compose.yml -f docker-compose.alpha.yml \
+#     -f docker-compose.release.yml up -d --no-build
+#
+# Defaults keep the local-dev tags when env vars are unset.
+
+services:
+  data:
+    image: ${BETTERMTA_IMAGE_DATA:-bettermta-data:local}
+  otp:
+    image: ${BETTERMTA_IMAGE_OTP:-bettermta-otp:local}
+  api:
+    image: ${BETTERMTA_IMAGE_API:-bettermta-api:local}
+  web:
+    image: ${BETTERMTA_IMAGE_WEB:-bettermta-web:local}

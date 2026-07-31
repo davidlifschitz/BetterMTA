@@ -17,7 +17,7 @@ This map defines which workstream owns which paths after the conductor package i
 | Frontend | `agent/frontend` | `.agents/mobile-web.md` | Mobile web UI |
 | Infrastructure | `agent/infrastructure` | `.agents/infrastructure.md` | Deploy, CI/CD, observability, flags |
 | Benchmark/QA | `agent/benchmark-qa` | `.agents/benchmark-qa.md` | Benchmark corpus, release gates |
-| Integration | *(after parallel merge)* | `.agents/integration-launch.md` | Wire systems, beta launch |
+| Integration | `agent/integration-live` | `.agents/integration-launch.md` | Wire systems, beta launch — handoff: `.agents/handoffs/integration-live.md` |
 
 ## Shared / conductor-owned (do not edit without approval)
 
@@ -29,7 +29,7 @@ These files are the shared contract surface. Implementation workstreams may **co
 | `docs/DOMAIN_MODEL.md` | Canonical entities |
 | `docs/API_CONTRACT.md` | Human API contract |
 | `docs/DATA_CONTRACT.md` | Data freshness and snapshot contracts |
-| `docs/ARCHITECTURE_DECISIONS.md` | Locked ADRs |
+| `docs/ARCHITECTURE_DECISIONS.md` | Locked ADRs (ADR-0021 = controlled-alpha deploy target; Fly beta still ADR-0012) |
 | `docs/INTEGRATION_SEQUENCE.md` | Integration order |
 | `docs/ACCEPTANCE_CRITERIA.md` | Public-beta gates |
 | `docs/RISK_REGISTER.md` | Known risks |

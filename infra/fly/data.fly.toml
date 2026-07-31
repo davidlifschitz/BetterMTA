@@ -1,0 +1,53 @@
+# PLACEHOLDER — prepared, not activated (Phase 8).
+# App: bettermta-data (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
+#
+# Entrypoint: services/data/Dockerfile → CMD ["node", "dist/main.js"]
+# Health: GET /internal/health (Bearer) — private; not public HTTP-routed.
+# Freshness observed via apps/api GET /v1/status and GET /health/ready.
+#
+# Bind: BETTERMTA_DATA_BIND_HOST defaults to 127.0.0.1 (compose + socat).
+# On Fly activate set 0.0.0.0 so other Machines can reach :8081 privately.
+#
+# Activate (BLOCKED until flyctl auth + app create):
+#   fly apps create bettermta-data
+#   fly secrets set -a bettermta-data --stage ...
+#   fly deploy -a bettermta-data -c infra/fly/data.fly.toml
+
+#
+# One-action rollback:
+#   fly releases rollback -a bettermta-data
+#
+# Cost guardrail: single Machine, no autoscaling, poll interval env-bounded.
+
+app = 'bettermta-data'
+primary_region = 'ewr'
+
+[build]
+  dockerfile = 'services/data/Dockerfile'
+
+[env]
+  NODE_ENV = 'production'
+  BETTERMTA_INTERNAL_PORT = '8081'
+  # Required for Fly private networking (compose keeps default 127.0.0.1 + socat)
+  BETTERMTA_DATA_BIND_HOST = '0.0.0.0'
+  BETTERMTA_INTERNAL_ALLOW_ANON = 'false'
+  BETTERMTA_STATIC_REFRESH_ON_BOOT = 'true'
+  BETTERMTA_DATA_DIR = '/var/bettermta/data'
+  BETTERMTA_RT_POLL_MS = '15000'
+
+[processes]
+  # Confirmed against services/data package.json "start" / Dockerfile CMD
+  gateway = 'node dist/main.js'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'
+  cpus = 1
+
+[deploy]
+  strategy = 'rolling'
+
+[[mounts]]
+  source = 'bettermta_data'
+  destination = '/var/bettermta/data'
+  initial_size = '5gb'
