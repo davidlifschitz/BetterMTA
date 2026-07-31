@@ -2,7 +2,7 @@
 
 **Branch:** `agent/p1-address-preferred-lines`  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
-**Tip SHA:** `d58051b1ab70f353e590a5b413353dfd93ad76fc`  
+**Tip SHA:** `8b9fa3cb4ebf100b898460c677cb7c6b015281c6` (fix `d58051b`)  
 **Date:** 2026-07-31  
 **Remote:** pushed to `origin/agent/p1-address-preferred-lines` (no merge to main; no alpha redeploy)  
 **Contracts:** not edited
