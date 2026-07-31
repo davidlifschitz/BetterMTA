@@ -12,6 +12,15 @@ npm --prefix benchmarks/runner run self-test
 npm --prefix benchmarks/runner run gate
 ```
 
+## P1 acceptance suite (Wave 1E)
+
+See [`docs/P1_ACCEPTANCE_MATRIX.md`](docs/P1_ACCEPTANCE_MATRIX.md).
+
+```bash
+# Hard P1 fixture/oracle subset (no soft/pending)
+npm --prefix benchmarks/runner run gate -- --subset ../p1-ready-subset.json
+```
+
 ## SUT selection
 
 | Mode | How | Behavior |

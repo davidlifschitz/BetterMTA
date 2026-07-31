@@ -1,0 +1,40 @@
+{
+  "caseId": "bmc-p1-unselected-connector",
+  "title": "P1: Unselected connector line allowed (C fills A+L gap)",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "lines_2",
+    "transfer",
+    "od_on_selected_lines"
+  ],
+  "origin": { "placeId": "pl_hoyt" },
+  "destination": { "placeId": "pl_1av" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T14:30:00-04:00" },
+  "selectedLineIds": ["A", "L"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_hoyt",
+  "expectedDestinationStationId": "st_1av",
+  "humanReviewNotes": "P1 matrix #11. Unselected C may appear as connector without inflating satisfaction or requiring rider toggle. Synthetic oracle.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": { "kind": "qa_fixture", "responseId": "p1-unselected-connector" },
+  "tags": ["p1_wave1e", "p1_ready", "matrix_11"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

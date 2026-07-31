@@ -1,0 +1,41 @@
+{
+  "caseId": "bmc-p1-midtown-penn-72-oracle",
+  "title": "P1 oracle: Midtown Park Ave area→Penn preferred 7+2 complete",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_manhattan",
+    "lines_2",
+    "transfer",
+    "od_on_selected_lines"
+  ],
+  "origin": {
+    "coordinate": { "lat": 40.7553, "lon": -73.9755 },
+    "label": "Midtown Park Ave area"
+  },
+  "destination": { "stationId": "st_penn" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T09:00:00-04:00" },
+  "selectedLineIds": ["7", "2"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "expectedDestinationStationId": "st_penn",
+  "humanReviewNotes": "P1 oracle for alpha Midtown→Penn with preferred 7+2. Privacy-safe label (no private street address). Locks expected satisfaction shape; live geocode+routing still pending Wave 1A/1D.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": { "kind": "qa_fixture", "responseId": "p1-midtown-penn-72-oracle" },
+  "tags": ["p1_wave1e", "p1_ready", "alpha_regression", "privacy_safe_placeref", "oracle_only"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

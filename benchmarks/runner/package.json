@@ -10,6 +10,7 @@
     "gate": "tsx src/gate.ts",
     "validate-cases": "tsx src/cli.ts --validate-only",
     "self-test": "tsx src/self-test.ts",
+    "gate-p1": "tsx src/gate.ts --subset ../p1-ready-subset.json",
     "test": "tsx src/self-test.ts && tsx src/cli.ts && tsx src/gate.ts"
   },
   "dependencies": {

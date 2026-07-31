@@ -1,0 +1,42 @@
+{
+  "caseId": "bmc-p1-complete-preference-match",
+  "title": "P1: Complete preference match (F+B)",
+  "classification": "synthetic_contract_fixture",
+  "categories": [
+    "borough_brooklyn",
+    "borough_manhattan",
+    "cross_borough",
+    "peak",
+    "lines_2",
+    "transfer",
+    "od_on_selected_lines"
+  ],
+  "origin": { "placeId": "pl_carroll_st" },
+  "destination": { "placeId": "pl_bryant_park" },
+  "timing": { "type": "depart_at", "time": "2026-07-30T14:00:00-04:00" },
+  "selectedLineIds": ["F", "B"],
+  "expectedFeasibility": "complete",
+  "minimumSatisfactionCount": 2,
+  "expectedOriginStationId": "st_carroll",
+  "expectedDestinationStationId": "st_bryant",
+  "humanReviewNotes": "P1 matrix #9. Complete preferred-line match ranks and accounts correctly. Synthetic.",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeFixtureVersion": "rt_fixture_v1",
+  "sut": { "kind": "conductor_fixture", "responseId": "complete-match" },
+  "tags": ["p1_wave1e", "p1_ready", "matrix_9"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "origin_destination_consistency",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "complete_beats_partial",
+    "max_satisfaction_before_time",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}

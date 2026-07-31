@@ -1,0 +1,17 @@
+{
+  "$comment": "Wave 1E P1 hard subset — fixture/oracle cases only. Excludes soft/pending and live twins. Not a replacement for release-subset.json.",
+  "caseIds": [
+    "bmc-p1-station-station-no-prefs",
+    "bmc-p1-station-station-one-pref",
+    "bmc-p1-complete-preference-match",
+    "bmc-p1-maximal-partial-preference",
+    "bmc-p1-unselected-connector",
+    "bmc-p1-irrelevant-preferred",
+    "bmc-p1-stale-mode",
+    "bmc-p1-schedule-only-mode",
+    "bmc-p1-deterministic-repeat",
+    "bmc-p1-alpha-gct-penn-72gs",
+    "bmc-p1-midtown-penn-72-oracle",
+    "bmc-ordering-complete-beats-faster-partial"
+  ]
+}

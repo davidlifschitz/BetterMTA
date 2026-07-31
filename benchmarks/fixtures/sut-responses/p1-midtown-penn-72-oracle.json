@@ -1,0 +1,100 @@
+{
+  "contractVersion": "2026-07-31",
+  "requestId": "req_qa_p1_midtown_penn_72",
+  "staticDatasetVersion": "gtfs_fixture_v1",
+  "realtimeSnapshotId": "rt_fixture_v1",
+  "dataMode": "synthetic",
+  "freshness": {
+    "realtimeAgeSeconds": 0,
+    "staticActivatedAt": "2026-07-29T06:00:00.000Z",
+    "warnings": []
+  },
+  "baseline": { "itineraries": [] },
+  "constrained": {
+    "itineraries": [
+      {
+        "itineraryId": "itin_p1_midtown_penn_72",
+        "fingerprint": "fp_p1_midtown_penn_7_2",
+        "durationSeconds": 840,
+        "arrivalTime": "2026-07-30T09:14:00.000Z",
+        "walkingSeconds": 240,
+        "waitingSeconds": 120,
+        "transferCount": 1,
+        "lineSequence": ["7", "2"],
+        "legs": [
+          {
+            "legId": "leg_p1m_w1",
+            "kind": "walk",
+            "durationSeconds": 180,
+            "outOfSystem": true,
+            "instruction": "Walk from Midtown Park Ave area to Grand Central"
+          },
+          {
+            "legId": "leg_p1m_7",
+            "kind": "transit",
+            "lineId": "7",
+            "from": { "name": "Grand Central-42 St", "stationId": "st_gct" },
+            "to": { "name": "Times Sq-42 St", "stationId": "st_times" },
+            "departTime": "2026-07-30T09:03:00.000Z",
+            "arriveTime": "2026-07-30T09:06:00.000Z",
+            "durationSeconds": 180
+          },
+          {
+            "legId": "leg_p1m_t",
+            "kind": "walk",
+            "durationSeconds": 90,
+            "outOfSystem": false
+          },
+          {
+            "legId": "leg_p1m_2",
+            "kind": "transit",
+            "lineId": "2",
+            "from": { "name": "Times Sq-42 St", "stationId": "st_times" },
+            "to": { "name": "34 St-Penn Station", "stationId": "st_penn" },
+            "departTime": "2026-07-30T09:08:00.000Z",
+            "arriveTime": "2026-07-30T09:12:00.000Z",
+            "durationSeconds": 240
+          },
+          {
+            "legId": "leg_p1m_w2",
+            "kind": "walk",
+            "durationSeconds": 30,
+            "outOfSystem": true
+          }
+        ],
+        "satisfaction": {
+          "requestedLineIds": ["7", "2"],
+          "satisfiedLineIds": ["7", "2"],
+          "omittedLineIds": [],
+          "satisfactionCount": 2,
+          "requestedCount": 2,
+          "isComplete": true,
+          "feasibility": "complete"
+        },
+        "realtimeConfidence": "medium",
+        "alerts": [],
+        "explanation": {
+          "summary": "Preferred 7 and 2 are both used when topologically feasible.",
+          "facts": [
+            { "type": "line_used", "message": "Uses the 7 train.", "lineId": "7" },
+            { "type": "line_used", "message": "Uses the 2 train.", "lineId": "2" }
+          ],
+          "baselineDeltaSeconds": null
+        },
+        "candidateFamily": "preference_biased"
+      }
+    ],
+    "satisfactionSummary": {
+      "bestSatisfactionCount": 2,
+      "requestedCount": 2,
+      "completeMatchFound": true
+    }
+  },
+  "candidateCoverage": {
+    "status": "adequate",
+    "familiesAttempted": ["baseline", "preference_biased", "targeted_combination"],
+    "candidateCount": 11,
+    "preferenceCoveringCandidateCount": 4,
+    "budgetExhausted": false
+  }
+}

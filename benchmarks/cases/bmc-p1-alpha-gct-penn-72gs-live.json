@@ -1,0 +1,29 @@
+{
+  "caseId": "bmc-p1-alpha-gct-penn-72gs-live",
+  "title": "TODO/SKIP LIVE: GCT→Penn 7,2,GS practical subset + omission",
+  "classification": "pending_live_integration",
+  "categories": ["borough_manhattan", "lines_3", "transfer"],
+  "origin": { "placeId": "st:723" },
+  "destination": { "placeId": "st:128" },
+  "timing": { "type": "depart_now" },
+  "selectedLineIds": ["7", "2", "GS"],
+  "expectedFeasibility": "partial",
+  "minimumSatisfactionCount": 2,
+  "humanReviewNotes": "Controlled-alpha LIVE twin of synthetic oracle bmc-p1-alpha-gct-penn-72gs. Station PlaceRefs only (privacy-safe). Pending Wave 1D candidate coverage integration.",
+  "staticDatasetVersion": "mta-subway-pending",
+  "realtimeFixtureVersion": "live_at_gate_time",
+  "sut": { "kind": "live", "responseId": "live-p1-gct-penn-72gs" },
+  "tags": ["p1_wave1e", "p1_pending", "alpha_regression", "soft_feasibility", "wave_1d", "privacy_safe_placeref"],
+  "invariantAssertions": [
+    "valid_itinerary_structure",
+    "chronological_legs",
+    "nonnegative_durations",
+    "satisfaction_accounting",
+    "impossible_constraint_explanation",
+    "deterministic_order",
+    "max_three_itineraries",
+    "honest_data_mode",
+    "expected_feasibility",
+    "minimum_satisfaction"
+  ]
+}
