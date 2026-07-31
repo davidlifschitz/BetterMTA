@@ -3,7 +3,7 @@
 **Workstream:** Wave 2 Integration (`cursor-grok-4.5-high-fast`)  
 **Worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
 **Branch:** `agent/p1-address-preferred-lines`  
-**Program tip SHA:** `95cadd204a30e3b5bd4a476b5078e5efe7a141de` (`95cadd2`)  
+**Program tip SHA:**  ()  
 **Last integration fix (pre-handoff):** `81b4de6` (Ajv candidate-coverage dedupe)  
 **Wave 0 lock tip:** `b9139fb`  
 **Contracts:** LOCKED `2026-07-31` (no contract edits)  
