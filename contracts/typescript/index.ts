@@ -1,5 +1,5 @@
 /** BetterMTA shared contract types — conductor-owned, implementation-neutral. */
-export const CONTRACT_VERSION = "2026-07-30" as const;
+export const CONTRACT_VERSION = "2026-07-31" as const;
 export type ContractVersion = typeof CONTRACT_VERSION;
 
 export type DataMode =
@@ -11,12 +11,19 @@ export type DataMode =
 
 export type RealtimeConfidence = "high" | "medium" | "low" | "none";
 
+/** Place type discriminator (`placeType` equivalent). */
 export type PlaceKind =
   | "station"
   | "address"
   | "poi"
   | "current_location"
   | "coordinate";
+
+/**
+ * BetterMTA place-provider id. Opaque product key — never a vendor hostname.
+ * `station_index` = GTFS station autocomplete; `geocoder` = address/POI adapter.
+ */
+export type PlaceProviderId = "station_index" | "geocoder" | (string & {});
 
 export type Feasibility =
   | "complete"
@@ -29,6 +36,9 @@ export type CandidateFamily =
   | "constrained"
   | "preference_biased"
   | "targeted_combination";
+
+/** Privacy-safe candidate-generation outcome (ADR-0023). */
+export type CandidateCoverageStatus = "adequate" | "degraded" | "exhausted";
 
 export type ApiErrorCode =
   | "invalid_input"
@@ -62,11 +72,21 @@ export interface RouteSearchRequest {
   origin: PlaceRef;
   destination: PlaceRef;
   timing: Timing;
+  /** Preferred subway lineIds to maximize (ADR-0023). Internal ids; GS stays GS. */
   selectedLineIds?: string[];
   clientContext?: {
     viewport?: "mobile" | "desktop";
     experimentOptIn?: boolean;
   };
+}
+
+/** Privacy-safe preferred-line candidate-generation diagnostics (ADR-0023). */
+export interface CandidateCoverage {
+  status: CandidateCoverageStatus;
+  familiesAttempted: CandidateFamily[];
+  candidateCount: number;
+  preferenceCoveringCandidateCount: number;
+  budgetExhausted: boolean;
 }
 
 export interface SatisfactionResult {
@@ -83,6 +103,7 @@ export interface ExplanationFact {
   type:
     | "line_used"
     | "line_omitted"
+    | "connector_filled"
     | "transfer"
     | "walk"
     | "wait"
@@ -190,6 +211,8 @@ export interface RouteSearchResponse {
       completeMatchFound: boolean;
     };
   };
+  /** Optional; clients must tolerate absence for older servers. */
+  candidateCoverage?: CandidateCoverage;
   experiment?: {
     explanationVariant?: "concise" | "detailed";
   };
@@ -219,11 +242,20 @@ export interface Place {
   borough?: string;
   lat?: number;
   lon?: number;
+  /** BetterMTA provider id (e.g. station_index, geocoder); never a vendor hostname. */
+  provider?: PlaceProviderId;
+  /** Opaque upstream id; use placeId in PlaceRef, not this field. */
+  providerPlaceId?: string;
+  formattedAddress?: string;
+  /** Required for UI when showing geocode-backed address/POI results. */
+  attribution?: string;
 }
 
 export interface PlaceSearchResponse {
   contractVersion: ContractVersion;
   query: string;
+  /** Optional response-level attribution for UI chrome. */
+  attribution?: string;
   places: Place[];
 }
 
@@ -245,13 +277,42 @@ export interface RoutingSnapshotHandle {
   staticActivatedAt?: string | null;
 }
 
+/** Suggested details for insufficient_candidate_coverage (still under free-form details). */
+export type InsufficientCandidateCoverageDetails = CandidateCoverage & {
+  requestedLineIds?: string[];
+};
+
 export interface ApiErrorBody {
   error: {
     code: ApiErrorCode;
     message: string;
     requestId: string;
-    details?: Record<string, unknown>;
+    details?: Record<string, unknown> | InsufficientCandidateCoverageDetails;
   };
+}
+
+/**
+ * Privacy-safe logging representation for place/route requests.
+ * Never log precise lat/lon, raw proximity pins, or full street queries by default.
+ */
+export interface PrivacySafePlaceLogRef {
+  refType: "placeId" | "stationId" | "coordinate";
+  placeId?: string;
+  stationId?: string;
+  /** Coarsened only (e.g. ~1km grid); omit when unused. */
+  coarseGrid?: string;
+  provider?: PlaceProviderId;
+  kind?: PlaceKind;
+}
+
+export interface PrivacySafeRouteSearchLog {
+  requestId: string;
+  origin: PrivacySafePlaceLogRef;
+  destination: PrivacySafePlaceLogRef;
+  selectedLineIds?: string[];
+  timingType: Timing["type"];
+  /** Truncated/hashed query text if place search was involved; never full address by default. */
+  placeQueryHash?: string;
 }
 
 /** Lexicographic ranking keys for constrained itineraries (documentation aid). */

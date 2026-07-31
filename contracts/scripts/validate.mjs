@@ -99,6 +99,10 @@ async function main() {
       schema: "place-search-response.schema.json",
     },
     {
+      file: "fixtures/places/place-search-address.json",
+      schema: "place-search-response.schema.json",
+    },
+    {
       file: "fixtures/status/healthy.json",
       schema: "status-response.schema.json",
     },
@@ -112,6 +116,10 @@ async function main() {
     },
     {
       file: "fixtures/errors/no-transit-path.json",
+      schema: "api-error.schema.json",
+    },
+    {
+      file: "fixtures/errors/insufficient-candidate-coverage.json",
       schema: "api-error.schema.json",
     },
   ];
@@ -189,6 +197,78 @@ async function main() {
     }
   }
 
+  // Wave 0B: candidateCoverage fixtures validate against dedicated schema
+  const coverageSchema = schemasByFile.get("candidate-coverage.schema.json");
+  if (!coverageSchema) {
+    failures += 1;
+    console.error("FAIL missing candidate-coverage.schema.json");
+  } else {
+    const validateCoverage = ajv.compile(coverageSchema);
+    for (const file of [
+      "fixtures/routes/complete-match.json",
+      "fixtures/routes/partial-match.json",
+    ]) {
+      const payload = loadJson(join(root, file));
+      if (!payload.candidateCoverage) {
+        failures += 1;
+        console.error(`FAIL ${file}: expected candidateCoverage (Wave 0B example)`);
+        continue;
+      }
+      if (!validateCoverage(payload.candidateCoverage)) {
+        failures += 1;
+        console.error(`FAIL ${file}: candidateCoverage invalid`);
+        console.error(validateCoverage.errors);
+      } else {
+        console.log(`OK   ${file} candidateCoverage`);
+      }
+    }
+    const coverageErr = loadJson(
+      join(root, "fixtures/errors/insufficient-candidate-coverage.json")
+    );
+    const details = coverageErr?.error?.details ?? {};
+    const coverageFromDetails = {
+      status: details.status,
+      familiesAttempted: details.familiesAttempted,
+      candidateCount: details.candidateCount,
+      preferenceCoveringCandidateCount: details.preferenceCoveringCandidateCount,
+      budgetExhausted: details.budgetExhausted,
+    };
+    if (coverageErr?.error?.code !== "insufficient_candidate_coverage") {
+      failures += 1;
+      console.error("FAIL coverage error fixture code mismatch");
+    } else if (!validateCoverage(coverageFromDetails)) {
+      failures += 1;
+      console.error("FAIL coverage error details missing CandidateCoverage fields");
+      console.error(validateCoverage.errors);
+    } else {
+      console.log("OK   insufficient-candidate-coverage details shape");
+    }
+  }
+
+  // Wave 0B: address/POI place fixture must carry attribution + provider
+  {
+    const addressPlaces = loadJson(
+      join(root, "fixtures/places/place-search-address.json")
+    );
+    for (const place of addressPlaces.places ?? []) {
+      if (!place.provider || !place.attribution || !place.formattedAddress) {
+        failures += 1;
+        console.error(
+          `FAIL place-search-address: ${place.placeId} missing provider/attribution/formattedAddress`
+        );
+      }
+      if (place.kind !== "address" && place.kind !== "poi") {
+        failures += 1;
+        console.error(
+          `FAIL place-search-address: expected address/poi kinds, got ${place.kind}`
+        );
+      }
+    }
+    if (addressPlaces.places?.length) {
+      console.log("OK   place-search-address attribution fields");
+    }
+  }
+
   // OpenAPI lock checks
   const openapiPath = join(root, "openapi/bettermta-v1.yaml");
   if (!existsSync(openapiPath)) {
@@ -212,22 +292,76 @@ async function main() {
         console.log(`OK   openapi path ${p}`);
       }
     }
-    if (doc?.info?.version !== "2026-07-30") {
+    if (doc?.info?.version !== "2026-07-31") {
       failures += 1;
-      console.error("FAIL OpenAPI info.version must be 2026-07-30");
+      console.error("FAIL OpenAPI info.version must be 2026-07-31");
     } else {
       console.log("OK   openapi info.version");
+    }
+    const errEnum = doc?.components?.schemas?.ApiError?.properties?.error?.properties
+      ?.code?.enum;
+    if (!Array.isArray(errEnum) || !errEnum.includes("insufficient_candidate_coverage")) {
+      failures += 1;
+      console.error("FAIL OpenAPI missing insufficient_candidate_coverage");
+    } else {
+      console.log("OK   openapi insufficient_candidate_coverage");
+    }
+    const placeProps = doc?.components?.schemas?.Place?.properties ?? {};
+    for (const key of ["provider", "providerPlaceId", "formattedAddress", "attribution"]) {
+      if (!placeProps[key]) {
+        failures += 1;
+        console.error(`FAIL OpenAPI Place missing optional field ${key}`);
+      }
+    }
+    if (placeProps.provider && placeProps.attribution) {
+      console.log("OK   openapi Place additive fields");
+    }
+    if (!doc?.components?.schemas?.CandidateCoverage) {
+      failures += 1;
+      console.error("FAIL OpenAPI missing CandidateCoverage schema");
+    } else {
+      console.log("OK   openapi CandidateCoverage");
+    }
+    const placeRef = doc?.components?.schemas?.PlaceRef;
+    const placeRefKeys = new Set();
+    for (const variant of placeRef?.oneOf ?? []) {
+      for (const k of Object.keys(variant?.properties ?? {})) placeRefKeys.add(k);
+    }
+    for (const required of ["placeId", "stationId", "coordinate"]) {
+      if (!placeRefKeys.has(required)) {
+        failures += 1;
+        console.error(`FAIL OpenAPI PlaceRef lost shape ${required}`);
+      }
+    }
+    if (placeRefKeys.has("placeId") && placeRefKeys.has("stationId") && placeRefKeys.has("coordinate")) {
+      console.log("OK   openapi PlaceRef shapes preserved");
     }
   }
 
   // TypeScript export smoke: file exists and contains CONTRACT_VERSION
   const tsPath = join(root, "typescript/index.ts");
   const ts = readFileSync(tsPath, "utf8");
-  if (!ts.includes('CONTRACT_VERSION = "2026-07-30"')) {
+  if (!ts.includes('CONTRACT_VERSION = "2026-07-31"')) {
     failures += 1;
     console.error("FAIL typescript CONTRACT_VERSION mismatch");
   } else {
     console.log("OK   typescript/index.ts CONTRACT_VERSION");
+  }
+  for (const token of [
+    "CandidateCoverage",
+    "providerPlaceId",
+    "formattedAddress",
+    "connector_filled",
+    "PrivacySafeRouteSearchLog",
+    "insufficient_candidate_coverage",
+  ]) {
+    if (!ts.includes(token)) {
+      failures += 1;
+      console.error(`FAIL typescript missing export/token ${token}`);
+    }
+  }
+  if (ts.includes("CandidateCoverage") && ts.includes("providerPlaceId")) {
+    console.log("OK   typescript Wave 0B exports");
   }
 
   // Ensure every fixture JSON under fixtures/ is accounted for or still valid JSON

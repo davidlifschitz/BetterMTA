@@ -1,5 +1,5 @@
 {
-  "contractVersion": "2026-07-30",
+  "contractVersion": "2026-07-31",
   "requestId": "req_fixture_complete",
   "staticDatasetVersion": "gtfs_fixture_v1",
   "realtimeSnapshotId": "rt_fixture_v1",
@@ -160,6 +160,13 @@
       "requestedCount": 2,
       "completeMatchFound": true
     }
+  },
+  "candidateCoverage": {
+    "status": "adequate",
+    "familiesAttempted": ["baseline", "constrained", "preference_biased"],
+    "candidateCount": 8,
+    "preferenceCoveringCandidateCount": 3,
+    "budgetExhausted": false
   },
   "experiment": {
     "explanationVariant": "concise"
