@@ -1,6 +1,6 @@
 /** Local mirrors of conductor contract types used by the API layer. */
 
-export const CONTRACT_VERSION = "2026-07-30" as const;
+export const CONTRACT_VERSION = "2026-07-31" as const;
 export type ContractVersion = typeof CONTRACT_VERSION;
 
 export type DataMode =
@@ -76,11 +76,20 @@ export interface Place {
   borough?: string;
   lat?: number;
   lon?: number;
+  /** BetterMTA provider id (station_index | geocoder); never a vendor hostname. */
+  provider?: string;
+  /** Opaque upstream id; clients must use placeId in PlaceRef. */
+  providerPlaceId?: string;
+  formattedAddress?: string;
+  /** Required for UI when showing geocode-backed address/POI results. */
+  attribution?: string;
 }
 
 export interface PlaceSearchResponse {
   contractVersion: ContractVersion;
   query: string;
+  /** Optional response-level attribution for UI chrome. */
+  attribution?: string;
   places: Place[];
 }
 

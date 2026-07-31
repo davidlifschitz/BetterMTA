@@ -7,13 +7,18 @@ import { FixtureDataAdapter } from "./adapters/fixture/FixtureDataAdapter.js";
 import { FixtureRoutingAdapter } from "./adapters/fixture/FixtureRoutingAdapter.js";
 import { LiveDataAdapter } from "./adapters/live/LiveDataAdapter.js";
 import { LiveRoutingAdapter } from "./adapters/live/LiveRoutingAdapter.js";
+import {
+  createGeocoderProvider,
+  GeocodeQueryCache,
+  GeocodeResolveCache,
+} from "./adapters/places/index.js";
 import { MemoryCache } from "./cache/memoryCache.js";
 import {
   assertProductionAdapterLockout,
   loadConfig,
   type ApiConfig,
 } from "./config.js";
-import { MAX_PAYLOAD_BYTES } from "./constants.js";
+import { CONTRACT_VERSION, MAX_PAYLOAD_BYTES } from "./constants.js";
 import { ApiError } from "./errors/apiError.js";
 import { createLogger } from "./logging/logger.js";
 import { LatencyHistogram } from "./metrics/latency.js";
@@ -190,7 +195,7 @@ export async function buildApp(
     if (!reply.hasHeader("X-Request-Id")) {
       setContractHeaders(reply, request.requestId ?? newRequestId());
     } else if (!reply.hasHeader("X-Contract-Version")) {
-      reply.header("X-Contract-Version", "2026-07-30");
+      reply.header("X-Contract-Version", CONTRACT_VERSION);
     }
     return payload;
   });
@@ -213,6 +218,25 @@ async function resolveAdapters(
     return { data: depsOverride.data, routing: depsOverride.routing };
   }
 
+  const geocoder = createGeocoderProvider(config, logger);
+  const geocodeQueryCache =
+    config.addressPoiEnabled && geocoder
+      ? new GeocodeQueryCache(
+          config.geocoderQueryCacheTtlMs,
+          config.geocoderQueryCacheMax,
+        )
+      : null;
+  const geocodeResolveCache =
+    config.addressPoiEnabled && geocoder
+      ? new GeocodeResolveCache(config.geocoderResolveCacheTtlMs)
+      : null;
+  const placesOpts = {
+    addressPoiEnabled: config.addressPoiEnabled,
+    geocoder,
+    geocodeQueryCache,
+    geocodeResolveCache,
+  };
+
   if (config.adapterMode === "fixture") {
     const data =
       depsOverride?.data ??
@@ -220,6 +244,7 @@ async function resolveAdapters(
         config.fixturesRoot,
         config.adapterReadyMode,
         config.permitDegradedReady,
+        placesOpts,
       );
     const routing =
       depsOverride?.routing ?? new FixtureRoutingAdapter(config.fixturesRoot);
@@ -236,6 +261,7 @@ async function resolveAdapters(
       catalogTtlMs: config.dataCatalogTtlMs,
       permitDegradedReady: config.permitDegradedReady,
       logger,
+      ...placesOpts,
     });
 
   const routing =

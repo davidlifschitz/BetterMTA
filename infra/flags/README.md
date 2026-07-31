@@ -8,6 +8,7 @@
 
 | Flag | Default | Owner | Safe disable |
 |---|---|---|---|
+| `address_poi_enabled` | `false` | backend | `false` → station-index-only place search (ADR-0022) |
 | `realtime_enabled` | `true` | data | `false` → schedule_only, labeled |
 | `constraints_enabled` | `true` | routing | `false` → baseline-only ranking path |
 | `explanation_variant` | `standard` | frontend | `concise` |

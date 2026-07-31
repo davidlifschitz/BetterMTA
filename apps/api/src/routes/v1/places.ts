@@ -85,6 +85,9 @@ export async function registerPlacesRoute(
         proximityLon,
       });
 
+      const geocodeCount = result.places.filter(
+        (p) => p.provider === "geocoder",
+      ).length;
       deps.logger.info("places_ok", {
         requestId,
         route: "/v1/places/search",
@@ -93,6 +96,10 @@ export async function registerPlacesRoute(
         durationMs: Date.now() - request.startedAt,
         queryLength: q.length,
         resultCount: result.places.length,
+        stationResultCount: result.places.length - geocodeCount,
+        geocodeResultCount: geocodeCount,
+        addressPoiEnabled: deps.config.addressPoiEnabled,
+        hasAttribution: Boolean(result.attribution),
         proximityProvided: proximityLat !== undefined,
       });
 

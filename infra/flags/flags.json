@@ -1,8 +1,15 @@
 {
   "version": 1,
-  "updatedAt": "2026-07-30",
-  "notes": "PLACEHOLDER defaults for public beta. Runtime may override via env FEATURE_FLAGS_JSON or platform config. Owners must be humans/workstreams, not bots.",
+  "updatedAt": "2026-07-31",
+  "notes": "PLACEHOLDER defaults for public beta. Runtime may override via env FEATURE_FLAGS_JSON or platform config. Owners must be humans/workstreams, not bots. address_poi_enabled defaults false — certified station-index alpha unchanged until go/no-go (ADR-0022).",
   "flags": {
+    "address_poi_enabled": {
+      "default": false,
+      "type": "boolean",
+      "owner": "backend",
+      "description": "When true, /v1/places/search may append feature-flagged address/POI geocode results behind the GeocoderProvider adapter (ADR-0022). Station index remains authoritative for subway stations.",
+      "safeDisable": "Set false to restore station-index-only autocomplete + browser geolocation behavior. Does not affect routing candidate orchestration."
+    },
     "realtime_enabled": {
       "default": true,
       "type": "boolean",

@@ -10,6 +10,13 @@ import type {
   StatusResponse,
 } from "../../types.js";
 import type { DataAdapter } from "../types.js";
+import {
+  composePlaceSearch,
+  STATION_INDEX_PROVIDER_ID,
+  type GeocodeQueryCache,
+  type GeocodeResolveCache,
+  type GeocoderProvider,
+} from "../places/index.js";
 import { DataUnavailableError } from "./errors.js";
 import { SwrTtlCache } from "./swrCache.js";
 
@@ -53,6 +60,11 @@ export interface LiveDataAdapterOptions {
   fetchImpl?: typeof fetch;
   now?: () => number;
   logger?: Logger;
+  /** ADR-0022 address/POI flag (default false). */
+  addressPoiEnabled?: boolean;
+  geocoder?: GeocoderProvider | null;
+  geocodeQueryCache?: GeocodeQueryCache | null;
+  geocodeResolveCache?: GeocodeResolveCache | null;
 }
 
 type LinesCatalogPayload = {
@@ -72,6 +84,10 @@ export class LiveDataAdapter implements DataAdapter {
   private readonly now: () => number;
   private readonly permitDegradedReady: boolean;
   private readonly logger?: Logger;
+  private readonly addressPoiEnabled: boolean;
+  private readonly geocoder: GeocoderProvider | null;
+  private readonly geocodeQueryCache: GeocodeQueryCache | null;
+  private readonly geocodeResolveCache: GeocodeResolveCache | null;
   private readonly statusCache: SwrTtlCache<InternalStatusBody>;
   private readonly linesCache: SwrTtlCache<LinesCatalogPayload>;
   private readonly stationsCache: SwrTtlCache<StationsCatalogPayload>;
@@ -86,6 +102,10 @@ export class LiveDataAdapter implements DataAdapter {
     this.now = opts.now ?? (() => Date.now());
     this.permitDegradedReady = opts.permitDegradedReady;
     this.logger = opts.logger;
+    this.addressPoiEnabled = opts.addressPoiEnabled ?? false;
+    this.geocoder = opts.geocoder ?? null;
+    this.geocodeQueryCache = opts.geocodeQueryCache ?? null;
+    this.geocodeResolveCache = opts.geocodeResolveCache ?? null;
     this.statusCache = new SwrTtlCache(opts.statusTtlMs, this.now);
     this.linesCache = new SwrTtlCache(opts.catalogTtlMs, this.now);
     this.stationsCache = new SwrTtlCache(opts.catalogTtlMs, this.now);
@@ -144,12 +164,23 @@ export class LiveDataAdapter implements DataAdapter {
     proximityLon?: number;
   }): Promise<PlaceSearchResponse> {
     const catalog = await this.requireStationsCatalog();
-    const places = searchStations(catalog.stations, input);
-    return {
-      contractVersion: CONTRACT_VERSION,
-      query: input.query,
-      places,
-    };
+    const stations = searchStations(catalog.stations, input);
+    return composePlaceSearch(
+      {
+        addressPoiEnabled: this.addressPoiEnabled,
+        geocoder: this.geocoder,
+        queryCache: this.geocodeQueryCache,
+        resolveCache: this.geocodeResolveCache,
+        logger: this.logger,
+      },
+      {
+        query: input.query,
+        limit: input.limit,
+        proximityLat: input.proximityLat,
+        proximityLon: input.proximityLon,
+        stations,
+      },
+    );
   }
 
   async getStatus(): Promise<StatusResponse> {
@@ -233,6 +264,12 @@ export class LiveDataAdapter implements DataAdapter {
     stationId?: string;
   }): Promise<Place | null> {
     try {
+      if (ref.placeId?.startsWith("pl_geo_")) {
+        const cached = this.geocodeResolveCache?.get(ref.placeId) ?? null;
+        // Honest miss — never substitute an unrelated station (ADR-0022).
+        return cached;
+      }
+
       const catalog = await this.requireStationsCatalog();
       const stations = catalog.stations;
       if (ref.stationId) {
@@ -428,6 +465,7 @@ export function stationToPlace(st: InternalCatalogStation): Place {
     stationId: st.stationId,
     lat: st.lat,
     lon: st.lon,
+    provider: STATION_INDEX_PROVIDER_ID,
   };
 }
 

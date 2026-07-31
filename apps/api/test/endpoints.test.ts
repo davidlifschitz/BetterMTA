@@ -30,7 +30,7 @@ describe("endpoints happy paths", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.headers["x-request-id"]).toBe("req_test_complete");
-    expect(res.headers["x-contract-version"]).toBe("2026-07-30");
+    expect(res.headers["x-contract-version"]).toBe("2026-07-31");
     const body = res.json();
     expect(body.dataMode).toBe("synthetic");
     expect(body.constrained.satisfactionSummary.completeMatchFound).toBe(true);
@@ -106,7 +106,7 @@ describe("endpoints happy paths", () => {
     apps.push(app);
     const res = await app.inject({ method: "GET", url: "/v1/lines" });
     expect(res.statusCode).toBe(200);
-    expect(res.headers["x-contract-version"]).toBe("2026-07-30");
+    expect(res.headers["x-contract-version"]).toBe("2026-07-31");
     expect(res.headers["x-content-type-options"]).toBe("nosniff");
     expect(res.headers["x-frame-options"]).toBe("DENY");
     expect(res.headers["referrer-policy"]).toBe("no-referrer");

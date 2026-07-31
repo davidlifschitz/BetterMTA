@@ -10,7 +10,21 @@ import type {
   StatusResponse,
 } from "../../types.js";
 import type { DataAdapter } from "../types.js";
+import {
+  composePlaceSearch,
+  STATION_INDEX_PROVIDER_ID,
+  type GeocodeQueryCache,
+  type GeocodeResolveCache,
+  type GeocoderProvider,
+} from "../places/index.js";
 import { readJsonFixture } from "./readJson.js";
+
+export interface FixtureDataAdapterPlacesOptions {
+  addressPoiEnabled?: boolean;
+  geocoder?: GeocoderProvider | null;
+  geocodeQueryCache?: GeocodeQueryCache | null;
+  geocodeResolveCache?: GeocodeResolveCache | null;
+}
 
 /** Extra resolvable places referenced by route fixtures / sentinels (not all in place-search fixture). */
 const EXTRA_PLACES: Place[] = [
@@ -65,11 +79,22 @@ const EXTRA_PLACES: Place[] = [
 ];
 
 export class FixtureDataAdapter implements DataAdapter {
+  private readonly addressPoiEnabled: boolean;
+  private readonly geocoder: GeocoderProvider | null;
+  private readonly geocodeQueryCache: GeocodeQueryCache | null;
+  private readonly geocodeResolveCache: GeocodeResolveCache | null;
+
   constructor(
     private readonly fixturesRoot: string,
     private readonly readyMode: AdapterReadyMode,
     private readonly permitDegradedReady: boolean,
-  ) {}
+    places: FixtureDataAdapterPlacesOptions = {},
+  ) {
+    this.addressPoiEnabled = places.addressPoiEnabled ?? false;
+    this.geocoder = places.geocoder ?? null;
+    this.geocodeQueryCache = places.geocodeQueryCache ?? null;
+    this.geocodeResolveCache = places.geocodeResolveCache ?? null;
+  }
 
   async getSnapshotHandle(): Promise<RoutingSnapshotHandle> {
     if (this.readyMode === "not_ready_static") {
@@ -120,25 +145,40 @@ export class FixtureDataAdapter implements DataAdapter {
     proximityLat?: number;
     proximityLon?: number;
   }): Promise<PlaceSearchResponse> {
-    // proximity is bias-only; intentionally unused in fixture mode (and never logged).
-    void input.proximityLat;
-    void input.proximityLon;
-
     const fixture = readJsonFixture<PlaceSearchResponse>(
       this.fixturesRoot,
       "places/place-search.json",
     );
     const catalog = this.buildCatalog(fixture.places);
     const q = input.query.trim().toLowerCase();
-    const matched = catalog
-      .filter((p) => p.label.toLowerCase().includes(q) || p.placeId.toLowerCase().includes(q))
+    const stations = catalog
+      .filter(
+        (p) =>
+          p.kind === "station" &&
+          (p.label.toLowerCase().includes(q) ||
+            p.placeId.toLowerCase().includes(q)),
+      )
+      .map((p) => ({
+        ...stripPreciseCoordsForOptionalPrivacy(p),
+        provider: p.provider ?? STATION_INDEX_PROVIDER_ID,
+      }))
       .slice(0, input.limit);
 
-    return {
-      contractVersion: CONTRACT_VERSION,
-      query: input.query,
-      places: matched.map((p) => stripPreciseCoordsForOptionalPrivacy(p)),
-    };
+    return composePlaceSearch(
+      {
+        addressPoiEnabled: this.addressPoiEnabled,
+        geocoder: this.geocoder,
+        queryCache: this.geocodeQueryCache,
+        resolveCache: this.geocodeResolveCache,
+      },
+      {
+        query: input.query,
+        limit: input.limit,
+        proximityLat: input.proximityLat,
+        proximityLon: input.proximityLon,
+        stations,
+      },
+    );
   }
 
   async getStatus(): Promise<StatusResponse> {
@@ -206,6 +246,11 @@ export class FixtureDataAdapter implements DataAdapter {
     placeId?: string;
     stationId?: string;
   }): Promise<Place | null> {
+    if (ref.placeId?.startsWith("pl_geo_")) {
+      // Honest miss if not in short-lived geocode cache — never substitute a station.
+      return this.geocodeResolveCache?.get(ref.placeId) ?? null;
+    }
+
     const fixture = readJsonFixture<PlaceSearchResponse>(
       this.fixturesRoot,
       "places/place-search.json",
