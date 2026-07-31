@@ -1,4 +1,6 @@
 import type { CandidateProvider } from "../candidate-provider.ts";
+import type { CandidateCoverage, CandidateFamily } from "../types.ts";
+import type { PreferredLineTopology } from "../orchestration/topology.ts";
 
 /**
  * Options for createOtpCandidateProvider.
@@ -9,7 +11,10 @@ export interface OtpCandidateProviderOptions {
   otpBaseUrl: string;
   /** Hard AbortController budget per query. Default 4000. */
   timeoutMs?: number;
-  /** Candidate diversity. Default 8. */
+  /**
+   * Candidate diversity for baseline family. Default 8.
+   * Preference/via families use orchestration budgets.
+   */
   numItineraries?: number;
   /** Stamped into sourceEngineIds; null => "unknown". */
   graphVersion?: string | null;
@@ -19,6 +24,13 @@ export interface OtpCandidateProviderOptions {
    * Returning null rejects the candidate as malformed (counted, not thrown).
    */
   routeIdToLineId: (gtfsRouteId: string) => string | null;
+  /**
+   * Optional inverse map for preference_biased unpreferred lists.
+   * Defaults to `MTASBWY:{lineId}`.
+   */
+  lineIdToGtfsRouteIds?: (lineId: string) => string[];
+  /** Optional preferred-line topology for via/seed hints. */
+  topology?: PreferredLineTopology;
   /** Clock injection for tests. */
   now?: () => number;
   /**
@@ -31,6 +43,8 @@ export interface OtpCandidateProviderOptions {
    * Documented in ROUTING_ENGINE_SPEC.md.
    */
   searchWindowSeconds?: number;
+  /** Hard ceiling on OTP plan calls per search. Default 6. */
+  maxQueries?: number;
   /** Per-query latency / result hook for backend metrics. */
   onQuery?: (stats: OtpQueryStats) => void;
 }
@@ -41,6 +55,9 @@ export interface OtpQueryStats {
   itineraryCount: number;
   rejectedCount: number;
   errorKind?: "timeout" | "unavailable" | "bad_response";
+  /** Privacy-safe query key from orchestration plan. */
+  queryKey?: string;
+  candidateFamily?: CandidateFamily;
 }
 
 export type OtpRejectReason =
@@ -53,6 +70,8 @@ export type OtpRejectReason =
 export interface OtpCandidateProvider extends CandidateProvider {
   readonly rejectionCounts: Readonly<Record<string, number>>;
   readonly lastQueryStats: OtpQueryStats | null;
+  /** Privacy-safe coverage from the most recent generateCandidates call. */
+  readonly lastCandidateCoverage: CandidateCoverage | null;
   resetCounters(): void;
 }
 

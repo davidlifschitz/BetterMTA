@@ -3,6 +3,8 @@
  * (source of truth: contracts/typescript/index.ts).
  */
 export type {
+  CandidateCoverage,
+  CandidateCoverageStatus,
   CandidateFamily,
   DataMode,
   Explanation,

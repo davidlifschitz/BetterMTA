@@ -45,6 +45,19 @@ export {
   type OtpQueryStats,
   type OtpRejectReason,
 } from "./otp-provider/index.ts";
+export {
+  assessCandidateCoverage,
+  buildOrchestrationQueryPlan,
+  DEFAULT_CANDIDATE_BUDGET,
+  dedupeDraftsByFingerprint,
+  defaultPreferredLineTopology,
+  isTopologicallySensible,
+  MAX_OTP_QUERIES,
+  SEEDED_TRANSFER_HUBS,
+  selectViaStations,
+  type OrchestrationQuerySpec,
+  type PreferredLineTopology,
+} from "./orchestration/index.ts";
 export type {
   CandidateItinerary,
   CandidateSearchRequest,
@@ -58,6 +71,8 @@ export {
   MAX_SELECTED_LINES,
 } from "./types.ts";
 export type {
+  CandidateCoverage,
+  CandidateCoverageStatus,
   CandidateFamily,
   DataMode,
   Explanation,

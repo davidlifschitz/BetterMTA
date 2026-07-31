@@ -4,36 +4,7 @@ export const DEFAULT_SEARCH_WINDOW_SECONDS = 45 * 60;
 /** OTP graph `transitModelTimeZone` — plan String date/time are wall-clock in this zone. */
 export const OTP_GRAPH_TIME_ZONE = "America/New_York";
 
-/**
- * GraphQL plan query modeled on services/otp/recorded captures.
- *
- * Request timing: we derive America/New_York wall-clock date + time from an
- * epoch-millis `dateTime` variable (matching OTP's transitModelTimeZone).
- * The epoch is included in the variables payload for observability and tests.
- *
- * Response times: request unaliased `start`/`end` (Itinerary) and LegTime
- * `scheduledTime` so the mapper can accept epoch millis or OffsetDateTime.
- */
-export const OTP_PLAN_QUERY = `
-query BetterMtaPlan(
-  $fromLat: Float!
-  $fromLon: Float!
-  $toLat: Float!
-  $toLon: Float!
-  $date: String
-  $time: String
-  $numItineraries: Int
-  $searchWindow: Long
-) {
-  plan(
-    from: { lat: $fromLat, lon: $fromLon }
-    to: { lat: $toLat, lon: $toLon }
-    date: $date
-    time: $time
-    numItineraries: $numItineraries
-    searchWindow: $searchWindow
-    transportModes: [{ mode: SUBWAY }, { mode: WALK }]
-  ) {
+const PLAN_SELECTION = `
     itineraries {
       duration
       start
@@ -51,9 +22,24 @@ query BetterMtaPlan(
         trip { gtfsId }
       }
     }
-  }
-}
 `.trim();
+
+/**
+ * Baseline GraphQL plan query (recorded-fixture compatible).
+ * Preference/via knobs are added only when orchestration needs them.
+ */
+export const OTP_PLAN_QUERY = buildPlanQueryDocument({
+  includeUnpreferred: false,
+  includeVia: false,
+});
+
+export interface PlanViaVisitInput {
+  label?: string;
+  lat: number;
+  lon: number;
+  /** OTP Duration string; default no mandatory wait. */
+  minimumWaitTime?: string;
+}
 
 export interface PlanQueryVariables {
   fromLat: number;
@@ -66,6 +52,78 @@ export interface PlanQueryVariables {
   searchWindow: number;
   /** Canonical epoch-millis departure instant (observability / tests). */
   dateTime: number;
+  unpreferredRoutes?: string;
+  unpreferredCost?: string;
+  via?: Array<{
+    visit: {
+      label?: string;
+      coordinate: { lat: number; lon: number };
+      minimumWaitTime?: string;
+    };
+  }>;
+}
+
+export interface BuildPlanRequestOptions {
+  fromLat: number;
+  fromLon: number;
+  toLat: number;
+  toLon: number;
+  date: string;
+  time: string;
+  numItineraries: number;
+  searchWindow: number;
+  dateTime: number;
+  unpreferredRoutes?: string[] | null;
+  unpreferredCost?: string | null;
+  via?: PlanViaVisitInput | null;
+}
+
+function buildPlanQueryDocument(flags: {
+  includeUnpreferred: boolean;
+  includeVia: boolean;
+}): string {
+  const varDecls = [
+    "$fromLat: Float!",
+    "$fromLon: Float!",
+    "$toLat: Float!",
+    "$toLon: Float!",
+    "$date: String",
+    "$time: String",
+    "$numItineraries: Int",
+    "$searchWindow: Long",
+  ];
+  const planArgs = [
+    "from: { lat: $fromLat, lon: $fromLon }",
+    "to: { lat: $toLat, lon: $toLon }",
+    "date: $date",
+    "time: $time",
+    "numItineraries: $numItineraries",
+    "searchWindow: $searchWindow",
+    "transportModes: [{ mode: SUBWAY }, { mode: WALK }]",
+  ];
+
+  if (flags.includeUnpreferred) {
+    varDecls.push("$unpreferredRoutes: String", "$unpreferredCost: String");
+    planArgs.push(
+      "unpreferred: { routes: $unpreferredRoutes, unpreferredCost: $unpreferredCost }",
+    );
+  }
+  if (flags.includeVia) {
+    varDecls.push("$via: [PlanViaLocationInput!]");
+    planArgs.push("via: $via");
+  }
+
+  return `
+query BetterMtaPlan(
+  ${varDecls.join("\n  ")}
+) {
+  plan(
+    ${planArgs.join("\n    ")}
+  ) {
+    ${PLAN_SELECTION}
+  }
+}
+`.trim();
 }
 
 /**
@@ -119,14 +177,45 @@ export function epochToNyDateTimeParts(epochMs: number): {
 /** @deprecated Use {@link epochToNyDateTimeParts}; kept as an alias for callers. */
 export const epochToUtcDateTimeParts = epochToNyDateTimeParts;
 
-export function buildPlanRequestBody(vars: PlanQueryVariables): {
+export function buildPlanRequestBody(opts: BuildPlanRequestOptions): {
   query: string;
   variables: PlanQueryVariables;
 } {
-  return {
-    query: OTP_PLAN_QUERY,
-    variables: vars,
+  const includeUnpreferred = Boolean(
+    opts.unpreferredRoutes && opts.unpreferredRoutes.length > 0,
+  );
+  const includeVia = Boolean(opts.via);
+  const query = buildPlanQueryDocument({ includeUnpreferred, includeVia });
+
+  const variables: PlanQueryVariables = {
+    fromLat: opts.fromLat,
+    fromLon: opts.fromLon,
+    toLat: opts.toLat,
+    toLon: opts.toLon,
+    date: opts.date,
+    time: opts.time,
+    numItineraries: opts.numItineraries,
+    searchWindow: opts.searchWindow,
+    dateTime: opts.dateTime,
   };
+
+  if (includeUnpreferred && opts.unpreferredRoutes) {
+    variables.unpreferredRoutes = opts.unpreferredRoutes.join(",");
+    variables.unpreferredCost = opts.unpreferredCost ?? "300 + 1.5 x";
+  }
+  if (includeVia && opts.via) {
+    variables.via = [
+      {
+        visit: {
+          label: opts.via.label,
+          coordinate: { lat: opts.via.lat, lon: opts.via.lon },
+          minimumWaitTime: opts.via.minimumWaitTime ?? "0s",
+        },
+      },
+    ];
+  }
+
+  return { query, variables };
 }
 
 export function otpGraphqlUrl(otpBaseUrl: string): string {

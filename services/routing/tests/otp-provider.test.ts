@@ -58,6 +58,10 @@ function nycRouteIdToLineId(gtfsRouteId: string): string | null {
     "5",
     "6",
     "7",
+    "GS",
+    "FS",
+    "H",
+    "SI",
   ]);
   return allowed.has(short) ? short : null;
 }
@@ -424,9 +428,10 @@ describe("OTP timezone honesty", () => {
       baseOtpRequest(["F"], { timing: { type: "depart_now" } }),
     );
 
-    expect(captured?.variables?.dateTime).toBe(nowMs);
-    expect(captured?.variables?.date).toBe("2026-07-30");
-    expect(captured?.variables?.time).toBe("12:27:00");
+    expect(captured).not.toBeNull();
+    expect(captured!.variables?.dateTime).toBe(nowMs);
+    expect(captured!.variables?.date).toBe("2026-07-30");
+    expect(captured!.variables?.time).toBe("12:27:00");
   });
 });
 

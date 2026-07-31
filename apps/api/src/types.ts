@@ -94,6 +94,17 @@ export interface StatusResponse {
   messages: string[];
 }
 
+/** Privacy-safe preferred-line coverage diagnostics (ADR-0023). */
+export interface CandidateCoverage {
+  status: "adequate" | "degraded" | "exhausted";
+  familiesAttempted: Array<
+    "baseline" | "constrained" | "preference_biased" | "targeted_combination"
+  >;
+  candidateCount: number;
+  preferenceCoveringCandidateCount: number;
+  budgetExhausted: boolean;
+}
+
 export interface RouteSearchResponse {
   contractVersion: ContractVersion;
   requestId: string;
@@ -114,6 +125,8 @@ export interface RouteSearchResponse {
       completeMatchFound: boolean;
     };
   };
+  /** Optional; clients must tolerate absence. */
+  candidateCoverage?: CandidateCoverage;
   experiment?: {
     explanationVariant?: "concise" | "detailed";
   };

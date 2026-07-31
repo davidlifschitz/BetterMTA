@@ -357,7 +357,11 @@ function mapOutcomeToResponse(
         "insufficient_candidate_coverage",
         outcome.reason,
         input.requestId,
-        { requestedCount: outcome.requestedCount },
+        {
+          requestedCount: outcome.requestedCount,
+          requestedLineIds: input.selectedLineIds,
+          ...(outcome.candidateCoverage ?? {}),
+        },
       );
     case "data_unavailable":
       throw new ApiError(
@@ -422,6 +426,9 @@ function mapOutcomeToResponse(
           itineraries: stripLibraryExtras(outcome.constrained),
           satisfactionSummary: outcome.satisfactionSummary,
         },
+        ...(outcome.candidateCoverage
+          ? { candidateCoverage: outcome.candidateCoverage }
+          : {}),
         experiment: {
           explanationVariant: input.explanationVariant,
         },

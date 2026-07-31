@@ -223,7 +223,8 @@ Arrive-by search strategy remains **deferred** (ADR-0014).
 
 - `queryId`: UUID per plan call.
 - `graphVersion`: from options; `null`/omitted → `"unknown"`.
-- `candidateFamily`: `"baseline"` for this single-query Phase 5 adapter (family orchestration remains future work).
+- `candidateFamily`: stamped per orchestration family (`baseline`, `preference_biased`, `targeted_combination`).
+- Multi-family orchestration (ADR-0023): unconstrained baseline + preference-biased unpreferred queries + via-station / subset targeted queries under strict query/candidate budgets; deterministic fingerprint dedupe; privacy-safe `candidateCoverage`.
 - `realtimeConfidence`: `"none"` while OTP runs schedule-only / without RT confidence mapping.
 
 ### Malformed rejection (never throw per itinerary)
@@ -255,8 +256,8 @@ Latency: each plan call records `durationMs` on `lastQueryStats` and optional `o
 - Exact selected-line satisfaction accounting
 - Lexicographic ranking + fingerprint tie-break
 - Structured explanations + top-3 truncation
-- Soft preference / targeted combination **family orchestration** (future; this provider is one baseline plan call)
-- `routeIdToLineId` mapping (owned by data service; injected here)
+- Soft preference / via / subset **family orchestration** lives in `createOtpCandidateProvider` + `services/routing/src/orchestration/` (OTP remains substrate only)
+- `routeIdToLineId` / optional `lineIdToGtfsRouteIds` mapping (owned by data service; injected here)
 
 Offline fixtures: `tests/fixtures/otp/*.json` are **copies** of `services/otp/recorded/` (see that folder’s README for provenance).
 

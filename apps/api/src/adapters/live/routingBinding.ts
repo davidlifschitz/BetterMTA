@@ -22,6 +22,17 @@ export type CreateOtpCandidateProvider = (
   opts: OtpCandidateProviderOptions,
 ) => CandidateProvider;
 
+/** Privacy-safe coverage diagnostics mirrored from @bettermta/routing (ADR-0023). */
+export interface CandidateCoverage {
+  status: "adequate" | "degraded" | "exhausted";
+  familiesAttempted: Array<
+    "baseline" | "constrained" | "preference_biased" | "targeted_combination"
+  >;
+  candidateCount: number;
+  preferenceCoveringCandidateCount: number;
+  budgetExhausted: boolean;
+}
+
 export type RouteSearchOutcome =
   | {
       kind: "ok";
@@ -35,12 +46,14 @@ export type RouteSearchOutcome =
       constraintInfeasible: boolean;
       dataDegradation: "schedule_only" | "stale" | null;
       invalidDraftRejectionCounts: Record<string, number>;
+      candidateCoverage?: CandidateCoverage;
     }
   | { kind: "no_transit_path"; requestedCount: number }
   | {
       kind: "insufficient_candidate_coverage";
       requestedCount: number;
       reason: string;
+      candidateCoverage?: CandidateCoverage;
     }
   | {
       kind: "data_unavailable";

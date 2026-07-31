@@ -1,6 +1,11 @@
 import type { CandidateProvider } from "./candidate-provider.ts";
 import { fingerprintItinerary } from "./fingerprint.ts";
 import { buildExplanation } from "./explanation.ts";
+import {
+  assessCandidateCoverage,
+  DEFAULT_CANDIDATE_BUDGET,
+  isTopologicallySensible,
+} from "./orchestration/index.ts";
 import { OtpProviderError } from "./otp-provider/errors.ts";
 import {
   rankBaseline,
@@ -12,12 +17,16 @@ import {
   computeSatisfaction,
   lineSequenceFromLegs,
   normalizeSelectedLineIds,
+  transitLegsOf,
 } from "./satisfaction.ts";
 import type {
+  CandidateCoverage,
+  CandidateFamily,
   CandidateItinerary,
   CandidateSearchRequest,
   DataMode,
   Itinerary,
+  Leg,
   RawCandidateDraft,
   RealtimeConfidence,
 } from "./types.ts";
@@ -50,12 +59,15 @@ export type RouteSearchOutcome =
       dataDegradation: DataDegradation | null;
       /** Counts of drafts dropped by the validity gate, keyed by reject reason. */
       invalidDraftRejectionCounts: Record<string, number>;
+      /** Privacy-safe preferred-line coverage diagnostics (ADR-0023). */
+      candidateCoverage?: CandidateCoverage;
     }
   | { kind: "no_transit_path"; requestedCount: number }
   | {
       kind: "insufficient_candidate_coverage";
       requestedCount: number;
       reason: string;
+      candidateCoverage?: CandidateCoverage;
     }
   | {
       kind: "data_unavailable";
@@ -67,6 +79,58 @@ export type RouteSearchOutcome =
       requestedCount: number;
       reason: string;
     };
+
+function connectorLineIdsFor(
+  selectedLineIds: readonly string[],
+  legs: readonly Leg[],
+): string[] {
+  if (selectedLineIds.length === 0) return [];
+  const selected = new Set(selectedLineIds);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const leg of transitLegsOf(legs)) {
+    if (selected.has(leg.lineId) || seen.has(leg.lineId)) continue;
+    seen.add(leg.lineId);
+    out.push(leg.lineId);
+  }
+  return out;
+}
+
+function providerCandidateCoverage(
+  provider: CandidateProvider,
+): CandidateCoverage | null {
+  const maybe = provider as CandidateProvider & {
+    lastCandidateCoverage?: CandidateCoverage | null;
+  };
+  return maybe.lastCandidateCoverage ?? null;
+}
+
+function familiesFromDrafts(
+  drafts: ReadonlyArray<RawCandidateDraft | CandidateItinerary>,
+): CandidateFamily[] {
+  const seen = new Set<CandidateFamily>();
+  for (const d of drafts) {
+    if (d.candidateFamily) seen.add(d.candidateFamily);
+  }
+  return [...seen];
+}
+
+function draftsForCoverage(
+  drafts: ReadonlyArray<RawCandidateDraft | CandidateItinerary>,
+): RawCandidateDraft[] {
+  return drafts.map((d) => ({
+    itineraryId: d.itineraryId,
+    durationSeconds: d.durationSeconds,
+    arrivalTime: d.arrivalTime,
+    walkingSeconds: d.walkingSeconds,
+    waitingSeconds: d.waitingSeconds,
+    transferCount: d.transferCount,
+    legs: d.legs,
+    realtimeConfidence: d.realtimeConfidence,
+    alerts: d.alerts,
+    candidateFamily: d.candidateFamily ?? "baseline",
+  }));
+}
 
 function arrivalMs(iso: string): number {
   return Date.parse(iso);
@@ -118,21 +182,22 @@ export function enrichCandidate(
   );
 
   const isBaselineFamily = draft.candidateFamily === "baseline";
+  const effectiveSatisfaction = isBaselineFamily
+    ? computeSatisfaction([], legs)
+    : satisfaction;
+
   const explanation = buildExplanation({
-    satisfaction: isBaselineFamily
-      ? computeSatisfaction([], legs)
-      : satisfaction,
+    satisfaction: effectiveSatisfaction,
     transferCount: draft.transferCount,
     walkingSeconds: draft.walkingSeconds,
     waitingSeconds: draft.waitingSeconds,
     realtimeConfidence,
     baselineDeltaSeconds: isBaselineFamily ? null : baselineDeltaSeconds,
     alertCount: draft.alerts?.length ?? 0,
+    connectorLineIds: isBaselineFamily
+      ? []
+      : connectorLineIdsFor(selectedLineIds, legs),
   });
-
-  const effectiveSatisfaction = isBaselineFamily
-    ? computeSatisfaction([], legs)
-    : satisfaction;
 
   return {
     itineraryId: draft.itineraryId,
@@ -181,6 +246,7 @@ function withConstrainedSatisfaction(
       realtimeConfidence: itin.realtimeConfidence,
       baselineDeltaSeconds: itin.explanation.baselineDeltaSeconds ?? null,
       alertCount: itin.alerts.length,
+      connectorLineIds: connectorLineIdsFor(selectedLineIds, itin.legs),
     }),
   };
 }
@@ -195,7 +261,7 @@ export async function runRouteSearch(
 ): Promise<RouteSearchOutcome> {
   const selectedLineIds = normalizeSelectedLineIds(request.selectedLineIds);
   const requestedCount = selectedLineIds.length;
-  const budget = request.candidateBudget ?? 64;
+  const budget = request.candidateBudget ?? DEFAULT_CANDIDATE_BUDGET;
   const dataMode = request.snapshot.dataMode;
 
   if (dataMode === "unavailable") {
@@ -254,10 +320,25 @@ export async function runRouteSearch(
   // Checked before transit-empty detection so walk-only sentinels are not
   // misclassified as no_transit_path.
   if (drafts.some((d) => d.itineraryId === "__coverage_exhausted__")) {
+    const fromProvider = providerCandidateCoverage(provider);
     return {
       kind: "insufficient_candidate_coverage",
       requestedCount,
-      reason: "Candidate budget exhausted without trustworthy itineraries.",
+      reason:
+        "Candidate budget exhausted without trustworthy preference-covering candidates.",
+      candidateCoverage:
+        fromProvider ??
+        assessCandidateCoverage({
+          preferredLineIds: selectedLineIds,
+          familiesAttempted: familiesFromDrafts(drafts),
+          drafts: [],
+          budgetExhausted: true,
+          topologicallySensible: isTopologicallySensible({
+            preferredLineIds: selectedLineIds,
+            origin: request.origin,
+            destination: request.destination,
+          }),
+        }).candidateCoverage,
     };
   }
 
@@ -356,6 +437,38 @@ export async function runRouteSearch(
     return { kind: "no_transit_path", requestedCount };
   }
 
+  const fromProvider = providerCandidateCoverage(provider);
+  const candidateCoverage =
+    fromProvider ??
+    assessCandidateCoverage({
+      preferredLineIds: selectedLineIds,
+      familiesAttempted: familiesFromDrafts(validDrafts),
+      drafts: draftsForCoverage(validDrafts),
+      budgetExhausted: false,
+      topologicallySensible: isTopologicallySensible({
+        preferredLineIds: selectedLineIds,
+        origin: request.origin,
+        destination: request.destination,
+      }),
+    }).candidateCoverage;
+
+  // Silent 0-of-N guard: if preferences were requested, topology is sensible,
+  // and the constrained top result still has zero satisfaction, fail closed.
+  if (
+    requestedCount > 0 &&
+    candidateCoverage.preferenceCoveringCandidateCount === 0 &&
+    candidateCoverage.budgetExhausted &&
+    candidateCoverage.status === "exhausted"
+  ) {
+    return {
+      kind: "insufficient_candidate_coverage",
+      requestedCount,
+      reason:
+        "Candidate budget exhausted without trustworthy preference-covering candidates.",
+      candidateCoverage,
+    };
+  }
+
   return {
     kind: "ok",
     baseline,
@@ -364,6 +477,7 @@ export async function runRouteSearch(
     constraintInfeasible,
     dataDegradation,
     invalidDraftRejectionCounts,
+    candidateCoverage,
   };
 }
 
