@@ -21,6 +21,18 @@ Distinguish: **implemented** / **tested** / **mocked** / **deferred** / **blocke
 
 Open follow-up: **R24 / FU-NPM-01** — Next.js `15.3.5` and other high/critical npm advisories (see `docs/RISK_REGISTER.md`).
 
+### Merge to `main` (PR #4)
+
+| Field | Value |
+|---|---|
+| PR | [#4](https://github.com/davidlifschitz/BetterMTA/pull/4) — docs-only residuals |
+| Merge commit | `aee63e1936e4bc9bd9af64f5ce4485e8f953bb7e` (`aee63e1`) |
+| Residuals on `main` | `FU-NPM-01`, `FU-ALPHA-01`, `FU-ALPHA-02` |
+
+### Next phase (not deployment)
+
+**Controlled-alpha operation and learning.** Append findings to `docs/alpha/CONTROLLED_ALPHA_LOG.md`. Next formal milestone: **Controlled Alpha Review 1**. Do not change certification status for ordinary product bugs. Do not auto-redeploy for packaging/dependency merges.
+
 ---
 
 ## Final status recommendation
