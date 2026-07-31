@@ -207,11 +207,11 @@ ADR-0002 required an evidence-backed engine choice before large custom search in
 
 ### Decision
 
-Adopt **OpenTripPlanner 2**, pinned to container image **2.9.0**, as the production candidate-generation substrate. Selected-line satisfaction accounting, lexicographic ranking, deterministic tie-breaking, explanations, and top-3 truncation remain in the BetterMTA routing library **outside** OTP. Soft OTP preferences alone are insufficient for hard selected-line maximization.
+Adopt **OpenTripPlanner 2**, pinned to container image **2.9.0**, as the production candidate-generation substrate. Selected-line satisfaction accounting, lexicographic ranking, deterministic tie-breaking, explanations, and top-3 truncation remain in the BetterMTA routing library **outside** OTP. Soft OTP preferences alone are insufficient for preferred-line coverage maximization (see ADR-0023).
 
 ### Consequences
 
-Closes the ADR-0002a recommendation. Live OTP wiring is an implementation phase; ranking/property tests stay engine-agnostic. MOTIS remains a documented fallback if OTP ops cost or latency is unacceptable.
+Closes the ADR-0002a recommendation. Live OTP wiring is an implementation phase; ranking/property tests stay engine-agnostic. MOTIS remains a documented fallback if OTP ops cost or latency is unacceptable. Preferred-line candidate coverage ownership and fill-the-gaps orchestration are recorded in **ADR-0023**; OTP remains the substrate, not the product ranking authority.
 
 ---
 
@@ -236,8 +236,9 @@ Closes ADR-0005. Infra owns `infra/fly/*.toml` ready-to-activate templates; secr
 
 ## ADR-0013 — Beta place search is station-index-first
 
-**Status:** Accepted  
-**Date:** 2026-07-30
+**Status:** Superseded by ADR-0022  
+**Date:** 2026-07-30  
+**Superseded:** 2026-07-31
 
 ### Context
 
@@ -249,7 +250,7 @@ Beta place search = **full static-GTFS station / station-complex autocomplete** 
 
 ### Consequences
 
-No third-party geocoder required for public beta. Place IDs stay contract-stable; attribution UI for a future vendor is deferred with address/POI search.
+Historical: no third-party geocoder required for the station-only beta slice. Place IDs stayed contract-stable. Address/POI geocoding and attribution are reopened under **ADR-0022** (P1 acceptance of `docs/proposals/address-preferred-lines-fill-gaps.md`). Station-index authority for subway stations is preserved.
 
 ---
 
@@ -417,3 +418,58 @@ Go/no-go vocabulary: status value `READY_FOR_CONTROLLED_ALPHA` is a Phase 12A ou
 ### Consequences
 
 Infra/docs proceed with Tunnel + Access + compose origin; edge proxy and ops runbooks land in later 12A slices. Secrets, tunnel UUIDs, hostnames, and tester emails stay out of the repo. Fly activation remains the path for hosted beta when chosen.
+
+---
+
+## ADR-0022 — Place search: station index + address/POI geocoder abstraction
+
+**Status:** Accepted  
+**Date:** 2026-07-31  
+**Supersedes:** ADR-0013  
+**Authority:** P1 acceptance of `docs/proposals/address-preferred-lines-fill-gaps.md`
+
+### Context
+
+ADR-0013 locked station-index-first place search and deferred arbitrary address/POI geocoding. Controlled-alpha findings showed office-style queries (e.g. `277 Park`) return zero place hits, forcing weak coordinate paths. PRD §5 already lists address/place origins and destinations. P1 reopens address/POI without abandoning station-index authority for subway stations.
+
+### Decision
+
+1. **Station index remains authoritative for subway stations** — full static-GTFS station / station-complex autocomplete continues to own station and station-complex results; station `placeId` / `stationId` identity stays stable.
+2. **Address and POI resolution are supported** as first-class place inputs alongside station, current location, and coordinate refs. Results resolve to coordinates + display label suitable for routing; routing may snap to nearby stations internally.
+3. **Geocoder provider abstraction** — BetterMTA owns a provider-agnostic places adapter. Vendor choice and wiring are implementation concerns behind that abstraction; contracts prefer additive optional fields (`provider`, `attribution`, `formattedAddress`) without renaming `placeId` (Wave 0B owns contract edits).
+4. **Attribution** — vendor-required attribution strings must be available to the UI whenever non-station geocode results are shown; do not ship address/POI results without a documented attribution path.
+5. **No default retention of precise query coordinates** — precise geocode query coordinates and reverse-geocode pins are not retained by default in logs, analytics, or durable stores. Redact or coarsen under the existing privacy baseline (see R10). Consent-gated retention remains out of scope until a reviewed transport exists (ADR-0017 family).
+6. **Explicit failure behavior** — geocode miss or provider failure yields an honest empty / `unknown_place` (or equivalent contracted) outcome. Never silently substitute an unrelated station.
+7. **Feature-flagged alpha rollout** — address/POI geocode is gated behind a feature flag for controlled alpha / beta. Certification status of the current station-index alpha is unchanged until a separate go/no-go. Flag-off preserves station-index + geolocation behavior.
+
+### Consequences
+
+Supersedes ADR-0013’s deferral of address/POI. Station-first ranking of station matches remains. Backend may integrate a concrete geocoder only after Wave 0B contract lock and privacy/attribution checklist. Secrets and vendor hostnames stay out of the repo. Deferred epics D1–D6 (maps parity, multi-modal places, etc.) remain deferred.
+
+---
+
+## ADR-0023 — Preferred lines, fill-the-gaps, and candidate coverage ownership
+
+**Status:** Accepted  
+**Date:** 2026-07-31  
+**Related:** ADR-0007 (ranking order), ADR-0011 (OTP substrate)  
+**Authority:** P1 acceptance of `docs/proposals/address-preferred-lines-fill-gaps.md`
+
+### Context
+
+Product docs previously described selected lines as hard “required” constraints when feasible. Soft OTP preferences plus natural top-N itineraries produced silent **0-of-N** outcomes when preferred lines were absent from OTP’s unconstrained candidate set (controlled-alpha: Midtown office → Penn with 2/7/GS). The intended experience is preferred-line maximization with system-filled connectors, not forcing riders to enumerate every transfer piece.
+
+### Decision
+
+1. **Selected lines = preferred lines** — rider-facing and product language treats the line picker as preferences to maximize, not a hard require-all-or-fail filter when connectors are needed.
+2. **Maximize preference coverage** — when feasible, use every preferred line; otherwise rank by maximum feasible distinct preferred-line coverage (product invariant; ADR-0007).
+3. **Unselected connector lines are permitted** — walks, transfers, station access, and **unselected** subway services may be inserted to complete a practical trip (“fill the gaps”). Riders need not toggle every connector.
+4. **Ranking precedence** — complete preference match outranks any partial; higher coverage outranks lower coverage before convenience tie-breakers (arrival time, transfers, walking, realtime confidence, stable fingerprint per ADR-0007).
+5. **BetterMTA owns candidate coverage; OTP remains substrate** — OpenTripPlanner 2 stays the candidate-generation engine (ADR-0011). Soft OTP route preferences alone are insufficient. BetterMTA routing orchestration must produce preference-covering candidates when topologically sensible (e.g. multi-query families, via/seed hints). Satisfaction accounting, lexicographic ranking, explanations, and top-3 truncation remain outside OTP.
+6. **Exhausted budget → `insufficient_candidate_coverage`** — when the candidate budget is exhausted without producing feasible preference-covering candidates that topology would allow, surface an explicit contracted failure/degraded signal (`insufficient_candidate_coverage`), not a silent 0-of-N that reads as “the subway ignores you.”
+7. **Omissions must be explained** — partial matches state which preferred lines are missing; never present a generic dead-end when a practical partial exists.
+8. **Rider-facing S for internal GS** — the 42 St Shuttle keeps internal `lineId` `GS` (GTFS); rider-facing UI should label it **S**. Presentation-only; no runtime/line-id change in this ADR.
+
+### Consequences
+
+Amends product wording in `PROJECT_CONTEXT.md`, `PRD.md`, `PRODUCT_PRINCIPLES.md`, and `TECHNICAL_DESIGN.md`. Does not reopen D1–D6. Does not change certified-alpha runtime until implementation waves land behind flags. Wave 0B locks any contract error/code additions; later waves implement orchestration and FE copy.
