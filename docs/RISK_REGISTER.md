@@ -54,9 +54,11 @@ Likelihood: `high` \| `medium` \| `low`
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| FU-NPM-01 | Remediate high/critical npm advisories (R24), including pinned Next.js `15.3.5` | **OPEN** | Observed on `main` CI after merge `90b6462` (run [30647188023](https://github.com/davidlifschitz/BetterMTA/actions/runs/30647188023)); audit job intentionally non-blocking. Do not couple to alpha redeploy. |
-| FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification |
-| FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window |
+| FU-NPM-01 | Remediate high/critical npm advisories (R24), including pinned Next.js `15.3.5` | **OPEN** | Observed on `main` CI after merge `90b6462` (run [30647188023](https://github.com/davidlifschitz/BetterMTA/actions/runs/30647188023)); audit job intentionally non-blocking. Do not couple to alpha redeploy. Dedicated maintenance branch only. |
+| FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification; success = Colima + stack + LaunchAgent tunnel + Access + remote monitor without undocumented repair |
+| FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window; helpful before adding other testers |
+
+Operating findings for Controlled Alpha Review 1: `docs/alpha/CONTROLLED_ALPHA_LOG.md`.
 
 ## Risk update protocol
 

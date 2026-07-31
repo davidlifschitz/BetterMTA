@@ -33,8 +33,11 @@
 - `TECHNICAL_DESIGN.md` — directional design; API paths superseded by `API_CONTRACT.md`
 - `PRODUCTION_CHECKLIST.md`
 - `RUNBOOKS.md` — local compose bring-up, controlled-alpha pointer (`infra/alpha/`), drills, cost, go/no-go
-- `RELEASE_GATE_REPORT.md` — G01–G20 + CA gates; status vocabulary; final status still `BLOCKED` (not `READY_FOR_CONTROLLED_ALPHA`)
-- `alpha/REMOTE_VALIDATION.md` — Phase 12A.10 twenty remote tests (all PENDING_USER / not run)
+- `RELEASE_GATE_REPORT.md` — G01–G20 + CA gates; status vocabulary; Phase 12A outcome `READY_FOR_CONTROLLED_ALPHA`
+- `alpha/REMOTE_VALIDATION.md` — Phase 12A.10 remote validation evidence
+- `alpha/CONTROLLED_ALPHA_LOG.md` — solo/tester operating findings for Controlled Alpha Review 1
+- `alpha/RELIABILITY_DRILLS.md` — restart drills + residuals (`FU-ALPHA-01`, etc.)
+- `alpha/PERFORMANCE.md` — authenticated remote latency sample
 - `../infra/alpha/README.md` — controlled-alpha index (edge, host, tunnel, Access, scripts)
 - `../infra/alpha/HOST.md` — Phase 12A.5 macOS operating requirements + preflight
 - `../infra/alpha/TUNNEL.md` — Phase 12A.6 named Cloudflare Tunnel (interactive; secrets out of repo)
