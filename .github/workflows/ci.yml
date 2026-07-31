@@ -118,8 +118,10 @@ jobs:
             echo "No verify:no-fixtures script in apps/web — skipping"
             exit 0
           fi
-          # Additive live production build (overwrites .next; fixture build above
-          # remains the default for local/dev; Playwright mocked paths use their own config).
+          # Next does not guarantee deletion of unreferenced chunks when a
+          # second build reuses .next. Remove the earlier fixture build output
+          # so the live leak scan evaluates only live production artifacts.
+          rm -rf apps/web/.next
           NEXT_PUBLIC_API_MODE=live \
           NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8080 \
           NEXT_PUBLIC_FLAG_FEEDBACK=false \
