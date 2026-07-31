@@ -65,11 +65,7 @@
 
 | Date/time | Build/release | Search scenario | Selected lines | Outcome | Data mode | Latency | Classification | Severity | Follow-up |
 |---|---|---|---|---|---|---|---|---|---|
-| _solo window start — append rows below_ | | | | | | | | | |
-
-<!-- Example row (delete when real findings exist):
-| 2026-07-31T13:00-04:00 | certified-alpha | Carroll St → Bryant Park | F | Success / complete match | stale | ~2.1s | Observation | observation | — |
--->
+| 2026-07-31T12:40-04:00 | rel-20260731T155125Z-cert-distinct | Operator commute framing: Midtown office (~277 Park) → Penn Station (NYC), then onward NJ home | Expected rider set: 7, **S** (42 St Shuttle), 1/2/3 | Confusing — picker has no badge labeled **S**; 42 St Shuttle appears as **GS**. Lines **1/2/3/7 are present**. NJ Transit / PATH not in catalog (subway-only MVP). | n/a (picker) | n/a | UI / Product | major | Label GS as rider-facing **S** (keep `lineId` GS for GTFS); optional alias search. NJ out of scope — document. Do not change certification. |
 
 ## Review checkpoint — Controlled Alpha Review 1
 
