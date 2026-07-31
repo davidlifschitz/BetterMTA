@@ -2,7 +2,7 @@
 
 **Owner:** Conductor  
 **Status:** Initial register for public-beta experiment  
-**Last updated:** 2026-07-31 (Phase 12A final certification → `READY_FOR_CONTROLLED_ALPHA`)
+**Last updated:** 2026-07-31 (PR #3 merged to `main` @ `90b6462`; npm advisory follow-up R24)
 
 Severity: `critical` \| `high` \| `medium` \| `low`  
 Likelihood: `high` \| `medium` \| `low`
@@ -32,6 +32,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R21 | Docker Desktop quit / crash / resource exhaustion | high | medium | Disk/CPU watch; compose health checks; restart runbook. Distinct-digest rollback proven 2026-07-31; keep ≥6 Gi free for rebuilds | Infra + Data |
 | R22 | Cloudflare Tunnel or Access misconfiguration exposes origin or locks out testers | critical | low | Deny-by-default Access verified; approved/denied auth PASS; remote monitor PASS; secrets out of repo; LaunchAgent canonical runner | Infra |
 | R23 | Self-hosted origin treated as cloud-grade / public-beta ready | high | medium | Status vocabulary: `READY_FOR_CONTROLLED_ALPHA` ≠ private/public beta; ADR-0021 honesty in handoff + gate report | Conductor + Integration |
+| R24 | High/critical npm advisories on pinned deps (incl. Next.js `15.3.5` in `apps/web`; also `services/data`) while CI `dependency-audit` remains warning-only | high | medium | Separate follow-up: inventory advisories from CI run logs, plan compatible upgrades, re-run live build + `verify:no-fixtures`; do **not** auto-rebuild/redeploy certified alpha for packaging-only merges | Frontend + Infra + Integration |
 
 ## Top watchlist for first integration
 
@@ -46,7 +47,17 @@ Likelihood: `high` \| `medium` \| `low`
 2. R19 home power/internet  
 3. R21 Docker/Colima resource pressure  
 4. R23 over-claiming (do not equate controlled alpha with Fly private/public beta)  
-5. R22 Access allowlist drift / token rotation hygiene
+5. R22 Access allowlist drift / token rotation hygiene  
+6. R24 npm / Next.js advisory remediation (separate from alpha certification)
+
+## Follow-ups (tracked, not blocking controlled alpha)
+
+| ID | Item | Status | Notes |
+|---|---|---|---|
+| FU-NPM-01 | Remediate high/critical npm advisories (R24), including pinned Next.js `15.3.5` | **OPEN** | Observed on `main` CI after merge `90b6462` (run [30647188023](https://github.com/davidlifschitz/BetterMTA/actions/runs/30647188023)); audit job intentionally non-blocking. Do not couple to alpha redeploy. |
+| FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification |
+| FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window |
+
 ## Risk update protocol
 
 Workstreams must update this register in handoffs when a new production risk is discovered. Do not delete closed risks; mark `Mitigation status: closed` in the handoff notes and leave a row footnote in a future conductor revision.

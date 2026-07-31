@@ -9,6 +9,18 @@
 
 Distinguish: **implemented** / **tested** / **mocked** / **deferred** / **blocked**.
 
+### Merge to `main` (PR #3)
+
+| Field | Value |
+|---|---|
+| PR | [#3](https://github.com/davidlifschitz/BetterMTA/pull/3) merged with **merge commit** (history preserved) |
+| Merge commit | `90b64627aae9851c6d17bab75ff9021998cfbd5b` (`90b6462`) |
+| Pre-merge tip | `66d0f89c75a4e09c285331fb812fece2622afb59` |
+| `main` CI | [run 30647188023](https://github.com/davidlifschitz/BetterMTA/actions/runs/30647188023) — **success** (all jobs PASS; audit warning-only) |
+| Alpha redeploy | **Not** performed — certified alpha left running as-is |
+
+Open follow-up: **R24 / FU-NPM-01** — Next.js `15.3.5` and other high/critical npm advisories (see `docs/RISK_REGISTER.md`).
+
 ---
 
 ## Final status recommendation

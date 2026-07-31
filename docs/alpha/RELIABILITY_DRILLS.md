@@ -61,3 +61,5 @@ For each performed drill:
 # Optional: Mac logout/login or reboot with explicit approval, then confirm LaunchAgent + start-alpha
 # Optional: enable GH alpha-monitor secrets (workflow remains soft until ALPHA_MONITOR_ENABLED)
 ```
+
+Also tracked in `docs/RISK_REGISTER.md`: **FU-NPM-01 / R24** (Next.js + dependency advisories; warning-only CI audit; separate from certified alpha redeploy).
