@@ -30,3 +30,13 @@ For substantive changes, run the most relevant unit, integration, contract, benc
 ## Handoffs
 
 Use `.agents/handoff.md` at the end of a workstream and `.agents/review.md` when reviewing another workstream.
+
+## Cursor Cloud specific instructions
+
+This repository is currently documentation/specification-only. There is no application code, dependency manifest (`package.json`, `pyproject.toml`, `requirements.txt`, etc.), test suite, linter config, or build system committed yet. All tracked files are Markdown docs plus `LICENSE` and a (Python-oriented) `.gitignore`.
+
+Consequences for environment setup:
+
+- There is nothing to install, lint, test, build, or run. No dependency-refresh/update script is needed until source code and a manifest are added.
+- The prototype/scaffold described in `docs/TECHNICAL_DESIGN.md` (Next.js mobile web client + routing service) is a plan, not present in this repo.
+- When code is first added, revisit setup: the intended stack is Next.js (App Router) for the client/BFF and a separate routing service; `.gitignore` suggests Python may be used for data/routing tooling. At that point add the appropriate package manager install step as the update script and document run/test/lint commands here.
