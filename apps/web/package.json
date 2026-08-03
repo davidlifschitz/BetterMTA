@@ -14,7 +14,7 @@
     "e2e:live": "playwright test --project=live-stack"
   },
   "dependencies": {
-    "next": "15.3.5",
+    "next": "15.5.22",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
@@ -30,9 +30,13 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^4.5.2",
     "eslint": "^9",
-    "eslint-config-next": "15.3.5",
+    "eslint-config-next": "15.5.22",
     "jsdom": "^26.1.0",
     "typescript": "^5",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "postcss": "8.5.25",
+    "sharp": "0.35.3"
   }
 }

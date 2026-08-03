@@ -169,7 +169,8 @@ Evaluate:
 |---|---|---|
 | FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery | Needs **explicit user approval** |
 | FU-ALPHA-02 | GitHub scheduled monitor secrets | Optional; soft workflow |
-| FU-NPM-01 | Next.js / npm advisories | Separate maintenance branch; no auto-redeploy on merge |
+| FU-NPM-01 | Next.js / npm advisories | Candidate complete in draft PR #7: all six npm trees audit clean; local gates and all 8 CI jobs pass; pending owner review/merge, no auto-redeploy |
+| FU-GHA-01 | GitHub Actions Node runtime warning | Upgrade `actions/checkout` and `actions/setup-node` from Node-20-backed v4 after primary-source compatibility check |
 | Wave3 Mediums | Spec lag, Docker FE flag ARG, geocode runbook, PlaceSuggest a11y, etc. | Before flag-on / private beta |
 | Benchmarks | Live SUT corpus refresh; keep SI/ferry Must-set deferred (ADR-0020) until reopened |
 
@@ -348,7 +349,7 @@ No Fable orchestration unless requested — prefer focused agents with non-overl
 ## 12. Immediate vs later (one screen)
 
 **Do next**
-1. Execute Stage C hardening: `FU-NPM-01`, Wave 3 residuals, and live benchmark refresh
+1. Review FU-NPM-01 draft PR #7, then execute the remaining Stage C Wave 3 residuals and live benchmark refresh
 2. Configure `FU-ALPHA-02` if useful; keep cohort and Fly expansion on hold
 3. Execute `FU-ALPHA-01` only with explicit approval for the logout/reboot drill
 

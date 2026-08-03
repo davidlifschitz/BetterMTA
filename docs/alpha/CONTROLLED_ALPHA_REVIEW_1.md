@@ -44,7 +44,7 @@ This decision does not revoke `READY_FOR_P1_CONTROLLED_ALPHA`: the immutable P1 
 | R21 Docker/disk exhaustion | Open; 12 GiB is below preferred headroom | Stage C disk and restart hardening; retain images and volumes needed for rollback |
 | R22 Tunnel/Access exposure or lockout | Mitigated for current solo use | Deny-default Access and authenticated remote smoke remain required |
 | R23 cloud-grade confusion | Mitigated by status vocabulary | Continue labeling as controlled alpha only |
-| R24 dependency advisories | Open, high | Execute `FU-NPM-01` on a maintenance branch with full rebuild/isolation checks |
+| R24 dependency advisories | Candidate mitigated; certified live release unchanged | Review/merge `codex/fu-npm-01` with no automatic redeploy; all six candidate lock trees audit clean |
 | R25 geocode privacy/cost/attribution | Open while feature is flag-off | Complete runbook, attribution, and privacy gates before flag-on |
 | R26 preferred-line coverage gap | Partially mitigated | Expand live corpus and validate more topology/subset cases in Stage C |
 | R27 required/fill-gaps and GS/S confusion | Mitigated in tested UI | Keep copy and rider-facing `S` regression coverage |
@@ -53,11 +53,10 @@ This decision does not revoke `READY_FOR_P1_CONTROLLED_ALPHA`: the immutable P1 
 
 - `FU-ALPHA-01`: pending explicit user approval for logout/reboot recovery drill.
 - `FU-ALPHA-02`: optional GitHub scheduled-monitor configuration remains open.
-- `FU-NPM-01`: open and selected for Stage C maintenance.
+- `FU-NPM-01`: maintenance candidate complete in draft PR #7; all six npm trees audit clean and all 8 CI jobs pass. Keep merge and deployment separate pending owner review.
 - Wave 3 Medium/Low residuals: reassess and close or explicitly carry before address/POI flag-on or private beta.
 - Benchmarks: refresh live SUT cases so flag-off address cases are classified honestly and station/topology coverage expands.
 
 ## Exit
 
 Controlled Alpha Review 1 is complete. The primary exit option is **Hold and keep learning**, with immediate progression to Stage C hardening. Cohort expansion, Fly migration, address/POI flag-on, and merge to `main` remain separate decisions.
-

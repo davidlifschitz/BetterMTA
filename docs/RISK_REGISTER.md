@@ -32,7 +32,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R21 | Docker Desktop quit / crash / resource exhaustion | high | medium | Disk/CPU watch; compose health checks; restart runbook. Distinct-digest rollback proven 2026-07-31; keep ≥6 Gi free for rebuilds | Infra + Data |
 | R22 | Cloudflare Tunnel or Access misconfiguration exposes origin or locks out testers | critical | low | Deny-by-default Access verified; approved/denied auth PASS; remote monitor PASS; secrets out of repo; LaunchAgent canonical runner | Infra |
 | R23 | Self-hosted origin treated as cloud-grade / public-beta ready | high | medium | Status vocabulary: `READY_FOR_CONTROLLED_ALPHA` ≠ private/public beta; ADR-0021 honesty in handoff + gate report | Conductor + Integration |
-| R24 | High/critical npm advisories on pinned deps (incl. Next.js `15.3.5` in `apps/web`; also `services/data`) while CI `dependency-audit` remains warning-only | high | medium | Separate follow-up: inventory advisories from CI run logs, plan compatible upgrades, re-run live build + `verify:no-fixtures`; do **not** auto-rebuild/redeploy certified alpha for packaging-only merges | Frontend + Infra + Integration |
+| R24 | Certified alpha still runs the older dependency image while the maintenance candidate is not deployed | high | medium | Draft PR #7 upgrades Next.js/Vitest, audits all six lock trees clean, and passes all 8 CI jobs. Require owner review; do **not** auto-rebuild/redeploy the certified alpha | Frontend + Infra + Integration |
 | R25 | Geocode vendor privacy, cost, or attribution miss after ADR-0022 reopen | high | medium | Provider abstraction; no default precise-coord retention; attribution path before flag-on; secrets out of repo | Backend + FE + Infra |
 | R26 | Preferred-line candidate coverage gap (OTP top-N misses preferences → silent 0-of-N) | critical | high | ADR-0023 orchestration; multi-family/via budget; explicit `insufficient_candidate_coverage`; property + alpha corpus cases | Routing + API + QA |
 | R27 | Rider confusion: “required” copy vs fill-gaps connectors / GS vs S labeling | medium | medium | FE copy + S/GS presentation (ADR-0023 note); partial-match banners; no runtime lineId rename | Frontend + Product |
@@ -59,7 +59,8 @@ Likelihood: `high` \| `medium` \| `low`
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| FU-NPM-01 | Remediate high/critical npm advisories (R24), including pinned Next.js `15.3.5` | **OPEN** | Observed on `main` CI after merge `90b6462` (run [30647188023](https://github.com/davidlifschitz/BetterMTA/actions/runs/30647188023)); audit job intentionally non-blocking. Do not couple to alpha redeploy. Dedicated maintenance branch only. |
+| FU-NPM-01 | Remediate high/critical npm advisories (R24) | **CANDIDATE** | Draft PR #7 has zero advisories across all six lock trees and all 8 CI jobs pass. Pending owner review/merge. Do not couple merge to alpha redeploy. |
+| FU-GHA-01 | Upgrade Node-20-backed GitHub Action majors | **OPEN** | CI currently passes because GitHub forces the v4 actions onto Node 24; verify primary migration guidance and update separately. |
 | FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification; success = Colima + stack + LaunchAgent tunnel + Access + remote monitor without undocumented repair |
 | FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window; helpful before adding other testers |
 
