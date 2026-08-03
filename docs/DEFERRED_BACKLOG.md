@@ -15,7 +15,8 @@
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| FU-NPM-01 | Next.js / npm advisories | CANDIDATE | `codex/fu-npm-01` audits clean and passes local gates; pending CI/review; no automatic alpha redeploy |
+| FU-NPM-01 | Next.js / npm advisories | CANDIDATE | Draft PR #7 audits clean and all 8 CI jobs pass; pending owner review/merge; no automatic alpha redeploy |
+| FU-GHA-01 | GitHub Actions Node runtime warning | OPEN | `checkout@v4` / `setup-node@v4` are forced from deprecated Node 20 to Node 24; verify and upgrade action majors separately |
 | FU-ALPHA-01 | Mac logout/reboot drill | PENDING_USER | Explicit user approval |
 | FU-ALPHA-02 | GH scheduled monitor secrets | OPEN | Optional before broader testers |
 

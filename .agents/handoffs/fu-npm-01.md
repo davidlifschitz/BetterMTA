@@ -66,6 +66,7 @@ done
 - Web fixture-isolation scan: clean, 0 markers.
 - Data unit tests: 3 files passed, 65 tests passed, 2 intentional skips.
 - Data typecheck and build: passed.
+- GitHub CI run `30843537234`: all 8 jobs passed, including `dependency-audit`, `services-data`, `apps-web`, and the live fixture-isolation build.
 
 ## 7. Fixture or sample-data instructions
 
@@ -79,6 +80,7 @@ None found in the upgraded application paths.
 
 - Next.js still warns that it inferred `/Users/thebiglipper/package-lock.json` as the workspace root in this local multi-lockfile environment. The warning predates this work and did not fail the build.
 - The Sharp override is a compatibility bridge outside Next.js's declared optional range. There is no current `next/image` usage, but an image-optimizer regression check is required before adding that feature.
+- GitHub Actions warns that `actions/checkout@v4` and `actions/setup-node@v4` target deprecated Node.js 20 action runtimes and are currently forced onto Node.js 24. This does not fail CI; track the action-version update separately from FU-NPM-01.
 
 ## 10. Decisions requiring conductor approval
 
@@ -87,4 +89,4 @@ None found in the upgraded application paths.
 
 ## 11. Exact next integration step
 
-Push `codex/fu-npm-01`, require the full GitHub CI matrix to pass, review the two lockfile diffs and override rationale, then merge without running the release deployment workflow.
+Review draft PR #7, especially the two lockfile diffs and Sharp override rationale, then merge into the P1 branch only with owner approval and without running the release deployment workflow.

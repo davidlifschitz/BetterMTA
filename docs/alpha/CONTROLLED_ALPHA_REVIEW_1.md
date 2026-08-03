@@ -53,7 +53,7 @@ This decision does not revoke `READY_FOR_P1_CONTROLLED_ALPHA`: the immutable P1 
 
 - `FU-ALPHA-01`: pending explicit user approval for logout/reboot recovery drill.
 - `FU-ALPHA-02`: optional GitHub scheduled-monitor configuration remains open.
-- `FU-NPM-01`: maintenance candidate complete on `codex/fu-npm-01`; all six npm trees audit clean and local web/data gates pass. Keep deployment separate pending CI/review.
+- `FU-NPM-01`: maintenance candidate complete in draft PR #7; all six npm trees audit clean and all 8 CI jobs pass. Keep merge and deployment separate pending owner review.
 - Wave 3 Medium/Low residuals: reassess and close or explicitly carry before address/POI flag-on or private beta.
 - Benchmarks: refresh live SUT cases so flag-off address cases are classified honestly and station/topology coverage expands.
 
