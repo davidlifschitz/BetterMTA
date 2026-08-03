@@ -50,6 +50,7 @@
 - `../infra/alpha/cloudflared/config.template.yml` — tunnel ingress template (placeholders only)
 - `../docs/proposals/address-preferred-lines-fill-gaps.md` — ACCEPTED P1: address/POI + preferred lines fill gaps (ADR-0022/0023)
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
+- `../.agents/handoffs/fu-npm-01.md` — Stage C dependency-advisory maintenance candidate and validation evidence
 
 ## Agent prompts
 The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts. Workstream handoffs live under `../.agents/handoffs/`.

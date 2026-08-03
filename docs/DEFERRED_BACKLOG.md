@@ -15,7 +15,7 @@
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| FU-NPM-01 | Next.js / npm advisories | OPEN | Separate maintenance branch; serialize if lockfile overlap with P1 |
+| FU-NPM-01 | Next.js / npm advisories | CANDIDATE | `codex/fu-npm-01` audits clean and passes local gates; pending CI/review; no automatic alpha redeploy |
 | FU-ALPHA-01 | Mac logout/reboot drill | PENDING_USER | Explicit user approval |
 | FU-ALPHA-02 | GH scheduled monitor secrets | OPEN | Optional before broader testers |
 
