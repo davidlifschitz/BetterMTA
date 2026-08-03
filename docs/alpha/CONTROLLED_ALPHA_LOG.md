@@ -90,11 +90,11 @@ Proposal authority: `docs/proposals/address-preferred-lines-fill-gaps.md` (dispo
 Evaluate before expanding beyond the initial solo / 2–3 tester cohort:
 
 - [x] Real-use findings reviewed (this log) — product direction accepted as P1; ops residuals unchanged
-- [ ] Operational uptime / tunnel interruptions noted
-- [ ] Route quality and OTP candidate-diversity cases catalogued
-- [ ] Tester feedback (if any) summarized
-- [ ] Open risks (`R19`–`R27`, `FU-*`) reassessed
-- [ ] Decision recorded: routing-quality work / broader alpha / cloud migration / private-beta prep
+- [x] Operational uptime / tunnel interruptions noted
+- [x] Route quality and OTP candidate-diversity cases catalogued
+- [x] Tester feedback summarized — solo operator only; no external P1 tester feedback yet
+- [x] Open risks (`R19`–`R27`, `FU-*`) reassessed
+- [x] Decision recorded in `docs/alpha/CONTROLLED_ALPHA_REVIEW_1.md`
 
 **Decision (product semantics):** P1 accepted — address/POI + preferred-line fill-gaps + BetterMTA candidate coverage (ADR-0022/0023). Implementation via `agent/p1-address-preferred-lines` waves; certification unchanged.  
-**Decision (ops / cohort expansion):** _pending Review 1_
+**Decision (ops / cohort expansion):** Hold and keep learning; keep the solo P1 controlled alpha, hold cohort/Fly expansion, and advance Stage C ops and quality hardening.

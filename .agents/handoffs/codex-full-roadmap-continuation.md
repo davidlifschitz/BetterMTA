@@ -18,7 +18,7 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
 | Active program branch | `agent/p1-address-preferred-lines` @ **`78c2ca5`** (Waves 0–4 done) |
-| Immediate unfinished work | **Controlled Alpha Review 1** → then roadmap below |
+| Immediate unfinished work | **Stage C ops and quality hardening** → then roadmap below |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -124,8 +124,8 @@ Use this as the default order unless product owner reorders.
 
 ```text
 DONE → P1 Wave 4 certification
-NOW  → Controlled Alpha Review 1 (learning go/no-go)
-    → Ops harden (FU-ALPHA-01/02, FU-NPM-01, Medium residuals)
+DONE → Controlled Alpha Review 1 (hold expansion; keep learning)
+NOW  → Ops harden (FU-ALPHA-01/02, FU-NPM-01, Medium residuals)
     → Small tester cohort (2–3) under Access
     → Epic D5 prep: Fly private beta path (or keep alpha longer)
     → READY_FOR_PRIVATE_BETA gates
@@ -146,7 +146,7 @@ NOW  → Controlled Alpha Review 1 (learning go/no-go)
 
 **Exit achieved:** `READY_FOR_P1_CONTROLLED_ALPHA`; rollback points to the pre-P1 certified images.
 
-### Stage B — Controlled Alpha Review 1 (learning milestone)
+### Stage B — Controlled Alpha Review 1 (**DONE**)
 
 **Goal:** Decide next phase from real use, not more deploy theater.
 
@@ -160,6 +160,8 @@ Evaluate:
 - Broader controlled alpha (more allowlisted emails)
 - Start **D5** Fly private-beta migration
 - Hold and keep learning
+
+**Decision:** Hold and keep learning. Keep the solo P1 controlled alpha, hold cohort/Fly expansion, and advance Stage C hardening. Evidence and R19–R27 reassessment: `docs/alpha/CONTROLLED_ALPHA_REVIEW_1.md`.
 
 ### Stage C — Ops & quality harden (parallelizable)
 
@@ -335,7 +337,7 @@ Primary worktree: /Users/thebiglipper/Developer/bettermta-integration-live
 P1 branch tip: agent/p1-address-preferred-lines @ 78c2ca5
 Live alpha: READY_FOR_P1_CONTROLLED_ALPHA on immutable P1 images; rollback points to the pre-P1 certified release.
 
-Immediate mission: complete Controlled Alpha Review 1, then follow the Stage C→H roadmap in the full handoff.
+Immediate mission: complete Stage C ops and quality hardening, then follow the Stage D→H roadmap in the full handoff.
 Do not implement D1–D6 unless explicitly authorized.
 Do not merge to main unless the product owner asks. No competitor claims without benchmarks.
 No Fable orchestration unless requested — prefer focused agents with non-overlapping ownership.
@@ -346,9 +348,9 @@ No Fable orchestration unless requested — prefer focused agents with non-overl
 ## 12. Immediate vs later (one screen)
 
 **Do next**
-1. Complete Controlled Alpha Review 1 from the current P1 evidence
-2. Reassess open risks and choose the next approved roadmap stage
-3. FU-ALPHA-01 when user authorizes reboot drill; FU-NPM-01 on a maintenance branch
+1. Execute Stage C hardening: `FU-NPM-01`, Wave 3 residuals, and live benchmark refresh
+2. Configure `FU-ALPHA-02` if useful; keep cohort and Fly expansion on hold
+3. Execute `FU-ALPHA-01` only with explicit approval for the logout/reboot drill
 
 **Do not do next**
 - Bus/NJ Transit/PATH “just because”

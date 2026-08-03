@@ -37,6 +37,8 @@
 - `RELEASE_GATE_REPORT.md` — G01–G20 + CA gates; status vocabulary; Phase 12A outcome `READY_FOR_CONTROLLED_ALPHA`
 - `alpha/REMOTE_VALIDATION.md` — Phase 12A.10 remote validation evidence
 - `alpha/CONTROLLED_ALPHA_LOG.md` — solo/tester operating findings for Controlled Alpha Review 1
+- `alpha/P1_WAVE4_CERTIFICATION.md` — immutable P1 deploy, preference regression, protected smoke, and rollback evidence
+- `alpha/CONTROLLED_ALPHA_REVIEW_1.md` — first P1 learning review, R19–R27 reassessment, and Stage C decision
 - `alpha/RELIABILITY_DRILLS.md` — restart drills + residuals (`FU-ALPHA-01`, etc.)
 - `alpha/PERFORMANCE.md` — authenticated remote latency sample
 - `../infra/alpha/README.md` — controlled-alpha index (edge, host, tunnel, Access, scripts)
