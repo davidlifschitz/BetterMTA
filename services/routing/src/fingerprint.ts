@@ -17,7 +17,6 @@ function transitKey(leg: TransitLeg): string {
 function walkKey(leg: Extract<Leg, { kind: "walk" }>): string {
   const parts = [
     "w",
-    leg.legId,
     String(leg.durationSeconds),
     leg.outOfSystem ? "1" : "0",
   ];

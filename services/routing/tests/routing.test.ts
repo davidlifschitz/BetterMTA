@@ -789,7 +789,7 @@ describe("fingerprint", () => {
     expect(fp1.startsWith("fp_")).toBe(true);
   });
 
-  it("includes legId and distanceMeters in walk fingerprint material", () => {
+  it("ignores provider walk legId but includes distanceMeters in fingerprint material", () => {
     const base = {
       arrivalTime: "2026-07-30T14:00:00.000Z",
       transferCount: 0,
@@ -832,7 +832,7 @@ describe("fingerprint", () => {
         },
       ],
     });
-    expect(a).not.toBe(b);
+    expect(a).toBe(b);
     expect(a).not.toBe(c);
   });
 
