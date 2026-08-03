@@ -16,6 +16,7 @@ import {
 } from "./budgets.ts";
 import {
   defaultPreferredLineTopology,
+  haversineMeters,
   selectViaStations,
   unpreferredGtfsRouteIds,
   type LatLon,
@@ -120,7 +121,12 @@ export function buildOrchestrationQueryPlan(
     MAX_SUBSET_QUERIES > 0 &&
     plan.length < maxQueries
   ) {
-    const subset = pickPreferredSubset(preferred);
+    const subset = pickPreferredSubset(
+      preferred,
+      input.origin,
+      input.destination,
+      topology,
+    );
     const subsetUnpreferred = unpreferredGtfsRouteIds({
       preferredLineIds: subset,
       lineIdToGtfsRouteIds: input.lineIdToGtfsRouteIds,
@@ -139,9 +145,59 @@ export function buildOrchestrationQueryPlan(
   return plan.slice(0, maxQueries);
 }
 
-/** Deterministic half-or-better subset: first ceil(n/2) in sorted lineId order. */
-function pickPreferredSubset(preferredLineIds: readonly string[]): string[] {
+/**
+ * Deterministic half-or-better subset chosen by joint topology coverage.
+ * Lexical order is only the final tie-breaker, never the primary selector.
+ */
+function pickPreferredSubset(
+  preferredLineIds: readonly string[],
+  origin: LatLon,
+  destination: LatLon,
+  topology: PreferredLineTopology,
+): string[] {
   const sorted = [...preferredLineIds].sort((a, b) => a.localeCompare(b));
   const k = Math.max(1, Math.ceil(sorted.length / 2));
-  return sorted.slice(0, k);
+  const subsets = combinations(sorted, k);
+  const hubs = topology.allStations();
+  const scored = subsets.map((subset) => {
+    let jointCoverage = 0;
+    let bestDetour = Number.POSITIVE_INFINITY;
+    for (const hub of hubs) {
+      const covered = subset.filter((lineId) => hub.lineIds.includes(lineId)).length;
+      if (covered === 0) continue;
+      const detour =
+        haversineMeters(origin, hub) +
+        haversineMeters(hub, destination) -
+        haversineMeters(origin, destination);
+      if (covered > jointCoverage || (covered === jointCoverage && detour < bestDetour)) {
+        jointCoverage = covered;
+        bestDetour = detour;
+      }
+    }
+    return { subset, jointCoverage, bestDetour };
+  });
+
+  scored.sort((a, b) => {
+    if (a.jointCoverage !== b.jointCoverage) {
+      return b.jointCoverage - a.jointCoverage;
+    }
+    if (a.bestDetour !== b.bestDetour) return a.bestDetour - b.bestDetour;
+    return a.subset.join("+").localeCompare(b.subset.join("+"));
+  });
+  return scored[0]?.subset ?? sorted.slice(0, k);
+}
+
+function combinations(items: readonly string[], size: number): string[][] {
+  const out: string[][] = [];
+  function visit(start: number, picked: string[]) {
+    if (picked.length === size) {
+      out.push([...picked]);
+      return;
+    }
+    for (let i = start; i <= items.length - (size - picked.length); i++) {
+      visit(i + 1, [...picked, items[i]!]);
+    }
+  }
+  visit(0, []);
+  return out;
 }

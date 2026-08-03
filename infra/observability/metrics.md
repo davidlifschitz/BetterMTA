@@ -1,7 +1,7 @@
 # Metric names
 
 **Owner:** Infrastructure  
-**Status:** Proposed naming; exporters not wired until services exist  
+**Status:** API exporter implemented; backend/scrape target not yet provisioned
 **Sources:** `docs/DATA_CONTRACT.md` §10, Acceptance Criteria C/E, `.agents/infrastructure.md`
 
 Use Prometheus-style names (snake_case). Label carefully; avoid high-cardinality place strings.
@@ -25,11 +25,13 @@ Use Prometheus-style names (snake_case). Label carefully; avoid high-cardinality
 | Metric | Type | Labels | Description |
 |---|---|---|---|
 | `bettermta_http_request_duration_seconds` | histogram | `route`, `method`, `status` | API latency — use for **p50/p95/p99** |
+| `bettermta_api_request_duration_seconds` | histogram | | Process-wide API latency exported by the current single-replica API |
 | `bettermta_route_search_total` | counter | `result` (`success\|error\|timeout`) | Search attempts |
 | `bettermta_route_search_failures_total` | counter | `error_code` | Typed search failures |
 | `bettermta_places_search_total` | counter | `result` | Place autocomplete |
 | `bettermta_place_provider_total` | counter | `provider` (`station_index\|geocoder\|unknown`), `result` | Place/geocode provider attempts (ADR-0022) |
 | `bettermta_place_provider_errors_total` | counter | `provider`, `reason` | Provider failures (`timeout\|http\|parse\|upstream\|unknown`) |
+| `bettermta_place_provider_duration_seconds` | histogram | | Aggregate place-provider latency |
 | `bettermta_candidate_coverage_total` | counter | `status` (`adequate\|degraded\|exhausted\|unknown`) | Preference candidate-coverage outcomes (ADR-0023) |
 | `bettermta_candidate_budget_exhausted_total` | counter | | Candidate/time budget exhausted |
 | `bettermta_candidate_families_attempted_sum` | counter | | Sum of families attempted (aggregate) |
@@ -57,6 +59,10 @@ Histogram buckets (initial): `0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10` seconds.
 | Crash-free sessions | Error tracker | Alert on spike |
 | `bettermta_web_client_errors_total` | RUM / tracker | Labeled by release |
 
-## PLACEHOLDER
+## Export and backend status
 
-No metrics backend is provisioned yet (Fly metrics + optional Grafana Cloud / OTel later). Names above are the contract for application instrumentation.
+- The API registers `GET /internal/metrics` only when `BETTERMTA_METRICS_TOKEN` is configured.
+- Scrapes require `Authorization: Bearer …`; the token is a secret and must not be committed or logged.
+- The exporter emits only bounded counters, counts, and latency buckets from `PrivacySafeMetrics`; it never emits query text, addresses, precise coordinates, vendor IDs, or preferred-line lists.
+- Metrics are process-local, which matches the current single-replica boundary. Multi-replica aggregation requires the Stage D backend before scaling.
+- No Prometheus/Grafana/Fly scrape target or pager is active yet. Provisioning and alert loading remain private-beta infrastructure gates; application instrumentation is no longer a placeholder.

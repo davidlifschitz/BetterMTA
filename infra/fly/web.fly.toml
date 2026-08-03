@@ -2,7 +2,7 @@
 # App: bettermta-web (Fly.io) — NOT created yet; flyctl not authenticated in CI/dev.
 #
 # Entrypoint: apps/web/Dockerfile → next start :3000
-# Build args must bake NEXT_PUBLIC_API_MODE=live and NEXT_PUBLIC_FLAG_FEEDBACK=false.
+# Build args must bake live mode with feedback and address/POI explicitly off.
 #
 # FAIL-CLOSED (bake-time API URL):
 #   NEXT_PUBLIC_API_BASE_URL is compiled into the Next.js client bundle.
@@ -28,6 +28,7 @@ primary_region = 'ewr'
   [build.args]
     NEXT_PUBLIC_API_MODE = 'live'
     NEXT_PUBLIC_FLAG_FEEDBACK = 'false'
+    NEXT_PUBLIC_FLAG_ADDRESS_POI = 'false'
     # Intentionally unset — must be supplied at deploy time (see header).
     # NEXT_PUBLIC_API_BASE_URL = 'https://bettermta-api.fly.dev'
 

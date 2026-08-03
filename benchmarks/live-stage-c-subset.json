@@ -1,0 +1,7 @@
+{
+  "$comment": "Stage C live hard subset. Execute with BETTERMTA_SUT=live against the certified alpha; soft watch cases stay out of this merge-blocking set.",
+  "caseIds": [
+    "bmc-live-smoke-f-carroll-bryant",
+    "bmc-pending-bronx-2-5-peak"
+  ]
+}

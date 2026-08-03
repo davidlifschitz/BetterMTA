@@ -73,9 +73,9 @@ const BY_CODE: Record<ApiErrorCode, ErrorUi> = {
   },
   insufficient_candidate_coverage: {
     phase: "coverage_failure",
-    title: "Couldn’t cover your preferred lines",
+    title: "Couldn’t compare all preferred lines",
     defaultBody:
-      "Not enough preference-covering route candidates were available within the search budget. Try again or adjust preferred lines.",
+      "We couldn’t find enough route options to compare all your preferred lines reliably. Try again or change your preferred lines.",
     testId: "coverage-failure-state",
   },
   stale_realtime: {
@@ -135,11 +135,11 @@ export function coverageFailureDetails(
   }
   if (typeof d.preferenceCoveringCandidateCount === "number") {
     out.push(
-      `Preference-covering candidates found: ${d.preferenceCoveringCandidateCount}`,
+      `Routes found using all preferred lines: ${d.preferenceCoveringCandidateCount}`,
     );
   }
   if (d.budgetExhausted === true || d.status === "exhausted") {
-    out.push("Search budget was exhausted before a trustworthy match.");
+    out.push("We reached the route-search limit before finding a reliable match.");
   }
   return out;
 }

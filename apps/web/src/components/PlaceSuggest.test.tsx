@@ -77,4 +77,23 @@ describe("PlaceSuggest", () => {
     await user.keyboard("{ArrowDown}{Enter}");
     expect(onSelect).toHaveBeenCalledWith(places[0]);
   });
+
+  it("keeps listbox options out of the page Tab order", () => {
+    render(
+      <PlaceSuggest
+        label="From"
+        placeholder="Station, address, or place"
+        value="Park"
+        suggestions={places}
+        listLabel="Origin suggestions"
+        onQueryChange={() => undefined}
+        onSelect={() => undefined}
+        onCloseSuggestions={() => undefined}
+      />,
+    );
+
+    for (const option of screen.getAllByRole("option")) {
+      expect(option).toHaveAttribute("tabindex", "-1");
+    }
+  });
 });

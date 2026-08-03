@@ -78,6 +78,8 @@ services:
         # Empty → same-origin relative /v1/* through the edge (not localhost:8080).
         NEXT_PUBLIC_API_BASE_URL: ""
         NEXT_PUBLIC_FLAG_FEEDBACK: "false"
+        # Explicitly flag-off until address/POI go/no-go is approved.
+        NEXT_PUBLIC_FLAG_ADDRESS_POI: "false"
     ports: !override
       - "127.0.0.1:3000:3000"
     restart: unless-stopped

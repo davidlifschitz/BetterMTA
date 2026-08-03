@@ -15,6 +15,7 @@ export interface OtpCandidateProviderOptions {
   numItineraries?: number;
   graphVersion?: string | null;
   routeIdToLineId: (gtfsRouteId: string) => string | null;
+  lineIdToGtfsRouteIds?: (lineId: string) => string[];
   now?: () => number;
 }
 

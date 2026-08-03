@@ -1,7 +1,7 @@
 {
   "caseId": "bmc-pending-bronx-2-5-peak",
-  "title": "PENDING: Wakefield → Bowling Green peak with 2+5",
-  "classification": "pending_live_integration",
+  "title": "LIVE: Wakefield → Bowling Green with 2+5",
+  "classification": "live",
   "categories": [
     "borough_bronx",
     "borough_manhattan",
@@ -12,40 +12,42 @@
     "od_on_selected_lines"
   ],
   "origin": {
-    "placeId": "pl_wakefield_241"
+    "placeId": "st:201"
   },
   "destination": {
-    "placeId": "pl_bowling_green"
+    "placeId": "st:420"
   },
-  "timing": {
-    "type": "depart_at",
-    "time": "2026-07-30T08:15:00-04:00"
-  },
+  "timing": { "type": "depart_now" },
   "selectedLineIds": [
     "2",
     "5"
   ],
   "expectedFeasibility": "complete",
   "minimumSatisfactionCount": 2,
-  "humanReviewNotes": "Placeholder OD for corpus growth. Structural checks use schedule-only fixture until live routing; do not treat as verified.",
-  "staticDatasetVersion": "gtfs_fixture_v1",
-  "realtimeFixtureVersion": "none",
+  "humanReviewNotes": "Executable live public-station case. Certified alpha produced complete 2+5 routes on the Stage C refresh; repeat determinism and satisfaction remain merge-blocking in the live subset.",
+  "staticDatasetVersion": "mta-subway-live-at-gate",
+  "realtimeFixtureVersion": "live_at_gate_time",
   "sut": {
-    "kind": "conductor_fixture",
-    "responseId": "baseline-only"
+    "kind": "live",
+    "responseId": "live-bronx-2-5"
   },
   "tags": [
-    "corpus_placeholder",
-    "soft_feasibility"
+    "live_smoke",
+    "stage_c"
   ],
   "invariantAssertions": [
     "valid_itinerary_structure",
+    "origin_destination_consistency",
     "chronological_legs",
     "nonnegative_durations",
+    "satisfaction_accounting",
     "complete_beats_partial",
     "max_satisfaction_before_time",
     "deterministic_order",
     "max_three_itineraries",
-    "honest_data_mode"
+    "honest_data_mode",
+    "impossible_constraint_explanation",
+    "expected_feasibility",
+    "minimum_satisfaction"
   ]
 }

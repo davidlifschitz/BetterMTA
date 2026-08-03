@@ -630,6 +630,33 @@ describe("runRouteSearch outcomes", () => {
     expect(result.kind).toBe("no_transit_path");
   });
 
+  it("returns insufficient coverage for an empty exhausted preference search", async () => {
+    const provider: CandidateProvider & {
+      lastCandidateCoverage: {
+        status: "exhausted";
+        familiesAttempted: ["baseline", "preference_biased"];
+        candidateCount: 0;
+        preferenceCoveringCandidateCount: 0;
+        budgetExhausted: true;
+      };
+    } = {
+      id: "empty-exhausted",
+      lastCandidateCoverage: {
+        status: "exhausted",
+        familiesAttempted: ["baseline", "preference_biased"],
+        candidateCount: 0,
+        preferenceCoveringCandidateCount: 0,
+        budgetExhausted: true,
+      },
+      async generateCandidates() {
+        return [];
+      },
+    };
+
+    const result = await runRouteSearch(provider, baseRequest(["A"]));
+    expect(result.kind).toBe("insufficient_candidate_coverage");
+  });
+
   it("returns insufficient_candidate_coverage when budget exhausted", async () => {
     const provider = new FixtureCandidateProvider({ exhaustBudget: true });
     const result = await runRouteSearch(provider, baseRequest(["A"]));

@@ -360,14 +360,15 @@ export function createOtpCandidateProvider(
       const dateTime = resolveDepartureEpochMs(request, now);
       const { date, time } = epochToNyDateTimeParts(dateTime);
 
-      const queryPlan = buildOrchestrationQueryPlan({
+      const fullQueryPlan = buildOrchestrationQueryPlan({
         preferredLineIds,
         origin: request.origin,
         destination: request.destination,
         topology,
-        maxQueries,
         lineIdToGtfsRouteIds,
       });
+      const queryPlan = fullQueryPlan.slice(0, maxQueries);
+      const queryBudgetExhausted = fullQueryPlan.length > queryPlan.length;
 
       // Allow baseline numItineraries override from provider options.
       if (queryPlan[0]?.kind === "baseline") {
@@ -499,27 +500,20 @@ export function createOtpCandidateProvider(
 
       if (
         !stoppedEarlyWithCoverage &&
-        queriesExecuted >= maxQueries &&
-        queryPlan.length > maxQueries
-      ) {
-        budgetExhausted = true;
-      }
-      // Ran every planned query under the hard ceiling without early coverage stop.
-      if (
-        !stoppedEarlyWithCoverage &&
-        queriesExecuted >= queryPlan.length &&
-        preferredLineIds.length > 0
+        queryBudgetExhausted &&
+        queriesExecuted >= queryPlan.length
       ) {
         budgetExhausted = true;
       }
 
-      const deduped = dedupeDraftsByFingerprint(collected).slice(
+      const allDeduped = dedupeDraftsByFingerprint(collected);
+      if (allDeduped.length > candidateBudget) {
+        budgetExhausted = true;
+      }
+      const deduped = allDeduped.slice(
         0,
         candidateBudget,
       );
-      if (collected.length > deduped.length) {
-        budgetExhausted = true;
-      }
 
       const topologicallySensible = isTopologicallySensible({
         preferredLineIds,

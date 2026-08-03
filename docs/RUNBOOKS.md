@@ -546,3 +546,18 @@ See `infra/flags/flags.json`. Emergency product off switch: `maintenance_mode=tr
 |---|---|
 | Places / geocode adapter | `hashPlaceQuery`, `coarseGridId`, `hashVendorId`, `PrivacySafeMetrics.recordPlaceProvider` |
 | Routing candidate orchestration | `PrivacySafeMetrics.recordCandidateCoverage` / `recordPreferenceCoverage` (or API `recordRouteSearchPrivacySignals`) |
+
+---
+
+## Geocoder provider outage
+
+**Trigger:** `GeocoderFailureSpike`, repeated bounded `place_provider_error` events, or address/POI results consistently falling back to station-only results.
+
+1. Confirm the API and station-index path are healthy with `/health/ready` and a known station query. Do not paste a rider address into logs or tickets.
+2. Inspect the authenticated `/internal/metrics` counters for `provider="geocoder"`; use only aggregate result/reason labels.
+3. If failures persist, set the server-side `address_poi_enabled` flag false (for example `BETTERMTA_ADDRESS_POI_ENABLED=false`) and restart or roll forward the API through the normal release procedure. This preserves station search while disabling geocoder calls.
+4. Verify a station query still succeeds and the geocoder attempt counter stops increasing. Keep the web address flag off for the current controlled alpha unless a separate go/no-go authorizes it.
+5. If the outage began with a release, use the documented immutable rollback. Do not hot-swap vendors or enable precise-coordinate retention during incident response.
+6. Re-enable only after provider health, attribution, privacy tests, and the flag-on smoke corpus pass. Record the incident window and aggregate counts, never raw queries or coordinates.
+
+Exporter note: `/internal/metrics` exists only when `BETTERMTA_METRICS_TOKEN` is configured and requires its bearer token. If no scrape backend is active, use the privacy-safe structured logs and leave alert status explicitly “not loaded.”

@@ -67,6 +67,13 @@ FEATURE_FLAGS_JSON='{"address_poi_enabled":true}'
 3. Station matches keep `provider: "station_index"`.
 4. Timeouts / 429 / 5xx → bounded retry then `availability: unavailable` (station results still returned).
 
+## Provider outage operations
+
+- Alert source: `GeocoderFailureSpike` in `infra/observability/alerts.yaml`.
+- Runbook: `docs/RUNBOOKS.md#geocoder-provider-outage`.
+- Immediate safe degradation is server-side `address_poi_enabled=false`; authoritative station search remains available.
+- Do not switch vendors or retain raw queries/coordinates during an incident. Any provider change still requires the normal privacy, attribution, and cost review.
+
 ## Tests
 
 ```bash

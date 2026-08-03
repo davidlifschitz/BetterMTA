@@ -283,11 +283,13 @@ export class LiveRoutingAdapter implements RoutingAdapter {
       }
 
       const routeIdToLineId = await resolveRouteIdMapper(this.data);
+      const lineIdToGtfsRouteIds = await resolveLineIdMapper(this.data);
       return this.createProvider({
         otpBaseUrl: this.otpBaseUrl,
         timeoutMs: this.otpTimeoutMs,
         graphVersion: this.otpGraphVersion,
         routeIdToLineId,
+        lineIdToGtfsRouteIds,
         now: this.now,
       });
     })();
@@ -337,6 +339,15 @@ async function resolveRouteIdMapper(
   }
   // Fallback: no gtfs mapping available from generic DataAdapter.
   return () => null;
+}
+
+async function resolveLineIdMapper(
+  data: DataAdapter,
+): Promise<(lineId: string) => string[]> {
+  if (typeof (data as LiveDataAdapter).buildLineIdToGtfsRouteIds === "function") {
+    return (data as LiveDataAdapter).buildLineIdToGtfsRouteIds();
+  }
+  return () => [];
 }
 
 function mapOutcomeToResponse(

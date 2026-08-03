@@ -343,7 +343,7 @@ function onCorridor(
 
 /**
  * Pick deterministic via hubs for preferred lines near the OD corridor.
- * Stable sort: lineId asc, then stationId asc; unique by stationId.
+ * Prefer hubs serving more requested lines, then smaller OD detour, then station id.
  */
 export function selectViaStations(input: {
   preferredLineIds: readonly string[];
@@ -353,23 +353,33 @@ export function selectViaStations(input: {
   topology?: PreferredLineTopology;
 }): TopologyStation[] {
   const topology = input.topology ?? DEFAULT_TOPOLOGY;
-  const scored: Array<{ hub: TopologyStation; score: number; lineId: string }> =
-    [];
+  const scored: Array<{
+    hub: TopologyStation;
+    score: number;
+    preferredCoverage: number;
+  }> = [];
+  const preferred = new Set(input.preferredLineIds);
+  const seenCandidates = new Set<string>();
 
   const lines = [...input.preferredLineIds].sort((a, b) => a.localeCompare(b));
   for (const lineId of lines) {
     for (const hub of topology.stationsForLine(lineId)) {
+      if (seenCandidates.has(hub.stationId)) continue;
+      seenCandidates.add(hub.stationId);
       const detour =
         haversineMeters(input.origin, hub) +
         haversineMeters(hub, input.destination) -
         haversineMeters(input.origin, input.destination);
-      scored.push({ hub, score: detour, lineId });
+      const preferredCoverage = hub.lineIds.filter((id) => preferred.has(id)).length;
+      scored.push({ hub, score: detour, preferredCoverage });
     }
   }
 
   scored.sort((a, b) => {
+    if (a.preferredCoverage !== b.preferredCoverage) {
+      return b.preferredCoverage - a.preferredCoverage;
+    }
     if (a.score !== b.score) return a.score - b.score;
-    if (a.lineId !== b.lineId) return a.lineId.localeCompare(b.lineId);
     return a.hub.stationId.localeCompare(b.hub.stationId);
   });
 

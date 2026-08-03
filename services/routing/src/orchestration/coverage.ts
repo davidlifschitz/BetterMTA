@@ -69,8 +69,7 @@ export function assessCandidateCoverage(
     preferred.length > 0 &&
     input.topologicallySensible &&
     preferenceCoveringCandidateCount === 0 &&
-    input.budgetExhausted &&
-    candidateCount > 0;
+    input.budgetExhausted;
 
   return { candidateCoverage, failInsufficientCoverage };
 }

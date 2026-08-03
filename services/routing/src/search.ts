@@ -312,6 +312,21 @@ export async function runRouteSearch(
     throw err;
   }
 
+  const emptyCoverage = providerCandidateCoverage(provider);
+  if (
+    drafts.length === 0 &&
+    requestedCount > 0 &&
+    emptyCoverage?.status === "exhausted"
+  ) {
+    return {
+      kind: "insufficient_candidate_coverage",
+      requestedCount,
+      reason:
+        "Candidate search exhausted without trustworthy preference-covering candidates.",
+      candidateCoverage: emptyCoverage,
+    };
+  }
+
   if (drafts.length === 0) {
     return { kind: "no_transit_path", requestedCount };
   }

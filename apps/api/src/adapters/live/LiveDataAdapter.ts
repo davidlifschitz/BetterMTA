@@ -320,6 +320,17 @@ export class LiveDataAdapter implements DataAdapter {
     };
   }
 
+  /** BetterMTA lineId → exact GTFS route ids from the active data catalog. */
+  async buildLineIdToGtfsRouteIds(): Promise<
+    (lineId: string) => string[]
+  > {
+    const catalog = await this.requireLinesCatalog();
+    const map = new Map(
+      catalog.lines.map((line) => [line.lineId, [...line.gtfsRouteIds]]),
+    );
+    return (lineId: string) => [...(map.get(lineId) ?? [])];
+  }
+
   isUnreachable(): boolean {
     return this.unreachable;
   }

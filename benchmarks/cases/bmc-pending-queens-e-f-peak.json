@@ -1,6 +1,6 @@
 {
   "caseId": "bmc-pending-queens-e-f-peak",
-  "title": "PENDING: Jamaica Center → W4 peak with E+F",
+  "title": "LIVE WATCH: Jamaica Center → W 4 St with E+F",
   "classification": "pending_live_integration",
   "categories": [
     "borough_queens",
@@ -11,40 +11,40 @@
     "transfer"
   ],
   "origin": {
-    "placeId": "pl_jamaica_center"
+    "placeId": "st:G05"
   },
   "destination": {
-    "placeId": "pl_w4"
+    "placeId": "st:A32"
   },
-  "timing": {
-    "type": "depart_at",
-    "time": "2026-07-30T08:00:00-04:00"
-  },
+  "timing": { "type": "depart_now" },
   "selectedLineIds": [
     "E",
     "F"
   ],
   "expectedFeasibility": "complete",
   "minimumSatisfactionCount": 2,
-  "humanReviewNotes": "Cross-borough peak; live data required for timing realism.",
-  "staticDatasetVersion": "gtfs_fixture_v1",
-  "realtimeFixtureVersion": "rt_fixture_v1",
+  "humanReviewNotes": "Executable live public-station watch. E+F is topologically feasible with a transfer, but the certified alpha currently returns E-only; keep soft until candidate diversity is recertified.",
+  "staticDatasetVersion": "mta-subway-live-at-gate",
+  "realtimeFixtureVersion": "live_at_gate_time",
   "sut": {
-    "kind": "conductor_fixture",
-    "responseId": "complete-match"
+    "kind": "live",
+    "responseId": "live-queens-e-f"
   },
   "tags": [
-    "corpus_placeholder",
+    "live_watch",
     "soft_feasibility"
   ],
   "invariantAssertions": [
     "valid_itinerary_structure",
     "chronological_legs",
     "nonnegative_durations",
+    "satisfaction_accounting",
     "complete_beats_partial",
     "max_satisfaction_before_time",
     "deterministic_order",
     "max_three_itineraries",
-    "honest_data_mode"
+    "honest_data_mode",
+    "expected_feasibility",
+    "minimum_satisfaction"
   ]
 }

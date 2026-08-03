@@ -31,3 +31,22 @@
 - Do **not** broaden tester cohort automatically  
 - Address/POI flags remain default **off** until Wave 4 evidence supports enablement  
 - Status vocabulary: `READY_FOR_P1_CONTROLLED_ALPHA` or `BLOCKED` — not public/private beta / not cloud-grade  
+
+## Stage C residual disposition — 2026-08-03
+
+| Residual | Disposition | Evidence / remaining gate |
+|---|---|---|
+| A M1 routing spec hard-constraint prose | **Closed in Stage C candidate** | `docs/ROUTING_ENGINE_SPEC.md` now specifies preferred-line maximization, soft unpreferred costs, and connector availability |
+| A M2 empty drafts misclassified | **Closed in Stage C candidate** | Exhausted empty preference searches consult provider coverage before `no_transit_path`; regression in `services/routing/tests/routing.test.ts` |
+| A M3 process-local `pl_geo_*` resolve | **Carried to Stage D** | Acceptable only for the current flag-off, single-replica alpha; shared/opaque resolve story required before multi-instance private beta |
+| B M1 subset lexical bias | **Closed in Stage C candidate** | Joint topology coverage selects subsets; lexical order is only the final deterministic tie-breaker |
+| B M2 individual-line via scoring | **Closed in Stage C candidate** | Via hubs now rank requested-line coverage before OD detour |
+| B M3 synthetic inverse GTFS ids | **Closed in Stage C candidate** | Live data catalog supplies both GTFS→line and line→GTFS mappings to the OTP provider |
+| B M4 `budgetExhausted` semantics stretch | **Closed in Stage C candidate** | Full planned search no longer sets the flag; candidate/query ceiling tests cover false and true cases |
+| D M1 PlaceSuggest option Tab order | **Closed** | Options use `tabIndex=-1`; combobox retains keyboard focus |
+| D M2 coverage failure copy | **Closed** | Rider copy removes candidate/search-budget jargon while retaining honest preferred-line guidance |
+| E M1 web Docker address flag ARG | **Closed** | Docker/Compose/Fly build inputs explicitly default `NEXT_PUBLIC_FLAG_ADDRESS_POI=false` |
+| E M2 geocoder outage runbook/alert | **Closed application-side** | `GeocoderFailureSpike` + `docs/RUNBOOKS.md#geocoder-provider-outage` |
+| E M3 metrics exporter placeholder | **Closed application-side; backend carried to Stage D** | Authenticated `/internal/metrics` implemented; scrape backend, rule loading, and pager remain unprovisioned |
+
+This disposition does not authorize address/POI flag-on, a live redeploy, cohort expansion, a `main` merge, or Fly activation. Current status remains `READY_FOR_P1_CONTROLLED_ALPHA`.

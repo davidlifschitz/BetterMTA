@@ -8,6 +8,7 @@
 # Production flags (baked at build time for NEXT_PUBLIC_*):
 #   NEXT_PUBLIC_API_MODE=live
 #   NEXT_PUBLIC_FLAG_FEEDBACK=false
+#   NEXT_PUBLIC_FLAG_ADDRESS_POI=false (explicit until flag-on approval)
 #   no fixture payloads in the client graph
 # When NEXT_PUBLIC_API_MODE=live, the build stage runs `npm run verify:no-fixtures`
 # after `npm run build`. Fixture-mode builds skip that check.
@@ -19,10 +20,12 @@ WORKDIR /repo
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ARG NEXT_PUBLIC_API_MODE=live
 ARG NEXT_PUBLIC_FLAG_FEEDBACK=false
+ARG NEXT_PUBLIC_FLAG_ADDRESS_POI=false
 
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
     NEXT_PUBLIC_API_MODE=${NEXT_PUBLIC_API_MODE} \
     NEXT_PUBLIC_FLAG_FEEDBACK=${NEXT_PUBLIC_FLAG_FEEDBACK} \
+    NEXT_PUBLIC_FLAG_ADDRESS_POI=${NEXT_PUBLIC_FLAG_ADDRESS_POI} \
     NEXT_TELEMETRY_DISABLED=1
 
 COPY apps/web/package.json apps/web/package-lock.json ./apps/web/
