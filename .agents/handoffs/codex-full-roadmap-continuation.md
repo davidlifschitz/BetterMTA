@@ -1,0 +1,362 @@
+# Codex continuation handoff — BetterMTA full roadmap
+
+**Date:** 2026-08-03  
+**Audience:** Codex (or any agent) taking over the whole product trajectory  
+**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
+**Repo:** `davidlifschitz/BetterMTA`
+
+This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.agents/handoffs/p1-codex-continuation.md` and `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
+
+---
+
+## 0. What you are inheriting (now)
+
+| Layer | State |
+|---|---|
+| Product status | **`READY_FOR_P1_CONTROLLED_ALPHA`** (P1 Wave 4 certified 2026-08-03) |
+| Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
+| Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
+| Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
+| Active program branch | `agent/p1-address-preferred-lines` @ **`78c2ca5`** (Waves 0–4 done) |
+| Immediate unfinished work | **Controlled Alpha Review 1** → then roadmap below |
+
+**Hard rules (always):**
+- Do not silently change confirmed product/ADR decisions; propose reopenals.
+- Shared contracts have one owner; additive changes only unless conductor locks a bump.
+- No competitor “beats Google” claims without benchmark evidence.
+- No secrets/hostnames/Access tokens/tester emails in Git or casual logs.
+- Narrow public-beta scope: no accounts/native apps/AI chat/social unless ADR reopens.
+- Prefer mature OTP substrate; differentiation stays in BetterMTA ranking/orchestration.
+
+---
+
+## 1. Product north star
+
+**Promise:** *You know the subway. Your navigation app should listen to you.*
+
+Riders enter origin/destination, select **preferred** subway lines, and get ranked practical routes that maximize those preferences, with walks/transfers/unselected connectors filled in (ADR-0022/0023 after P1).
+
+**Target production definition:** public beta — mobile web, subway-first NYC, honest live/stale/schedule labeling, monitored, safely deployable — **not** Google Maps parity.
+
+Read first: `docs/PROJECT_CONTEXT.md`, `docs/PRD.md`, `docs/PRODUCT_PRINCIPLES.md`, `AGENTS.md`.
+
+---
+
+## 2. Status vocabulary (do not blur)
+
+| Status | Meaning |
+|---|---|
+| `BLOCKED` | Not ready for remote cohort |
+| `READY_FOR_CONTROLLED_ALPHA` | Historical Phase 12A cert — self-hosted Tunnel+Access (ADR-0021). Not cloud-grade |
+| `READY_FOR_P1_CONTROLLED_ALPHA` | **Current live cert** — preferred coverage certified on alpha; address/POI remains flag-off |
+| `READY_FOR_PRIVATE_BETA` | Hosted Fly private cohort (ADR-0012) |
+| `READY_FOR_PUBLIC_BETA` | Narrow public MVP + required gates |
+
+Controlled alpha ≠ private beta ≠ public beta.
+
+---
+
+## 3. Historical delivery (already done)
+
+### Scaffold / conductor / Step 2
+- Milestone 0 scaffold (mobile UI, fixtures, API boundary).
+- Conductor package: architecture, domain, API/data contracts, ADRs, ownership.
+- Parallel agent workstreams integrated: data, routing, backend, frontend, infra, benchmark-QA → `agent/integration-live`.
+
+### Step 3 live stack (Phases ~1–11)
+- OTP 2.9.0 substrate (ADR-0011); production adapters; GTFS + GTFS-RT path.
+- Docker Compose stack; Fly TOML prepared but **not activated** (G17 BLOCKED).
+- Benchmarks / release-gate harness; fixture lockout for live web builds.
+- Many G01–G20 rows PASS/PARTIAL; Fly rollback/alerts still PENDING/BLOCKED.
+
+### Phase 12A — controlled alpha (DONE)
+- ADR-0021 self-hosted Cloudflare path.
+- Edge `127.0.0.1:8088`, named tunnel LaunchAgent, Access deny-default + allowlist.
+- Immutable release/rollback; remote validation; reliability drills (Mac logout/reboot **PENDING_USER**).
+- Merged to `main` via PR #3 (`90b6462`); residuals PR #4; alpha log PR #5; P1 acceptance docs PR #6.
+- Go decision: **`READY_FOR_CONTROLLED_ALPHA`**.
+
+### Controlled-alpha learning (started)
+- Solo findings in `docs/alpha/CONTROLLED_ALPHA_LOG.md` (GS vs S; Park→Penn 0-of-3; address+preferred-lines direction).
+- Next formal learning milestone: **Controlled Alpha Review 1** (after enough real-use evidence; may wait until P1 ships).
+
+### P1 program (complete — see §5)
+- Decision ACCEPTED; Waves 0–4 complete; status `READY_FOR_P1_CONTROLLED_ALPHA`.
+
+---
+
+## 4. Classic roadmap milestones (from `docs/ROADMAP.md`) mapped to reality
+
+| Roadmap milestone | Intent | Current mapping |
+|---|---|---|
+| **M0** Scaffold | UI + prototype API | **Done** |
+| **M1** Static routing proof | GTFS graph + constrained search + golden cases | **Largely done** via OTP + routing library + benchmarks (not a custom graph search) |
+| **M2** Real-time routing | GTFS-RT, freshness, safe degrade | **Largely done** in live stack; honesty labeling required forever |
+| **M3** Product beta | Maps, geocoding, baseline comparison, analytics, feedback, preference learning, probes | **Partial** — geocode/preferred lines = **P1**; maps/feedback/learning/accounts still deferred (D2/D3) |
+| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — CI exists; self-hosted alpha exists; **Fly private/public path not activated** |
+| **M5** Differentiation | Live reroute, delay handling, crowding/reliability, beat-default discovery, more modes | **Future** — after public-beta quality bar; modes = D1 |
+
+Treat `ROADMAP.md` as directional; ADR-locked deferrals override its older wording (e.g. “required-line state search”).
+
+---
+
+## 5. Active program: P1 (detail)
+
+**Branch tip:** `agent/p1-address-preferred-lines` @ `78c2ca5`  
+**Deep handoff:** `.agents/handoffs/p1-codex-continuation.md`
+
+| Wave | Status |
+|---|---|
+| 0 ADR/contracts lock (ADR-0022/0023, contracts `2026-07-31`) | Done |
+| 1 Places / routing / web / privacy / QA | Done |
+| 2 Integration | Done |
+| 3 Independent reviews | **PASS** (`docs/reviews/wave3-gate.md`) |
+| 4 Immutable deploy + alpha cert | **PASS** — `docs/alpha/P1_WAVE4_CERTIFICATION.md` |
+
+**P1 outcome label:** `READY_FOR_P1_CONTROLLED_ALPHA`.  
+Address/POI remains default **off** pending owner flag-on decision. Do not merge to `main` without owner ask.
+
+---
+
+## 6. Full forward roadmap (recommended sequence)
+
+Use this as the default order unless product owner reorders.
+
+```text
+DONE → P1 Wave 4 certification
+NOW  → Controlled Alpha Review 1 (learning go/no-go)
+    → Ops harden (FU-ALPHA-01/02, FU-NPM-01, Medium residuals)
+    → Small tester cohort (2–3) under Access
+    → Epic D5 prep: Fly private beta path (or keep alpha longer)
+    → READY_FOR_PRIVATE_BETA gates
+    → Epic D2/D3 selectively (maps / arrive-by / feedback) as needed for M3/M4
+    → READY_FOR_PUBLIC_BETA
+    → Epic D1 modes + M5 differentiation (one mode/ADR at a time)
+    → Epic D6 claims only with published benchmarks
+```
+
+### Stage A — Finish P1 on controlled alpha (**DONE**)
+
+**Result:** Preferred-line coverage shipped safely to controlled alpha; address/POI remains flag-off pending the separate enablement decision.
+
+1. Wave 4 completed: local gates → immutable images → deploy → protected remote monitor → rollback drill → restored candidate.
+2. Medium residuals remain scheduled before **flag-on** (wave3-gate list).
+3. Program branch pushed; PR/merge to `main` remains an owner decision.
+4. Controlled-alpha evidence continues in `docs/alpha/CONTROLLED_ALPHA_LOG.md`.
+
+**Exit achieved:** `READY_FOR_P1_CONTROLLED_ALPHA`; rollback points to the pre-P1 certified images.
+
+### Stage B — Controlled Alpha Review 1 (learning milestone)
+
+**Goal:** Decide next phase from real use, not more deploy theater.
+
+Evaluate:
+- Failures / confusing UI / line-satisfaction bugs / OTP diversity gaps
+- Uptime (tunnel, Colima, disk, realtime freshness)
+- Whether to expand testers, improve routing further, or jump to hosted beta
+
+**Exit options (pick one primary):**
+- Routing-quality epic (candidate diversity, subset search, live OTP validation)
+- Broader controlled alpha (more allowlisted emails)
+- Start **D5** Fly private-beta migration
+- Hold and keep learning
+
+### Stage C — Ops & quality harden (parallelizable)
+
+| ID | Work | Notes |
+|---|---|---|
+| FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery | Needs **explicit user approval** |
+| FU-ALPHA-02 | GitHub scheduled monitor secrets | Optional; soft workflow |
+| FU-NPM-01 | Next.js / npm advisories | Separate maintenance branch; no auto-redeploy on merge |
+| Wave3 Mediums | Spec lag, Docker FE flag ARG, geocode runbook, PlaceSuggest a11y, etc. | Before flag-on / private beta |
+| Benchmarks | Live SUT corpus refresh; keep SI/ferry Must-set deferred (ADR-0020) until reopened |
+
+### Stage D — Private beta (hosted) — Epic D5 + M4 subset
+
+**Authority:** ADR-0012 Fly; ADR-0021 alpha honesty until migrated.
+
+Work:
+- Activate Fly apps (or chosen host) with secrets out of Git
+- Production observability/SLOs/alerts (G19)
+- One-action Fly rollback drill (G18)
+- Rate limits / multi-instance place-resolve story (P1 A M3)
+- Privacy policy + support workflow draft
+- Cohort 5–10 → expand carefully
+
+**Exit:** `READY_FOR_PRIVATE_BETA` with evidence — still not public.
+
+### Stage E — Product beta depth — Epics D2 / D3 (M3 remainder)
+
+Reopen **only with ADRs**:
+
+| Epic | Items | Gate |
+|---|---|---|
+| D2 | Interactive maps; crowding; accounts/profiles; **arrive-by** (ADR-0014/0015) | UX + a11y + privacy reviews |
+| D3 | Anonymous feedback transport; Postgres when justified; preference memory/consent (ADR-0016/0017) | Privacy-reviewed transport first |
+
+Sequence suggestion: arrive-by after routing stable; feedback before preference memory; maps when geocode attribution UX is solid.
+
+### Stage F — Public beta — M4 completion
+
+- Load test + p95 SLO evidence
+- CI/CD preview + production rollback proven
+- Accessibility review (no critical core-flow failures)
+- Incident playbook + on-call lite
+- Public URL + TLS + clear limitations copy
+- Narrow scope still: subway-first NYC; no AI chat/social/native apps
+
+**Exit:** `READY_FOR_PUBLIC_BETA`.
+
+### Stage G — Differentiation & modes — M5 + Epic D1
+
+One mode or capability per ADR:
+- Bus / LIRR / Metro-North / ferry / **NJ Transit** / PATH — each needs data + routing + QA plan
+- Live rerouting, better delay handling, crowding/reliability, beat-default discovery
+- Elevator-aware routing / alert extensions (D4) as data allows
+
+### Stage H — Claims — Epic D6
+
+Never claim superiority vs Google/Apple/Citymapper without published methodology + corpus results. North-star metric remains: share of completed searches where user picks a BetterMTA route not in baseline top three (`PRD` §9).
+
+---
+
+## 7. Deferred epic registry (do not silently start)
+
+Full tables: `docs/DEFERRED_BACKLOG.md`.
+
+| Epic | Summary | Sequence relative to P1 |
+|---|---|---|
+| D1 | Extra transit modes | After P1 proven |
+| D2 | Maps, crowding, accounts, arrive-by | After P1; routing stable |
+| D3 | Feedback, Postgres, preference memory | After place/privacy path settled |
+| D4 | Elevator routing, SI/ferry Must-set, alerts | Parallel later |
+| D5 | Hosted private beta (Fly) | After Alpha Review 1+ |
+| D6 | Competitor claims | Evidence-gated forever |
+
+---
+
+## 8. Architecture anchors (do not fork casually)
+
+| Topic | Authority |
+|---|---|
+| OTP substrate | ADR-0011 |
+| Fly for hosted beta | ADR-0012 |
+| Places station + address/POI | **ADR-0022** (supersedes ADR-0013) |
+| Preferred lines / coverage | **ADR-0023** |
+| Arrive-by deferred | ADR-0014 |
+| Maps/crowding/accounts deferred | ADR-0015 |
+| No Postgres until needed | ADR-0016 |
+| Feedback disabled until privacy transport | ADR-0017 |
+| Live fail-closed | ADR-0018 |
+| SI/ferry Must-set deferred | ADR-0020 |
+| Self-hosted controlled alpha | ADR-0021 |
+| Contracts | `contracts/**` version **`2026-07-31`** on P1 branch |
+
+---
+
+## 9. Live alpha ops facts (host)
+
+- Compose services behind loopback edge; Tunnel via **user** LaunchAgent `com.bettermta.cloudflared-alpha` (KeepAlive + RunAtLoad).
+- Access: deny-default, exact-email allowlist, service-token for monitors.
+- Release pins under `deployments/current.env` / `previous.env` (**gitignored**).
+- Disk: keep headroom (~≥15 Gi preferred); Colima trim; don’t delete active volumes/immutable tags.
+- Availability best-effort (power/ISP/sleep/login).
+
+Secrets stay in `~/.config/bettermta/` and Cloudflare local config — never copy into the repo.
+
+---
+
+## 10. Full workspace inventory (host, 2026-08-03)
+
+All BetterMTA git worktrees share one repo root (`bettermta`). Prefer **`bettermta-integration-live`** for continuing work. Older Step-2 / Wave-1 trees are historical — do not resume parallel feature work there unless explicitly reopening that stream.
+
+### 10.1 Active / primary
+
+| Absolute path | Branch / HEAD | Tip | Role |
+|---|---|---|---|
+| `/Users/thebiglipper/Developer/bettermta-integration-live` | `agent/p1-address-preferred-lines` | `78c2ca5` | **Primary.** P1 Waves 0–4 complete; current controlled-alpha compose runs from here |
+| `/Users/thebiglipper/Developer/bettermta` | `main` | `cd7f860` | Bare/main checkout — **local `main` can lag `origin/main`**; remote tip at handoff was `54cc927` (PR #6). Prefer syncing before using as source of truth |
+
+### 10.2 Step-2 specialist worktrees (pre-integration; largely superseded)
+
+| Absolute path | Branch | Tip | Original role |
+|---|---|---|---|
+| `/Users/thebiglipper/Developer/bettermta-backend` | `agent/backend` | `6b6cbdf` | Fixture-backed API / v1 contract service |
+| `/Users/thebiglipper/Developer/bettermta-benchmark-qa` | `agent/benchmark-qa` | `b056721` | Corpus, invariants, gate, self-test |
+| `/Users/thebiglipper/Developer/bettermta-conductor` | detached @ `ec88dc6` (`agent/conductor`) | `ec88dc6` | Early conductor package lock; remote branch gone — historical |
+| `/Users/thebiglipper/Developer/bettermta-data` | `agent/data` | `9bf495d` | GTFS ingest, realtime freshness, line mapping |
+| `/Users/thebiglipper/Developer/bettermta-frontend` | `agent/frontend` | `c088a07` | Mobile web fixture-mode UI |
+| `/Users/thebiglipper/Developer/bettermta-infrastructure` | `agent/infrastructure` | `99ab8f3` | Compose / deploy / ops scaffolding |
+| `/Users/thebiglipper/Developer/bettermta-routing` | `agent/routing` | `294500a` | Routing engine / OTP orchestration slice |
+
+These were merged into the integration lineage; **do not open new feature work here** unless reconstructing history. Useful only for archaeology or recovering an unmerged commit.
+
+### 10.3 P1 Wave-1 slice worktrees (merged into program branch; prune-safe)
+
+| Absolute path | Branch | Tip | Slice |
+|---|---|---|---|
+| `/Users/thebiglipper/Developer/bettermta-p1-wave1-places` | `agent/p1-wave1-places` | `371ab9e` | Places / geocode provider |
+| `/Users/thebiglipper/Developer/bettermta-p1-wave1-routing` | `agent/p1-wave1-routing` | `29712a9` | Preferred-line / coverage orchestration |
+| `/Users/thebiglipper/Developer/bettermta-p1-wave1-frontend` | `agent/p1-wave1-frontend` | `c271032` | Address UI / LinePicker |
+| `/Users/thebiglipper/Developer/bettermta-p1-wave1-privacy` | `agent/p1-wave1-privacy` | `feb57e7` | Place privacy / retention |
+| `/Users/thebiglipper/Developer/bettermta-p1-wave1-qa` | `agent/p1-wave1-qa` | `38cf1f7` | P1 acceptance matrix / QA |
+
+All already integrated into `agent/p1-address-preferred-lines`. Safe to ignore or `git worktree remove` after confirming no unique uncommitted work.
+
+### 10.4 Non-git sibling directory
+
+| Absolute path | Role |
+|---|---|
+| `/Users/thebiglipper/Developer/bettermta-artifacts` | Local artifacts only (e.g. `gtfs_subway.zip`); **not** a git worktree |
+
+### 10.5 Branch tips to remember (not separate worktrees)
+
+| Ref | Tip (at handoff) | Notes |
+|---|---|---|
+| `origin/main` | `54cc927` | Certified-alpha docs + P1 acceptance (PRs #3–#6); **no** P1 Waves 0–3 implementation |
+| `agent/integration-live` | (historical Step 3) | May lag `main`; superseded as primary by integration-live → P1 program branch |
+| `agent/p1-address-preferred-lines` | `78c2ca5` | P1 program tip; Stage A complete |
+
+### 10.6 Default rule for new agents
+
+1. `cd /Users/thebiglipper/Developer/bettermta-integration-live` and work on `agent/p1-address-preferred-lines` unless the owner names another tree.
+2. Do not create more long-lived specialist worktrees without a parallelization plan and merge owner.
+3. Refresh this inventory with `git -C /Users/thebiglipper/Developer/bettermta worktree list` if the host layout may have changed.
+
+---
+
+## 11. Suggested Codex kickoff (full roadmap)
+
+```text
+You are continuing BetterMTA. Read `.agents/handoffs/codex-full-roadmap-continuation.md` first,
+then `.agents/handoffs/p1-codex-continuation.md` for completed P1 Wave 4 evidence.
+
+Primary worktree: /Users/thebiglipper/Developer/bettermta-integration-live
+P1 branch tip: agent/p1-address-preferred-lines @ 78c2ca5
+Live alpha: READY_FOR_P1_CONTROLLED_ALPHA on immutable P1 images; rollback points to the pre-P1 certified release.
+
+Immediate mission: complete Controlled Alpha Review 1, then follow the Stage C→H roadmap in the full handoff.
+Do not implement D1–D6 unless explicitly authorized.
+Do not merge to main unless the product owner asks. No competitor claims without benchmarks.
+No Fable orchestration unless requested — prefer focused agents with non-overlapping ownership.
+```
+
+---
+
+## 12. Immediate vs later (one screen)
+
+**Do next**
+1. Complete Controlled Alpha Review 1 from the current P1 evidence
+2. Reassess open risks and choose the next approved roadmap stage
+3. FU-ALPHA-01 when user authorizes reboot drill; FU-NPM-01 on a maintenance branch
+
+**Do not do next**
+- Bus/NJ Transit/PATH “just because”
+- Fly activation without private-beta go/no-go
+- Accounts, maps, feedback UI without ADR reopen
+- Merging P1 to `main` + redeploying alpha without Wave 4 evidence
+- Squashing away release history on big integration PRs
+
+---
+
+**End of full roadmap handoff.** Update this file when stage exits change (P1 cert, Review 1 decision, private-beta go).

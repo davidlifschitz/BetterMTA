@@ -1,15 +1,19 @@
 # Codex continuation handoff — BetterMTA P1 program
 
 **Date:** 2026-08-03  
-**Author:** Cursor conductor (paused after Wave 3)  
+**Author:** Cursor conductor + Codex (Wave 4 completion)
 **Audience:** Codex (or any agent) resuming P1  
-**Status:** Wave 0–3 complete; **Wave 4 paused** (not started successfully)
+**Status:** Wave 0–4 complete; **`READY_FOR_P1_CONTROLLED_ALPHA`**
+
+**Full product roadmap (Stages A–H, deferred epics, milestones):**
+
+[`.agents/handoffs/codex-full-roadmap-continuation.md`](./codex-full-roadmap-continuation.md) — use that when you need more than P1 Wave 4.
 
 ---
 
 ## 1. One-paragraph situation
 
-BetterMTA controlled alpha is certified and running as a self-hosted Cloudflare Tunnel + Access stack. Product owner accepted **P1**: address/POI search, preferred-line maximization (not hard require-all), system-filled connectors, and BetterMTA-owned candidate coverage (ADR-0022/0023 + contracts `2026-07-31`). Implementation was done as a bounded multi-wave program on branch `agent/p1-address-preferred-lines`. Waves 0–3 finished with independent reviews **PASS** and Critical/High cleared. Wave 4 (immutable candidate deploy + alpha certification) was launched, **hung with no tool calls**, and was **paused**. The live alpha was **not** redeployed and still runs the pre-P1 certified images. **Do not merge to `main` unless the product owner asks.**
+BetterMTA controlled alpha is certified and running as a self-hosted Cloudflare Tunnel + Access stack. Product owner accepted **P1**: address/POI search, preferred-line maximization (not hard require-all), system-filled connectors, and BetterMTA-owned candidate coverage (ADR-0022/0023 + contracts `2026-07-31`). Waves 0–3 finished with independent reviews **PASS** and Critical/High cleared. Wave 4 completed on 2026-08-03: immutable P1 release `rel-20260803T183449Z-78c2ca507c3f` is healthy, local and protected-remote smoke pass, the preference regression passes, and rollback to the pre-P1 certified release was drilled successfully. Address/POI remains flag-off. **Do not merge to `main` unless the product owner asks.**
 
 ---
 
@@ -20,7 +24,7 @@ BetterMTA controlled alpha is certified and running as a self-hosted Cloudflare 
 | GitHub | `davidlifschitz/BetterMTA` |
 | Primary worktree | `/Users/thebiglipper/Developer/bettermta-integration-live` |
 | Program branch | `agent/p1-address-preferred-lines` |
-| **Program tip** | `bbd165250116d902e6e9ac90ab38934b97309b3c` (`bbd1652`) |
+| **Program tip** | `78c2ca507c3f7e78063896ecb6ebb88bdded2e61` (`78c2ca5`) |
 | `main` tip (at pause) | `54cc927` (P1 acceptance / findings merge; **does not** include Waves 0–3 implementation) |
 | Orchestration style | Conductor chat + `cursor-grok-4.5-high-fast` subagents — **not Fable** |
 
@@ -60,7 +64,7 @@ Authorizes:
 | 1 Parallel implementation | **DONE** | 1A places, 1B routing, 1C web, 1D privacy, 1E QA |
 | 2 Integration | **DONE** | Merged into program branch; Ajv dedupe fix `81b4de6` |
 | 3 Independent reviews | **DONE / PASS** | Gate: `docs/reviews/wave3-gate.md` (doc tip `f9e7481`; branch tip now `bbd1652` adds gate doc only) |
-| 4 Controlled-alpha certification | **PAUSED** | Agent hung (~55m, no tools); stack unchanged |
+| 4 Controlled-alpha certification | **DONE / PASS** | `docs/alpha/P1_WAVE4_CERTIFICATION.md`; status `READY_FOR_P1_CONTROLLED_ALPHA` |
 
 ### Wave 3 review remediations already landed
 
@@ -89,34 +93,26 @@ Authorizes:
 - **Privacy (1D):** redaction/hashing helpers, bounded metrics, privacy tests
 - **QA (1E):** `benchmarks/docs/P1_ACCEPTANCE_MATRIX.md`, `npm --prefix benchmarks/runner run gate-p1`
 
-### Live alpha (host) — **not** P1 images
-- Still on certified release images (`rel-20260731T155125Z-cert-distinct` at last check)
-- Compose healthy on loopback edge; Tunnel = user LaunchAgent `com.bettermta.cloudflared-alpha`
-- **Do not** auto-redeploy; Wave 4 must use immutable release + keep rollback to this certified set
+### Live alpha (host) — P1 controlled-alpha images
+- Current release: `rel-20260803T183449Z-78c2ca507c3f` at commit `78c2ca5`
+- Compose healthy on loopback edge; authenticated remote live+ready smoke passes
+- Rollback pointer: certified pre-P1 release `rel-20260731T155125Z-cert-distinct`
+- Address/POI remains flag-off; no Access allowlist expansion
 
 ---
 
-## 6. Exact next step (Wave 4)
+## 6. Wave 4 certification result
 
-Resume from tip `bbd1652` on `agent/p1-address-preferred-lines`.
-
-Wave 4 checklist (from paused program):
-
-1. Confirm Wave 3 gate PASS (`docs/reviews/wave3-gate.md`)
-2. Local validation:  
-   - `cd contracts && npm run validate`  
-   - `cd services/routing && npm ci && npm test && npm run build`  
-   - `cd apps/api && npm ci && npm test` (+ typecheck)  
-   - `cd apps/web && npm ci && npm test` && live build + `verify:no-fixtures` (clean `.next` before live)  
-   - `npm --prefix benchmarks/runner run gate-p1`
-3. Build immutable candidate via `deployments/scripts/deploy-release.sh` (prefer `--retag-only` if disk tight; keep ≥15 Gi free when possible)
-4. Optional deploy to alpha compose with `previous.env` preserved for rollback
-5. Authenticated remote monitor if host secrets exist — **never print** hostname/Access credentials/emails
-6. Preference checks: GCT → 34 St-Penn with preferred `7`+`2` and `7`+`2`+`GS` (GS rider-facing **S**)
-7. Address/POI checks only if flags explicitly enabled for candidate; document flag-off limits otherwise
-8. Rollback drill → restore intended candidate
-9. Update `docs/alpha/CONTROLLED_ALPHA_LOG.md`, release gate / handoff; status **`READY_FOR_P1_CONTROLLED_ALPHA`** or **`BLOCKED`**
-10. Push program branch; **do not merge `main`** unless asked
+1. Wave 3 gate confirmed **PASS**.
+2. Contracts, routing, API, web, live-build isolation, and P1 fixture gates passed.
+3. Immutable P1 release built and deployed from commit `78c2ca5`.
+4. Local edge smoke passed: 8 passed, 0 failed.
+5. Authenticated remote Access smoke passed without logging protected values.
+6. GCT to Penn with preferred `7`, `2`, `GS` uses 2 of 3, explains the omission, and repeats deterministically.
+7. Address/POI remains flag-off; the two address-origin live cases are documented as unavailable rather than claimed passing.
+8. Rollback drill restored the pre-P1 certified release and passed smoke; intended P1 candidate was then restored.
+9. Certification record: `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
+10. Program branch pushed; **not merged to `main`**.
 
 ### Wave 4 constraints
 - No secrets/hostnames/tester emails in Git or logs
@@ -209,19 +205,19 @@ Certified alpha behavior today = station-index-first until flags turned on inten
 
 ---
 
-## 13. Suggested Codex kickoff prompt
+## 13. Suggested Codex continuation prompt
 
 ```text
-Resume BetterMTA P1 Wave 4 from handoff `.agents/handoffs/p1-codex-continuation.md`.
+Continue BetterMTA from Stage B / Controlled Alpha Review 1 using `.agents/handoffs/codex-full-roadmap-continuation.md`.
 
 Worktree: /Users/thebiglipper/Developer/bettermta-integration-live
-Branch tip: agent/p1-address-preferred-lines @ bbd1652
+Branch tip: agent/p1-address-preferred-lines @ 78c2ca5
 
-Wave 0–3 are DONE (reviews PASS). Wave 4 was paused after a hung agent — start fresh.
+P1 Waves 0–4 are DONE. Status is READY_FOR_P1_CONTROLLED_ALPHA; address/POI remains flag-off.
 
-Constraints: no merge to main; no auto-redeploy of certified alpha without immutable release + rollback; flags default off; no secrets in git/logs; deferred D1–D6 stay out of scope.
+Constraints: no merge to main; no flag enablement or Access expansion without owner approval; no secrets in git/logs; deferred D1–D6 stay out of scope until explicitly reopened.
 
-Goal: evidence-based READY_FOR_P1_CONTROLLED_ALPHA or BLOCKED.
+Goal: complete Controlled Alpha Review 1 from real evidence, then advance the approved roadmap stage.
 ```
 
 ---
@@ -231,11 +227,11 @@ Goal: evidence-based READY_FOR_P1_CONTROLLED_ALPHA or BLOCKED.
 | Layer | State |
 |---|---|
 | Implemented | P1 code + contracts on program branch |
-| Tested | Unit/integration/gate-p1 locally (Wave 2/3); live OTP multi-family only partially evidenced via unit GraphQL + fixtures |
+| Tested | Unit/integration/gate-p1; immutable P1 deploy; local and protected-remote smoke; live GCT preferred-line regression; rollback drill |
 | Mocked / fake | Geocoder `fake` adapter for CI; routing Midtown fixture scenario |
 | Deferred | D1–D6; flag-on production enablement; Fly hosted beta |
-| Blocked / paused | Wave 4 certification deploy |
-| Known defects | Medium residuals in wave3-gate.md; web Docker flag ARG missing for reproducible FE enable |
+| Blocked / paused | Address/POI live cases remain flag-off; cohort expansion and `main` merge require owner decisions |
+| Known defects | Medium residuals in wave3-gate.md; `FU-NPM-01`; address-origin live adapter cases unavailable while flag-off |
 
 ---
 

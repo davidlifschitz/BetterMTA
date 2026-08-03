@@ -83,6 +83,8 @@
 
 Proposal authority: `docs/proposals/address-preferred-lines-fill-gaps.md` (disposition ACCEPTED — P1).
 
+| 2026-08-03T14:37-04:00 | rel-20260803T183449Z-78c2ca507c3f | GCT (`st:723`) → 34 St–Penn (`st:128`) | 7, 2, GS (rider-facing S) | Success — best constrained route uses 2 of 3 preferred lines, explains the omitted shuttle, and repeats with stable fingerprint order | live | Live corpus completed in under 4 seconds for 48 cases | Routing / Operations | observation | P1 Wave 4 certified `READY_FOR_P1_CONTROLLED_ALPHA`; address/POI remains flag-off; rollback to pre-P1 release drilled and candidate restored |
+
 ## Review checkpoint — Controlled Alpha Review 1
 
 Evaluate before expanding beyond the initial solo / 2–3 tester cohort:

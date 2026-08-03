@@ -60,7 +60,7 @@ BETTERMTA_SUT=live BETTERMTA_LIVE_API_BASE=http://127.0.0.1:8080 \
 | 11 | Unselected connector line | `bmc-p1-unselected-connector` | **READY** (QA fixture oracle) |
 | 12 | Topologically irrelevant preferred | `bmc-p1-irrelevant-preferred` | **READY** |
 | 13 | Candidate budget → `insufficient_candidate_coverage` | API harness (`pl_coverage_fail`) | **READY** (API harness) |
-| 14 | GS displayed as S | `apps/web/.../LineBadge.gs-as-s.test.tsx` | **PENDING / SKIP** (Wave 1 FE) |
+| 14 | GS displayed as S | `apps/web/.../LineBadge.gs-as-s.test.tsx` | **READY** (79-test web suite passed in Wave 4) |
 | 15 | Live build no fixture leakage | `apps/web` `verify:no-fixtures` | **READY** (script; needs live build) |
 | 16 | Privacy-safe logs | API `redactSensitive` + web `analyticsPlaceId` harness | **READY** |
 | 17 | Deterministic repeated routing | `bmc-p1-deterministic-repeat` | **READY** |
@@ -70,11 +70,13 @@ BETTERMTA_SUT=live BETTERMTA_LIVE_API_BASE=http://127.0.0.1:8080 \
 
 | Regression | Case | Status |
 |---|---|---|
-| Midtown Park Ave area → 34 St–Penn preferred 7+2 uses prefs when feasible | `bmc-p1-midtown-penn-72-oracle` (shape) + `bmc-p1-alpha-midtown-penn-72` (live) | Oracle **READY** / Live **PENDING** |
-| Same OD with 7,2,GS must not silent 0-of-3; explain omission | `bmc-p1-alpha-midtown-penn-72gs-no-silent-zero` | **PENDING** live |
-| GCT→Penn with 7,2,GS preserves practical subset + explains omission | `bmc-p1-alpha-gct-penn-72gs` + live twin | Oracle **READY** / Live **PENDING** |
+| Midtown Park Ave area → 34 St–Penn preferred 7+2 uses prefs when feasible | `bmc-p1-midtown-penn-72-oracle` (shape) + `bmc-p1-alpha-midtown-penn-72` (live) | Oracle **READY** / Live **FLAG_OFF** |
+| Same OD with 7,2,GS must not silent 0-of-3; explain omission | `bmc-p1-alpha-midtown-penn-72gs-no-silent-zero` | **FLAG_OFF** live |
+| GCT→Penn with 7,2,GS preserves practical subset + explains omission | `bmc-p1-alpha-gct-penn-72gs` + live twin | Oracle **READY** / Live **PASS** (Wave 4) |
 
 Privacy rules for these cases: station/`st:` PlaceRefs or coarse Midtown labels only — **no** private street addresses, tenant names, or rider history.
+
+Wave 4 evidence: immutable release `rel-20260803T183449Z-78c2ca507c3f` passed the station-based GCT live case, including 2-of-3 satisfaction, omission explanation, and deterministic repeat ordering. The two Midtown coordinate cases are explicitly unavailable while address/POI remains flag-off; they are not release regressions or evidence of flag-on readiness.
 
 ## Counts
 
