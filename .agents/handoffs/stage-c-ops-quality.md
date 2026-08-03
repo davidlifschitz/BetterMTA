@@ -58,7 +58,7 @@ git diff --check
 - Fixture benchmark self-test/full gate passed; infra YAML/JSON/TOML and Compose parsing passed.
 - Benchmarks: 48 cases schema-valid; hard live subset 2/2 passed, 0 soft, `rankingPasses=4`.
 - Full live observation: no hard failures; five soft failures (three GCT/Penn satisfaction gaps, Queens OTP timeout, Far Rockaway/Yankee 1-of-3).
-- Remote branch CI is still required before the GitHub Actions runtime follow-up closes.
+- Draft PR #8 run `30846000773`: all eight jobs passed (`contracts-validate`, `apps-api`, `apps-web`, `services-routing`, `services-data`, `benchmarks`, `dependency-audit`, `infra-config-validate`). This executes and validates the Node-24-based GitHub-owned action releases.
 
 ## 7. Fixture or sample-data instructions
 
@@ -88,4 +88,4 @@ git diff --check
 
 ## 11. Exact next integration step
 
-Finish local full-gate validation, commit and push `codex/stage-c-wave3`, open a draft PR targeting `agent/p1-address-preferred-lines`, wait for every CI job, then update this handoff with the commit/PR/run evidence. Do not merge or deploy. After green CI, begin read-only Stage D infrastructure preparation while requesting the owner decision for any activation, cohort expansion, or external secret configuration.
+Draft PR #8 (`codex/stage-c-wave3` → `agent/p1-address-preferred-lines`) is green and intentionally unmerged. The exact next step is owner review/merge into the P1 branch when wanted; do not merge to `main` or deploy as part of that review. In parallel, begin read-only Stage D infrastructure preparation and request an owner decision before activation, cohort expansion, address flag-on, or external secret configuration.

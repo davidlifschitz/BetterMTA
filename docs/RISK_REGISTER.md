@@ -61,7 +61,7 @@ Likelihood: `high` \| `medium` \| `low`
 | ID | Item | Status | Notes |
 |---|---|---|---|
 | FU-NPM-01 | Remediate high/critical npm advisories (R24), including pinned Next.js `15.3.5` | **DRAFT_PR_READY** | Draft PR #7 targets `agent/p1-address-preferred-lines`; all local audits/gates and CI run `30843696023` pass. Do not couple owner merge to an alpha redeploy. |
-| FU-GHA-01 | Upgrade GitHub-owned actions from deprecated Node 20 runtime | **IN_REVIEW** | Stage C candidate uses `actions/checkout@v7` and `actions/setup-node@v7`; close after branch CI passes. |
+| FU-GHA-01 | Upgrade GitHub-owned actions from deprecated Node 20 runtime | **DRAFT_PR_READY** | Stage C draft PR #8 uses `actions/checkout@v7` and `actions/setup-node@v7`; all eight jobs passed in run `30846000773`; close after owner merge. |
 | FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification; success = Colima + stack + LaunchAgent tunnel + Access + remote monitor without undocumented repair |
 | FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window; helpful before adding other testers |
 

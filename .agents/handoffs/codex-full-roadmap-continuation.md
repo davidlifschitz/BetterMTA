@@ -173,7 +173,7 @@ Evaluate:
 | Wave3 Mediums | Spec lag, Docker FE flag ARG, geocode runbook, PlaceSuggest a11y, etc. | Before flag-on / private beta |
 | Benchmarks | Live SUT corpus refresh; keep SI/ferry Must-set deferred (ADR-0020) until reopened |
 
-**Stage C candidate result (2026-08-03):** Wave 3 implementation residuals are closed except process-local geocode resolution, which is an explicit Stage D multi-instance gate. The API now has an authenticated privacy-safe metrics exporter, while backend/pager activation remains Stage D. The hard live subset passes 2/2; five soft live cases preserve real candidate-diversity/timeout gaps. FU-NPM-01 is ready as draft PR #7 with green CI. FU-ALPHA-01 still needs explicit approval; FU-ALPHA-02 still needs operator-owned secrets and remains optional. No live redeploy, flag-on, cohort expansion, Fly activation, or `main` merge occurred.
+**Stage C candidate result (2026-08-03):** Draft PR #8 is green across all eight CI jobs (run `30846000773`). Wave 3 implementation residuals are closed except process-local geocode resolution, which is an explicit Stage D multi-instance gate. The API now has an authenticated privacy-safe metrics exporter, while backend/pager activation remains Stage D. The hard live subset passes 2/2; five soft live cases preserve real candidate-diversity/timeout gaps. FU-NPM-01 is ready as draft PR #7 with green CI. FU-ALPHA-01 still needs explicit approval; FU-ALPHA-02 still needs operator-owned secrets and remains optional. No live redeploy, flag-on, cohort expansion, Fly activation, or `main` merge occurred.
 
 ### Stage D — Private beta (hosted) — Epic D5 + M4 subset
 

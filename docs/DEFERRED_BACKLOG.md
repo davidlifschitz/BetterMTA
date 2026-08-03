@@ -16,7 +16,7 @@
 | ID | Item | Status | Notes |
 |---|---|---|---|
 | FU-NPM-01 | Next.js / npm advisories | DRAFT_PR_READY | Draft PR #7 targets the P1 branch; all dependency audits and CI jobs pass; owner merge/deploy remains separate |
-| FU-GHA-01 | GitHub Actions Node 20 runtime warnings | IN_REVIEW | Stage C candidate updates checkout/setup-node to Node-24-based v7 releases; remote CI required before closure |
+| FU-GHA-01 | GitHub Actions Node 20 runtime warnings | DRAFT_PR_READY | Stage C draft PR #8 updates checkout/setup-node to Node-24-based v7 releases; all eight jobs passed in run `30846000773`; owner merge remains |
 | FU-ALPHA-01 | Mac logout/reboot drill | PENDING_USER | Explicit user approval |
 | FU-ALPHA-02 | GH scheduled monitor secrets | OPEN | Optional before broader testers |
 
