@@ -15,7 +15,10 @@ import {
   graphVersionMatchesStatic,
   LiveRoutingAdapter,
 } from "../src/adapters/live/LiveRoutingAdapter.js";
-import type { CandidateProvider } from "../src/adapters/live/routingBinding.js";
+import type {
+  CandidateProvider,
+  OtpCandidateProviderOptions,
+} from "../src/adapters/live/routingBinding.js";
 import type { RouteSearchOutcome } from "../src/adapters/live/routingBinding.js";
 import { ApiError } from "../src/errors/apiError.js";
 import { buildRouteCacheKey } from "../src/cache/routeCacheKey.js";
@@ -74,6 +77,16 @@ describe("LiveDataAdapter", () => {
     const snap = await a.getSnapshotHandle();
     expect(snap.staticDatasetVersion).toBe("gtfs_live_v1");
     expect(snap.dataMode).toBe("live");
+  });
+
+  it("builds both directions of the live GTFS route catalog mapping", async () => {
+    const a = adapter();
+    const toLine = await a.buildRouteIdToLineId();
+    const toRoutes = await a.buildLineIdToGtfsRouteIds();
+
+    expect(toLine("FX")).toBe("F");
+    expect(toRoutes("F")).toEqual(["F", "FX"]);
+    expect(toRoutes("unknown")).toEqual([]);
   });
 
   it("sends Authorization Bearer header", async () => {
@@ -237,6 +250,45 @@ describe("LiveRoutingAdapter", () => {
     alerts: [],
     candidateFamily: "baseline",
   };
+
+  it("injects both live GTFS catalog mappings into the OTP provider", async () => {
+    const data = makeData();
+    const snapshot = await data.getSnapshotHandle();
+    let providerOptions: OtpCandidateProviderOptions | undefined;
+    const provider = stubProvider([]);
+    const routing = new LiveRoutingAdapter({
+      data,
+      otpBaseUrl: "http://127.0.0.1:9",
+      otpTimeoutMs: 1000,
+      otpProbeTtlMs: 10_000,
+      createOtpCandidateProvider: (options) => {
+        providerOptions = options;
+        return provider;
+      },
+      runRouteSearch: async () => ({
+        kind: "no_transit_path",
+        requestedCount: 1,
+      }),
+    });
+
+    await expect(
+      routing.searchRoutes({
+        request: {
+          origin: { stationId: "A42" },
+          destination: { stationId: "D14" },
+          timing: { type: "depart_now" },
+          selectedLineIds: ["F"],
+        },
+        selectedLineIds: ["F"],
+        snapshot,
+        requestId: "req_live_gtfs_maps",
+        explanationVariant: "concise",
+      }),
+    ).rejects.toMatchObject({ code: "no_transit_path" });
+
+    expect(providerOptions?.routeIdToLineId("FX")).toBe("F");
+    expect(providerOptions?.lineIdToGtfsRouteIds?.("F")).toEqual(["F", "FX"]);
+  });
 
   it("maps ok outcome and stamps live snapshot fields", async () => {
     const data = makeData();

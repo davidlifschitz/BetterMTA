@@ -70,6 +70,8 @@ export interface ApiConfig {
   dataInternalUrl: string;
   /** Bearer token for data internal API (optional in anon-dev). */
   dataInternalToken: string | null;
+  /** Bearer token enabling the private Prometheus scrape endpoint. */
+  metricsToken: string | null;
   dataStatusTtlMs: number;
   dataCatalogTtlMs: number;
   /** OTP HTTP base URL. */
@@ -180,6 +182,7 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
     : "healthy";
 
   const tokenRaw = process.env.BETTERMTA_DATA_INTERNAL_TOKEN;
+  const metricsTokenRaw = process.env.BETTERMTA_METRICS_TOKEN;
   const graphRaw = process.env.BETTERMTA_OTP_GRAPH_VERSION;
   const nominatimUaRaw = process.env.BETTERMTA_NOMINATIM_USER_AGENT;
   const nominatimEmailRaw = process.env.BETTERMTA_NOMINATIM_EMAIL;
@@ -240,6 +243,10 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
       process.env.BETTERMTA_DATA_INTERNAL_URL ?? DATA_INTERNAL_URL_DEFAULT,
     dataInternalToken:
       tokenRaw !== undefined && tokenRaw !== "" ? tokenRaw : null,
+    metricsToken:
+      metricsTokenRaw !== undefined && metricsTokenRaw !== ""
+        ? metricsTokenRaw
+        : null,
     dataStatusTtlMs: envInt(
       "BETTERMTA_DATA_STATUS_TTL_MS",
       DATA_STATUS_TTL_MS_DEFAULT,

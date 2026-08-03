@@ -104,6 +104,8 @@ services:
       BETTERMTA_ADAPTER_MODE: live
       BETTERMTA_DATA_INTERNAL_URL: http://data:8082
       BETTERMTA_DATA_INTERNAL_TOKEN: dev-local-token
+      # Optional authenticated /internal/metrics scrape endpoint.
+      BETTERMTA_METRICS_TOKEN: ${BETTERMTA_METRICS_TOKEN:-}
       BETTERMTA_OTP_URL: http://otp:8080
       BETTERMTA_OTP_TIMEOUT_MS: "10000"
       BETTERMTA_REQUEST_TIMEOUT_MS: "15000"
@@ -139,6 +141,7 @@ services:
         NEXT_PUBLIC_API_MODE: live
         NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
         NEXT_PUBLIC_FLAG_FEEDBACK: "false"
+        NEXT_PUBLIC_FLAG_ADDRESS_POI: "false"
     image: bettermta-web:local
     environment:
       NODE_ENV: production

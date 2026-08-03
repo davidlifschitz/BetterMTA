@@ -31,6 +31,7 @@ import {
   type AppDeps,
 } from "./plugins/helpers.js";
 import { registerHealthRoutes } from "./routes/health.js";
+import { registerMetricsRoute } from "./routes/internal/metrics.js";
 import { registerLinesRoute } from "./routes/v1/lines.js";
 import { registerPlacesRoute } from "./routes/v1/places.js";
 import { registerRouteSearch } from "./routes/v1/routesSearch.js";
@@ -209,6 +210,7 @@ export async function buildApp(
   await registerPlacesRoute(app, deps);
   await registerStatusRoute(app, deps);
   await registerHealthRoutes(app, deps);
+  await registerMetricsRoute(app, deps);
 
   return { app, deps };
 }

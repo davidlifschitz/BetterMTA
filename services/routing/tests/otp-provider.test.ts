@@ -489,7 +489,7 @@ describe("OTP preference query concurrency", () => {
     expect(maxInFlight).toBeGreaterThan(1);
   });
 
-  it("soft-skips non-baseline unavailable while still issuing parallel preference bodies", async () => {
+  it("does not call a completed query plan budget exhaustion", async () => {
     let call = 0;
     const provider = providerWithFetch(async () => {
       call += 1;
@@ -516,7 +516,27 @@ describe("OTP preference query concurrency", () => {
 
     expect(drafts).toEqual([]);
     expect(call).toBeGreaterThan(2);
-    expect(provider.lastCandidateCoverage?.budgetExhausted).toBe(true);
+    expect(provider.lastCandidateCoverage?.budgetExhausted).toBe(false);
+  });
+
+  it("marks exhaustion when the hard query ceiling truncates the plan", async () => {
+    let calls = 0;
+    const provider = providerWithFetch(
+      async () => {
+        calls += 1;
+        return jsonResponse({ data: { plan: { itineraries: [] } } });
+      },
+      { maxQueries: 1 },
+    );
+
+    const drafts = await provider.generateCandidates(baseOtpRequest(["F"]));
+    expect(calls).toBe(1);
+    expect(drafts[0]?.itineraryId).toBe("__coverage_exhausted__");
+    expect(provider.lastCandidateCoverage).toMatchObject({
+      status: "exhausted",
+      candidateCount: 0,
+      budgetExhausted: true,
+    });
   });
 });
 

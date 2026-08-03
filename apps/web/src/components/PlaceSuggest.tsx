@@ -129,6 +129,7 @@ export function PlaceSuggest({
                   type="button"
                   id={optionId}
                   role="option"
+                  tabIndex={-1}
                   aria-selected={active}
                   aria-label={placeOptionAriaLabel(p)}
                   className={active ? "is-active" : undefined}

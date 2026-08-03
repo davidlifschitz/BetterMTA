@@ -48,6 +48,22 @@ groups:
           summary: Realtime snapshot age exceeds 15 minutes
           runbook: docs/RUNBOOKS.md#stale-realtime
 
+      - alert: GeocoderFailureSpike
+        expr: >
+          sum(increase(bettermta_place_provider_errors_total{provider="geocoder"}[10m])) >= 5
+          and
+          sum(rate(bettermta_place_provider_errors_total{provider="geocoder"}[10m]))
+          /
+          clamp_min(sum(rate(bettermta_place_provider_total{provider="geocoder"}[10m])), 0.001)
+          > 0.25
+        for: 5m
+        labels:
+          severity: sev2
+          service: api
+        annotations:
+          summary: Geocoder failure rate exceeds 25% with at least five failures
+          runbook: docs/RUNBOOKS.md#geocoder-provider-outage
+
       - alert: ReadinessFailing
         expr: bettermta_health_ready == 0
         for: 3m

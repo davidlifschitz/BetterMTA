@@ -7,9 +7,9 @@
 
 ## 1. Purpose
 
-Document evidence for the candidate-generation substrate and define how BetterMTA’s **hard selected-line constraint** sits on top of that substrate: candidate families → exact satisfaction accounting → lexicographic ranking → structured explanations → top-3 truncation.
+Document evidence for the candidate-generation substrate and define how BetterMTA’s **preferred-line maximization policy** sits on top of that substrate: candidate families → exact satisfaction accounting → lexicographic ranking → structured explanations → top-3 truncation.
 
-## 2. Product constraint that engines get wrong
+## 2. Product behavior that engines cannot guarantee alone
 
 BetterMTA requires:
 
@@ -23,7 +23,7 @@ Mature routers optimize generalized cost, arrival time, and transfers. **Preferr
 - Return a faster non-selected itinerary that still “looks good” under Pareto filters.
 - Fail to enumerate the combination family that would maximize satisfaction.
 
-Therefore the engine is a **candidate generator**. Hard constraint semantics live in BetterMTA’s orchestration + accounting + ranking layer (`services/routing`).
+Therefore the engine is a **candidate generator**. Preferred-line maximization, feasibility, and connector explanations live in BetterMTA’s orchestration + accounting + ranking layer (`services/routing`).
 
 ## 3. Evaluation matrix
 
@@ -50,7 +50,7 @@ Therefore the engine is a **candidate generator**. Hard constraint semantics liv
 
 ## 4. ADR-0002a recommendation
 
-**Recommend: OpenTripPlanner 2 as the production candidate-generation substrate, with BetterMTA constraint orchestration outside OTP.**
+**Recommend: OpenTripPlanner 2 as the production candidate-generation substrate, with BetterMTA preference orchestration outside OTP.**
 
 ### Why OTP2
 
@@ -62,7 +62,7 @@ Therefore the engine is a **candidate generator**. Hard constraint semantics liv
 
 ### Why not MOTIS as primary (yet)
 
-MOTIS is a credible alternative: strong GTFS/GTFS-RT story and a modern plan API. It is a strong **fallback / bake-off** candidate if OTP ops cost or latency is unacceptable. It does not solve the hard selected-line constraint any better than OTP; the same outer layer is required. Integration evidence for MTA subway specifics is thinner in-repo than OTP’s ecosystem depth.
+MOTIS is a credible alternative: strong GTFS/GTFS-RT story and a modern plan API. It is a strong **fallback / bake-off** candidate if OTP ops cost or latency is unacceptable. It does not guarantee preferred-line maximization any better than OTP; the same outer layer is required. Integration evidence for MTA subway specifics is thinner in-repo than OTP’s ecosystem depth.
 
 ### Why not a standalone RAPTOR library as primary
 
@@ -74,7 +74,7 @@ Libraries are excellent for algorithm experiments and offline benchmarks, but MV
 - No claim of latency or quality superiority vs Google/Apple/Citymapper.
 - No production OTP deployment is implemented in this workstream slice; only the TypeScript constraint/ranking library + fixture provider.
 
-## 5. Hard selected-line constraint layer (architecture)
+## 5. Preferred-line maximization layer (architecture)
 
 ```text
 API (resolved OD + timing + selectedLineIds + RoutingSnapshotHandle)
@@ -115,7 +115,7 @@ API (resolved OD + timing + selectedLineIds + RoutingSnapshotHandle)
 |---|---|---|---|
 | Baseline | `baseline` | Unbiased OTP plan | Comparison set; also proves a transit path exists |
 | Preference-biased | `preference_biased` | Preferred = selected lines; modest `otherThanPreferredRoutesPenalty` | Cheap recall of itineraries that *tend* to use selected lines |
-| Targeted combinations | `targeted_combination` | Ban or strongly unprefer non-selected routes; optional ordered / subset queries for k-of-n selected lines | Recover complete and max-partial covers that soft bias misses |
+| Targeted combinations | `targeted_combination` | Strongly unprefer non-selected routes; optional via / subset queries for k-of-n preferred lines; never ban connector routes | Recover complete and max-partial covers that soft bias misses |
 | Constrained (label) | `constrained` | Post-accounting label for ranked constrained pool members | API/fixture vocabulary |
 
 Deduplicate by fingerprint (or leg signature) across families before ranking. Stop when a documented **candidate budget** is exhausted (see outcomes below).

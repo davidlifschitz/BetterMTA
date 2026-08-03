@@ -15,9 +15,18 @@
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| FU-NPM-01 | Next.js / npm advisories | OPEN | Separate maintenance branch; serialize if lockfile overlap with P1 |
+| FU-NPM-01 | Next.js / npm advisories | DRAFT_PR_READY | Draft PR #7 targets the P1 branch; all dependency audits and CI jobs pass; owner merge/deploy remains separate |
+| FU-GHA-01 | GitHub Actions Node 20 runtime warnings | DRAFT_PR_READY | Stage C draft PR #8 updates checkout/setup-node to Node-24-based v7 releases; all eight jobs passed in run `30846000773`; owner merge remains |
 | FU-ALPHA-01 | Mac logout/reboot drill | PENDING_USER | Explicit user approval |
 | FU-ALPHA-02 | GH scheduled monitor secrets | OPEN | Optional before broader testers |
+
+## Stage C carried gates
+
+| ID | Item | Status | Notes |
+|---|---|---|---|
+| STAGE-C-A3 | Multi-instance `pl_geo_*` resolution | STAGE_D_GATE | Current resolve cache is process-local; do not scale address/POI traffic across replicas without a shared or privacy-reviewed opaque-token design |
+| STAGE-C-OBS | Metrics backend + alert delivery | STAGE_D_GATE | Authenticated API exporter and rules exist; scrape target, storage, rule loading, and notification routing are not active |
+| STAGE-C-LIVE | Preferred-line live watch failures | OPEN | Five soft live cases preserve candidate-diversity/timeout gaps; two-case hard live subset passes |
 
 ## Epic D1 — Additional transit modes
 

@@ -18,7 +18,7 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
 | Active program branch | `agent/p1-address-preferred-lines` @ **`78c2ca5`** (Waves 0–4 done) |
-| Immediate unfinished work | **Stage C ops and quality hardening** → then roadmap below |
+| Immediate unfinished work | Stage C candidate validation/CI → then **Stage D preparation only**; activation remains owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -125,7 +125,7 @@ Use this as the default order unless product owner reorders.
 ```text
 DONE → P1 Wave 4 certification
 DONE → Controlled Alpha Review 1 (hold expansion; keep learning)
-NOW  → Ops harden (FU-ALPHA-01/02, FU-NPM-01, Medium residuals)
+DONE*→ Ops harden implementation (owner-gated drills/secrets and merges carried explicitly)
     → Small tester cohort (2–3) under Access
     → Epic D5 prep: Fly private beta path (or keep alpha longer)
     → READY_FOR_PRIVATE_BETA gates
@@ -172,6 +172,8 @@ Evaluate:
 | FU-NPM-01 | Next.js / npm advisories | Separate maintenance branch; no auto-redeploy on merge |
 | Wave3 Mediums | Spec lag, Docker FE flag ARG, geocode runbook, PlaceSuggest a11y, etc. | Before flag-on / private beta |
 | Benchmarks | Live SUT corpus refresh; keep SI/ferry Must-set deferred (ADR-0020) until reopened |
+
+**Stage C candidate result (2026-08-03):** Draft PR #8 is green across all eight CI jobs (run `30846000773`). Wave 3 implementation residuals are closed except process-local geocode resolution, which is an explicit Stage D multi-instance gate. The API now has an authenticated privacy-safe metrics exporter, while backend/pager activation remains Stage D. The hard live subset passes 2/2; five soft live cases preserve real candidate-diversity/timeout gaps. FU-NPM-01 is ready as draft PR #7 with green CI. FU-ALPHA-01 still needs explicit approval; FU-ALPHA-02 still needs operator-owned secrets and remains optional. No live redeploy, flag-on, cohort expansion, Fly activation, or `main` merge occurred.
 
 ### Stage D — Private beta (hosted) — Epic D5 + M4 subset
 

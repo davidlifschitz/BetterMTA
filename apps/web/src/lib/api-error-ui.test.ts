@@ -34,7 +34,18 @@ describe("errorUiForCode", () => {
       insufficientCoverage as ApiErrorBody,
     );
     expect(details.join(" ")).toMatch(/Preferred lines: 2, 7, S/);
-    expect(details.join(" ")).toMatch(/Preference-covering candidates found: 0/);
-    expect(details.join(" ")).toMatch(/budget/i);
+    expect(details.join(" ")).toMatch(/Routes found using all preferred lines: 0/);
+    expect(details.join(" ")).toMatch(/route-search limit/i);
+  });
+
+  it("uses rider language for insufficient candidate coverage", () => {
+    const ui = errorUiForCode("insufficient_candidate_coverage");
+    const details = coverageFailureDetails(
+      insufficientCoverage as ApiErrorBody,
+    );
+    const copy = [ui.title, ui.defaultBody, ...details].join(" ");
+
+    expect(copy).toMatch(/preferred lines/i);
+    expect(copy).not.toMatch(/candidate|coverage|search budget/i);
   });
 });

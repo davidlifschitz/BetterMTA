@@ -1,22 +1,19 @@
 {
   "caseId": "bmc-p1-alpha-midtown-penn-72gs-no-silent-zero",
-  "title": "TODO/SKIP LIVE: Midtown→Penn 7,2,GS must not silent 0-of-3",
+  "title": "LIVE WATCH: Grand Central→Penn 7,2,GS must not silently return 0/1-of-3",
   "classification": "pending_live_integration",
   "categories": ["borough_manhattan", "lines_3", "impossible_constraint", "transfer"],
-  "origin": {
-    "coordinate": { "lat": 40.7553, "lon": -73.9755 },
-    "label": "Midtown Park Ave area"
-  },
+  "origin": { "placeId": "st:723" },
   "destination": { "placeId": "st:128" },
   "timing": { "type": "depart_now" },
   "selectedLineIds": ["7", "2", "GS"],
   "expectedFeasibility": "partial",
   "minimumSatisfactionCount": 2,
-  "humanReviewNotes": "Controlled-alpha regression LIVE slot. Same OD as midtown→Penn with 7,2,GS: must not return silent 0-of-3 when 2-of-3 is feasible; must explain GS omission. Privacy-safe PlaceRefs only.",
+  "humanReviewNotes": "Controlled-alpha live watch using public station PlaceRefs. At least 2-of-3 is topologically feasible via Times Sq; the certified alpha currently returns 1-of-3, so this remains soft until the Stage C routing candidate is deployed and recertified.",
   "staticDatasetVersion": "mta-subway-pending",
   "realtimeFixtureVersion": "live_at_gate_time",
   "sut": { "kind": "live", "responseId": "live-p1-midtown-penn-72gs" },
-  "tags": ["p1_wave1e", "p1_pending", "alpha_regression", "soft_feasibility", "wave_1a", "wave_1d", "privacy_safe_placeref"],
+  "tags": ["p1_wave1e", "p1_pending", "alpha_regression", "soft_feasibility", "stage_c_watch", "privacy_safe_placeref"],
   "invariantAssertions": [
     "valid_itinerary_structure",
     "chronological_legs",

@@ -75,6 +75,17 @@
 | Sev | sev-2 (sev-1 if blank screen / can't search) |
 | Runbook | broken frontend deploy |
 
+### 7. Geocoder provider failure spike
+
+| Field | Value |
+|---|---|
+| Name | `GeocoderFailureSpike` |
+| Expr | Geocoder errors are >25% of provider attempts over 10m, with at least five errors |
+| For | 5m |
+| Sev | sev-2; sev-1 only if station-index fallback is also unavailable |
+| Runbook | `docs/RUNBOOKS.md` → geocoder provider outage |
+| Privacy | BetterMTA provider id + bounded error class only; no query, address, coordinate, or vendor id labels |
+
 ## Notification channels (PLACEHOLDER)
 
 - `#bettermta-alerts` Slack webhook — `ALERT_SLACK_WEBHOOK_URL` (secret)

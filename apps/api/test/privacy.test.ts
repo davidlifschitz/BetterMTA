@@ -208,6 +208,40 @@ describe("privacy-safe metrics hooks", () => {
     expect(normalizePlaceProviderMetricId("mapbox.com")).toBe("unknown");
     expect(normalizePlaceProviderMetricId("geocoder")).toBe("geocoder");
   });
+
+  it("exports privacy-safe Prometheus metrics only with the configured bearer token", async () => {
+    const { app, deps } = await createTestApp({
+      metricsToken: "metrics-test-token",
+    });
+    deps.privacyMetrics.recordPlaceProvider({
+      provider: "geocoder",
+      result: "error",
+      durationMs: 90,
+      errorClass: "upstream",
+    });
+
+    const unauthorized = await app.inject({
+      method: "GET",
+      url: "/internal/metrics",
+    });
+    expect(unauthorized.statusCode).toBe(401);
+
+    const authorized = await app.inject({
+      method: "GET",
+      url: "/internal/metrics",
+      headers: { authorization: "Bearer metrics-test-token" },
+    });
+    expect(authorized.statusCode).toBe(200);
+    expect(authorized.headers["content-type"]).toMatch(/text\/plain/);
+    expect(authorized.body).toContain(
+      'bettermta_place_provider_errors_total{provider="geocoder",reason="upstream"} 1',
+    );
+    expect(authorized.body).toContain(
+      "bettermta_place_provider_duration_seconds_count 1",
+    );
+    expect(authorized.body).not.toMatch(/Park Avenue|providerPlaceId|selectedLineIds/i);
+    await app.close();
+  });
 });
 
 describe("route-search privacy signals", () => {

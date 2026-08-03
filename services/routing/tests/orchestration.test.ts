@@ -68,6 +68,35 @@ describe("orchestration query plan", () => {
     });
     expect(a.map((q) => q.queryKey)).toEqual(b.map((q) => q.queryKey));
   });
+
+  it("targets the most connected preferred subset instead of the lexical prefix", () => {
+    const topology = createSeededTopology([
+      {
+        stationId: "st_a_only",
+        label: "A only",
+        lat: 40.7,
+        lon: -73.95,
+        lineIds: ["A"],
+      },
+      {
+        stationId: "st_y_z_joint",
+        label: "Y/Z joint",
+        lat: 40.705,
+        lon: -73.95,
+        lineIds: ["Y", "Z"],
+      },
+    ]);
+    const plan = buildOrchestrationQueryPlan({
+      preferredLineIds: ["A", "Y", "Z"],
+      origin: { lat: 40.7, lon: -74 },
+      destination: { lat: 40.7, lon: -73.9 },
+      topology,
+    });
+
+    expect(
+      plan.find((query) => query.kind === "preferred_subset")?.targetLineIds,
+    ).toEqual(["Y", "Z"]);
+  });
 });
 
 describe("topology sensibility + via selection", () => {
@@ -158,6 +187,35 @@ describe("topology sensibility + via selection", () => {
     expect(vias.map((v) => v.stationId)).toEqual(
       again.map((v) => v.stationId),
     );
+  });
+
+  it("prefers a joint preferred-line hub over a slightly shorter single-line detour", () => {
+    const topology = createSeededTopology([
+      {
+        stationId: "st_single",
+        label: "Single-line hub",
+        lat: 40.7,
+        lon: -73.95,
+        lineIds: ["A"],
+      },
+      {
+        stationId: "st_joint",
+        label: "Joint hub",
+        lat: 40.705,
+        lon: -73.95,
+        lineIds: ["A", "B"],
+      },
+    ]);
+
+    const vias = selectViaStations({
+      preferredLineIds: ["A", "B"],
+      origin: { lat: 40.7, lon: -74 },
+      destination: { lat: 40.7, lon: -73.9 },
+      maxVias: 1,
+      topology,
+    });
+
+    expect(vias.map((via) => via.stationId)).toEqual(["st_joint"]);
   });
 });
 

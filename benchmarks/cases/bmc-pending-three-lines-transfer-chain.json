@@ -1,6 +1,6 @@
 {
   "caseId": "bmc-pending-three-lines-transfer-chain",
-  "title": "PENDING: Rockaway → Yankee Stadium with A+D+4",
+  "title": "LIVE WATCH: Far Rockaway → Yankee Stadium with A+D+4",
   "classification": "pending_live_integration",
   "categories": [
     "borough_queens",
@@ -11,15 +11,12 @@
     "transfer"
   ],
   "origin": {
-    "placeId": "pl_far_rockaway"
+    "placeId": "st:H11"
   },
   "destination": {
-    "placeId": "pl_yankee_stadium"
+    "placeId": "st:D11"
   },
-  "timing": {
-    "type": "depart_at",
-    "time": "2026-07-30T17:45:00-04:00"
-  },
+  "timing": { "type": "depart_now" },
   "selectedLineIds": [
     "A",
     "D",
@@ -27,25 +24,28 @@
   ],
   "expectedFeasibility": "partial",
   "minimumSatisfactionCount": 2,
-  "humanReviewNotes": "Likely partial; assert max feasible satisfaction once live. Fixture is structural placeholder.",
-  "staticDatasetVersion": "gtfs_fixture_v1",
-  "realtimeFixtureVersion": "rt_fixture_v1",
+  "humanReviewNotes": "Executable live public-station watch. A+D is a practical 2-of-3 path; the certified alpha currently returns A-only, so keep soft while Stage C candidate diversity is evaluated.",
+  "staticDatasetVersion": "mta-subway-live-at-gate",
+  "realtimeFixtureVersion": "live_at_gate_time",
   "sut": {
-    "kind": "conductor_fixture",
-    "responseId": "partial-match"
+    "kind": "live",
+    "responseId": "live-rockaway-yankee-a-d-4"
   },
   "tags": [
-    "corpus_placeholder",
+    "live_watch",
     "soft_feasibility"
   ],
   "invariantAssertions": [
     "valid_itinerary_structure",
     "chronological_legs",
     "nonnegative_durations",
+    "satisfaction_accounting",
     "complete_beats_partial",
     "max_satisfaction_before_time",
     "deterministic_order",
     "max_three_itineraries",
-    "honest_data_mode"
+    "honest_data_mode",
+    "expected_feasibility",
+    "minimum_satisfaction"
   ]
 }
