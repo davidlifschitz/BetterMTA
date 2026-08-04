@@ -1,6 +1,6 @@
 # Stage D private-beta preparation handoff
 
-**State:** implementation candidate on `codex/stage-d-private-beta-prep`; local validation is complete, while publication/remote CI, merge, and deployment are pending at the time this handoff was updated. The live product remains `READY_FOR_P1_CONTROLLED_ALPHA`.
+**State:** draft stacked PR [#9](https://github.com/davidlifschitz/BetterMTA/pull/9) is open from `codex/stage-d-private-beta-prep` onto `codex/stage-c-wave3` after Stage C PR #8. Implementation commit `f6413b0` plus CI-portability fix `3f7a878` passed all eight checks in run `30938295180`. Review, ordered merge, and every deployment/activation action remain pending. The live product remains `READY_FOR_P1_CONTROLLED_ALPHA`.
 
 ## 1. What was implemented
 
@@ -54,7 +54,7 @@ docker-compose config -q
 git diff --check
 ```
 
-The full-repository CI-equivalent validation and stacked draft-PR CI are required before this candidate is called branch-ready.
+The full-repository CI-equivalent validation and stacked draft-PR CI were completed for the implementation snapshot. Any later implementation change requires the relevant local checks and the full remote suite again.
 
 ## 6. Validation results
 
@@ -65,7 +65,7 @@ The full-repository CI-equivalent validation and stacked draft-PR CI are require
 - Fly operator regression and local-only preflight: **PASS**, including macOS Bash 3.2 compatibility, `fly`/`flyctl`, hostile-origin rejection, hostname-safe failures, genuine initial-activation proof, current-image capture, manifest mode/refusal-to-overwrite, exact one-Machine caps, immutable action/deploy labels, and guarded rollback.
 - Workflow/infra parsing: **5 YAML, 1 JSON, and 4 TOML files passed**; standalone `docker-compose config -q` passed with a test-only placeholder key because this host's Docker CLI has no Compose subcommand.
 - Diff whitespace/stale-command hygiene and a high-confidence scan across **34 changed/untracked files**: **PASS**.
-- Remote draft-PR CI: **pending**. No live Fly check was attempted because no CLI/authentication or activation was authorized.
+- Remote draft-PR CI: **8/8 passed** in run `30938295180`. The first run exposed an Ubuntu-only operator-test portability issue (missing `rg` and GNU/BSD `stat` behavior); focused commit `3f7a878` removed the runtime `rg` dependency, made file-mode checks OS-specific, passed locally, and then passed the complete remote suite. No live Fly check was attempted because no CLI/authentication or activation was authorized.
 
 ## 7. Fixture or sample-data instructions
 
@@ -99,4 +99,4 @@ The full-repository CI-equivalent validation and stacked draft-PR CI are require
 
 ## 11. Exact next integration step
 
-Run the complete local validation matrix on the final tree, review the diff for secrets and contract drift, commit the candidate, push `codex/stage-d-private-beta-prep`, and open a **draft stacked PR with base `codex/stage-c-wave3`**. The PR must state that Fly activation, secrets, deployment, scaling, address/POI flag-on, cohort expansion, `main` merge, and `READY_FOR_PRIVATE_BETA` are all out of scope. After CI is green, stop at the owner gate; do not run remote preflight or deployment commands without explicit approval.
+Stop at the owner gate. Review and merge Stage C PR #8 first, then review Stage D PR #9 against the updated base. Resolve the conductor-owned `placeId`/`placeQueryHash` wording decision and the production observability/shared-rate-limit gates before activation. Fly authentication, remote preflight, secrets, deployment, scaling, address/POI flag-on, live rollback evidence, cohort expansion, `main` merge, and `READY_FOR_PRIVATE_BETA` require explicit subsequent owner approval; do not run them from this handoff.
