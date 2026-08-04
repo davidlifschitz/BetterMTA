@@ -2,7 +2,7 @@
 
 **Branch:** `codex/stage-f-accessibility-evidence`  
 **Parent:** `codex/stage-f-preview-container` at `9f10e50`  
-**Status:** Implemented and locally validated; final GitHub CI artifact audit pending  
+**Status:** Implemented and validated; human accessibility review pending
 **Public-beta status:** `NOT_READY`
 
 ## 1. What was implemented
@@ -83,8 +83,13 @@ git diff --check
 - All conductor contract validations pass.
 - Web unit tests pass 81/81 across 14 files.
 - All 14 mocked-live Playwright checks pass in 46.1 seconds.
-- Final GitHub CI and retained accessibility-artifact results remain to be
-  recorded before this handoff is final.
+- Initial PR #14 CI run `30957843171` passed 10/10 jobs for implementation
+  commit `c27602bd69c43ad0613d033a6f41dd5ce04e01ed`. Artifact
+  `public-beta-accessibility-30957843171` matched that commit, the exact fixed
+  check list, pending human status, gate ineligibility, no-mutation contract,
+  valid timestamp, and privacy-safe no-URL/no-hostname shape.
+- Each later PR head requires a fresh run and artifact audit. The authoritative
+  latest-head result is retained in draft PR #14 comments.
 
 ## 7. Fixture or sample-data instructions
 
@@ -122,9 +127,9 @@ git diff --check
 
 ## 11. Exact next integration step
 
-Publish this branch as a draft PR targeting `codex/stage-f-preview-container`,
-require every CI job to pass, and audit `public-beta-accessibility-<run-id>` for
-exact head-commit binding, fixed automated checks, pending human status, gate
-ineligibility, production-mutation false, and absence of URL/hostname fields.
+Keep draft PR #14 stacked on `codex/stage-f-preview-container`; require all ten
+CI jobs and the latest `public-beta-accessibility-<run-id>` head-commit audit to
+remain green. Then the conductor must choose the approved target, reviewer,
+assistive-technology matrix, and release owner before the human protocol runs.
 Do not merge to `main`, deploy, conduct a human review against an unapproved
 target, or mark the public beta ready from this slice.

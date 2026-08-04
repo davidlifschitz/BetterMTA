@@ -159,8 +159,11 @@ The further stacked `codex/stage-f-accessibility-evidence` candidate writes a
 commit-bound automated artifact after the existing keyboard/mobile/axe suite
 passes and provides a human review protocol for the same release commit. The
 automated result is intentionally `AUTOMATED_PASS_HUMAN_PENDING` and ineligible
-for gate passage. No human accessibility review has occurred and this candidate
-does not close the accessibility gate or change release status.
+for gate passage. Initial PR #14 CI run `30957843171` passed all ten jobs and its
+artifact matched implementation commit `c27602b`, the fixed check list, pending
+human status, and privacy/no-mutation contract. The latest head audit remains
+recorded on PR #14. No human accessibility review has occurred and this
+candidate does not close the accessibility gate or change release status.
 
 These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, incident rota, public origin/TLS,

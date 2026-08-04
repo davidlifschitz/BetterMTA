@@ -256,7 +256,9 @@ further stacked `codex/stage-f-accessibility-evidence` branch writes a
 commit-bound artifact only after the existing keyboard/mobile/axe suite passes
 and adds a same-commit human review protocol. Automated output remains
 `AUTOMATED_PASS_HUMAN_PENDING` and `eligibleForGatePass: false`; no human review
-or gate passage is claimed. R33 preserves this distinction. See
+or gate passage is claimed. Initial PR #14 CI run `30957843171` passed 10/10 and
+its artifact matched implementation commit `c27602b`; the authoritative latest
+head audit is retained in PR #14 comments. R33 preserves this distinction. See
 `.agents/handoffs/stage-f-accessibility-evidence.md`.
 
 **Exit:** `READY_FOR_PUBLIC_BETA`.
