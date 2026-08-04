@@ -162,6 +162,82 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  public-beta-preview:
+    name: public-beta-preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PREVIEW_IMAGE: bettermta-preview:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - name: Install web test dependencies
+        run: npm --prefix apps/web ci
+      - name: Install Playwright Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+      - name: Build the production web container
+        run: |
+          docker build \
+            --file apps/web/Dockerfile \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:3999 \
+            --build-arg NEXT_PUBLIC_API_MODE=live \
+            --build-arg NEXT_PUBLIC_FLAG_FEEDBACK=false \
+            --build-arg NEXT_PUBLIC_FLAG_ADDRESS_POI=false \
+            --tag "$PREVIEW_IMAGE" \
+            .
+      - name: Start the runner-local preview
+        run: |
+          set -euo pipefail
+          docker run \
+            --detach \
+            --name bettermta-preview \
+            --publish 127.0.0.1:3100:3000 \
+            "$PREVIEW_IMAGE"
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error --output /dev/null http://127.0.0.1:3100/; then
+              echo "Runner-local preview is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Runner-local preview did not become ready" >&2
+          exit 1
+      - name: Run mocked-live checks against the production container
+        env:
+          BETTERMTA_E2E_EXTERNAL_BASE: http://127.0.0.1:3100
+        run: npm --prefix apps/web run e2e
+      - name: Write commit-bound preview evidence
+        run: |
+          set -euo pipefail
+          mkdir -p infra/public-beta/evidence/preview
+          image_id="$(docker image inspect --format '{{.Id}}' "$PREVIEW_IMAGE")"
+          node infra/public-beta/write-preview-evidence.mjs \
+            --release-commit "$GITHUB_SHA" \
+            --image-id "$image_id" \
+            --smoke-status pass \
+            > infra/public-beta/evidence/preview/result.json
+      - name: Retain preview evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-preview-${{ github.run_id }}
+          path: |
+            infra/public-beta/evidence/preview/result.json
+            apps/web/test-results
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Remove the runner-local preview
+        if: always()
+        run: |
+          docker rm --force bettermta-preview >/dev/null 2>&1 || true
+          docker image rm "$PREVIEW_IMAGE" >/dev/null 2>&1 || true
+
   routing:
     name: services-routing
     runs-on: ubuntu-latest

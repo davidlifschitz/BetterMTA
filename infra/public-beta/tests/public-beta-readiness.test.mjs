@@ -14,6 +14,10 @@ const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(testDir, "../../..");
 const loadScript = join(repoRoot, "infra/public-beta/load-route-search.mjs");
 const originScript = join(repoRoot, "infra/public-beta/verify-public-origin.mjs");
+const previewEvidenceScript = join(
+  repoRoot,
+  "infra/public-beta/write-preview-evidence.mjs",
+);
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
 
 const REQUIRED_GATES = [
@@ -354,6 +358,81 @@ test("public-origin verifier never reflects an unexpected data mode", async () =
   );
 });
 
+test("preview evidence binds a passing runner-local container to commit and image", async () => {
+  const releaseCommit = "a".repeat(40);
+  const imageId = `sha256:${"b".repeat(64)}`;
+  const result = await runNode(previewEvidenceScript, [
+    "--release-commit",
+    releaseCommit,
+    "--image-id",
+    imageId,
+    "--smoke-status",
+    "pass",
+  ]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(
+    {
+      schemaVersion: evidence.schemaVersion,
+      status: evidence.status,
+      previewClass: evidence.previewClass,
+      releaseCommit: evidence.releaseCommit,
+      imageId: evidence.imageId,
+      smokeStatus: evidence.smokeStatus,
+      productionMutation: evidence.productionMutation,
+      externalReachabilityVerified: evidence.externalReachabilityVerified,
+    },
+    {
+      schemaVersion: 1,
+      status: "PASS",
+      previewClass: "ci-runner-local-production-container",
+      releaseCommit,
+      imageId,
+      smokeStatus: "pass",
+      productionMutation: false,
+      externalReachabilityVerified: false,
+    },
+  );
+  assert.match(evidence.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert(!/https?:|hostname|url/i.test(result.stdout));
+});
+
+test("preview evidence rejects malformed identifiers without reflecting them", async () => {
+  const hostile = "invalid\nprivate.example.invalid";
+  for (const { args, errorCode } of [
+    {
+      args: [
+        "--release-commit",
+        hostile,
+        "--image-id",
+        `sha256:${"b".repeat(64)}`,
+        "--smoke-status",
+        "pass",
+      ],
+      errorCode: "invalid_release_commit",
+    },
+    {
+      args: [
+        "--release-commit",
+        "a".repeat(40),
+        "--image-id",
+        hostile,
+        "--smoke-status",
+        "pass",
+      ],
+      errorCode: "invalid_image_id",
+    },
+  ]) {
+    const result = await runNode(previewEvidenceScript, args);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `ERROR ${errorCode}\n`);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
 test("repository readiness structure is complete without claiming readiness", async () => {
   const result = await runNode(readinessScript, ["--structure-only"]);
   assert.equal(result.code, 0, result.stderr);
@@ -406,6 +485,40 @@ test("repository readiness structure is complete without claiming readiness", as
   ]) {
     assert.match(workflow, pattern);
   }
+
+  const previewJob = workflow.match(
+    /^  public-beta-preview:\n[\s\S]*?(?=^  [a-z0-9-]+:\n|\z)/m,
+  )?.[0];
+  assert(previewJob, "public-beta-preview job is required");
+  for (const pattern of [
+    /docker build/,
+    /--file apps\/web\/Dockerfile/,
+    /--build-arg NEXT_PUBLIC_API_BASE_URL=http:\/\/127[.]0[.]0[.]1:3999/,
+    /--build-arg NEXT_PUBLIC_API_MODE=live/,
+    /--build-arg NEXT_PUBLIC_FLAG_FEEDBACK=false/,
+    /--build-arg NEXT_PUBLIC_FLAG_ADDRESS_POI=false/,
+    /--publish 127[.]0[.]0[.]1:3100:3000/,
+    /BETTERMTA_E2E_EXTERNAL_BASE: http:\/\/127[.]0[.]0[.]1:3100/,
+    /npm --prefix apps\/web run e2e/,
+    /write-preview-evidence[.]mjs/,
+    /infra\/public-beta\/evidence\/preview/,
+    /actions\/upload-artifact@v7/,
+  ]) {
+    assert.match(previewJob, pattern);
+  }
+  assert.doesNotMatch(previewJob, /\bfly(?:ctl)?\b|deploy|secret|scale/i);
+
+  const playwrightConfig = await readFile(
+    join(repoRoot, "apps/web/playwright.config.ts"),
+    "utf8",
+  );
+  for (const pattern of [
+    /BETTERMTA_E2E_EXTERNAL_BASE/,
+    /hostname !== "127[.]0[.]0[.]1"/,
+    /webServer: externalBase \? undefined :/,
+  ]) {
+    assert.match(playwrightConfig, pattern);
+  }
 });
 
 test("structure validator requires the public limitations, headers, and origin verifier", async () => {
@@ -420,6 +533,7 @@ test("structure validator requires the public limitations, headers, and origin v
   assert.match(result.stderr, /missing:apps\/web\/src\/app\/limitations\/page[.]tsx/);
   assert.match(result.stderr, /missing:apps\/web\/src\/middleware[.]ts/);
   assert.match(result.stderr, /missing:infra\/public-beta\/verify-public-origin[.]mjs/);
+  assert.match(result.stderr, /missing:infra\/public-beta\/write-preview-evidence[.]mjs/);
 });
 
 test("pending evidence fails closed as NOT_READY", async () => {

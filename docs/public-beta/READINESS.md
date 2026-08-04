@@ -13,7 +13,7 @@ release evidence remain separate gates.
 |---|---|---|
 | Hosted private beta | Pending owner-authorized Stage D activation | Immutable hosted release, health/smoke evidence, approved privacy/support operation, and bounded cohort result |
 | Route API load/p95 | Harness implemented; beta-load evidence pending | Privacy-safe probe artifact showing p95 under 2,000 ms and error rate within the agreed limit for the recorded release/data snapshot |
-| Preview deployment | Not implemented or proven | CI-created preview from an approved commit with core-flow smoke evidence and no production mutation |
+| Preview deployment | Runner-local production-container preview job and commit/image evidence writer implemented; local 14/14 proof passed; approved-commit CI artifact review pending | CI-created preview from an approved commit with core-flow smoke evidence and no production mutation |
 | Production rollback | Operator tooling prepared; live drill pending | Recorded prior images, executed rollback, health checks, candidate restore, elapsed time, and retained evidence |
 | Core-flow accessibility | Mocked-live keyboard/mobile/axe suite prepared for CI | Green CI artifact plus human review with no critical core-flow failures |
 | Incident response | Playbook prepared; rota/channel approval pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
@@ -32,6 +32,10 @@ release evidence remain separate gates.
   fresh request nonces, a nonce-based script policy with no script
   `unsafe-inline`/`unsafe-eval`, baseline response headers, and no browser CSP
   console errors on the tested pages.
+- The `public-beta-preview` CI job builds the real production web Dockerfile,
+  starts that immutable image on runner-local loopback, runs all 14 mocked-live
+  checks against the container, scans its served chunks for fixture markers, and
+  retains privacy-safe commit/image evidence without contacting a cloud host.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
 - The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,
@@ -46,6 +50,9 @@ The nonce policy makes the application shell request-rendered. Preview and
 approved load evidence must therefore confirm web capacity and p95 before any
 public release. TLS, HSTS, CDN/proxy behavior, and final headers still require
 verification at the approved public edge; local E2E is not that evidence.
+The runner-local preview proves the production container artifact and core flow,
+not hosted-platform integration, external reachability, CDN behavior, or public
+capacity. Those remain separate owner-reviewed evidence.
 The verifier reduces collection error but does not authorize a target or prove
 independent public reachability. Run it only after owner approval and retain its
 remote artifact alongside public-DNS/CDN and external-monitor evidence.
