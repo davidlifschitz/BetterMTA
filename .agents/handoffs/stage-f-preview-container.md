@@ -2,7 +2,7 @@
 
 **Branch:** `codex/stage-f-preview-container`
 **Parent:** `codex/stage-f-public-origin-verifier` at `cebb79c`
-**Status:** Implemented and locally proven; GitHub CI artifact review pending
+**Status:** Implemented; GitHub CI and final artifact audit passed
 **Public-beta status:** `NOT_READY`
 
 ## 1. What was implemented
@@ -98,7 +98,14 @@ cd apps/web && BETTERMTA_E2E_EXTERNAL_BASE=http://127.0.0.1:3100 npm run e2e
   the artifact used GitHub's synthetic pull-request merge SHA instead of the
   reviewed head commit. A TDD regression now binds the image tag and evidence to
   `github.event.pull_request.head.sha`, with `github.sha` only as the push-event
-  fallback. A final replacement CI run and artifact audit are required.
+  fallback.
+- Final PR #13 CI run `30956573677` passed 10/10 jobs. Artifact
+  `public-beta-preview-30956573677` reports `PASS`, preview class
+  `ci-runner-local-production-container`, release commit
+  `9f10e502f51e09a7ca81418f89bb86536929d532`, a valid `sha256:` image ID,
+  passing smoke, no production mutation, no external reachability claim, and no
+  URL or hostname fields. PR #13 remained draft, mergeable, and clean after the
+  audit.
 - The explicit local preview container and image tag were removed after proof.
 
 ## 7. Fixture or sample-data instructions
@@ -124,10 +131,10 @@ cd apps/web && BETTERMTA_E2E_EXTERNAL_BASE=http://127.0.0.1:3100 npm run e2e
 
 - No hosted or public preview was created. No Fly, edge, CDN, DNS, TLS, external
   reachability, production capacity, or rollback behavior was exercised.
-- A green CI artifact still requires approved-commit and owner review before it
-  can support the preview gate. It cannot close the other nine Stage F gates.
-- GitHub runner and Docker runtime drift still require the stacked PR's CI job
-  to pass; local Docker proof is not a substitute for that result.
+- The approved-commit runner-local artifact is available for owner review, but
+  conductor approval is still required to decide whether it satisfies the
+  CI-created preview portion of the gate or whether a hosted preview is needed.
+- It cannot close the other nine Stage F gates or prove hosted/public behavior.
 
 ## 10. Decisions requiring conductor approval
 
@@ -139,7 +146,6 @@ cd apps/web && BETTERMTA_E2E_EXTERNAL_BASE=http://127.0.0.1:3100 npm run e2e
 
 ## 11. Exact next integration step
 
-Publish this branch as a draft PR targeting
-`codex/stage-f-public-origin-verifier`, require every CI job including
-`public-beta-preview` to pass, and review its retained commit/image artifact.
-Do not merge to `main`, deploy, or mark the public beta ready from this slice.
+Review draft PR #13 and its audited artifact, then continue the stacked Stage F
+evidence work from `codex/stage-f-accessibility-evidence`. Do not merge to
+`main`, deploy, or mark the public beta ready from this slice.

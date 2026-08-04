@@ -94,6 +94,36 @@ mutation and external reachability both false. This proves a CI-created
 production-container preview, not a hosted/public preview, edge integration, or
 release readiness.
 
+## Automated accessibility evidence
+
+The `public-beta-readiness` job writes accessibility evidence only after the
+existing 14-test mocked-live Playwright suite passes. That suite covers the
+keyboard-only core flow, mobile 44 px target sizing, and serious/critical axe
+findings under the WCAG 2 A/AA rule sets.
+
+```bash
+node infra/public-beta/write-accessibility-evidence.mjs \
+  --release-commit "$ACCESSIBILITY_RELEASE_COMMIT" \
+  --suite-status pass \
+  > infra/public-beta/evidence/accessibility/result.json
+```
+
+For pull requests, `ACCESSIBILITY_RELEASE_COMMIT` is the reviewed head SHA; for
+pushes it is the push SHA. The writer accepts only a full lowercase commit SHA
+and a passing suite status. Its fixed check list is emitted with
+`AUTOMATED_PASS_HUMAN_PENDING`, `humanReviewStatus: pending`,
+`eligibleForGatePass: false`, and `productionMutation: false`; it emits no URL
+or hostname. CI uploads the result as
+`public-beta-accessibility-<run-id>`.
+
+Automated evidence is not human approval. Copy
+`docs/public-beta/ACCESSIBILITY_REVIEW.md` into the gitignored
+`infra/public-beta/evidence/accessibility/` directory, complete it against the
+same release commit and approved target class, and retain it for owner review.
+The template remains `PENDING_HUMAN_REVIEW` in Git and the accessibility gate
+remains open until a completed review records `PASS` with no open critical
+core-flow finding.
+
 ## Readiness validation
 
 CI validates mechanics only:
@@ -104,9 +134,10 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 ```
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
-limitations route, nonce/header middleware, public-origin verifier, preview
-evidence writer, and their test contracts are present. It never starts the app,
-verifies a public edge, or means the release is ready.
+limitations route, nonce/header middleware, public-origin verifier, preview and
+accessibility evidence writers, human review template, and their test contracts
+are present. It never starts the app, verifies a public edge, performs a human
+review, or means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 
