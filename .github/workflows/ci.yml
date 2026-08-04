@@ -134,6 +134,7 @@ jobs:
     env:
       ACCESSIBILITY_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       INCIDENT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      PRIVACY_SUPPORT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -184,6 +185,21 @@ jobs:
         with:
           name: public-beta-incident-readiness-${{ github.run_id }}
           path: infra/public-beta/evidence/incident-readiness/result.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Write privacy and support readiness evidence
+        run: |
+          set -euo pipefail
+          mkdir -p infra/public-beta/evidence/privacy-support
+          node infra/public-beta/write-privacy-support-readiness-evidence.mjs \
+            --release-commit "$PRIVACY_SUPPORT_RELEASE_COMMIT" \
+            --controls-status pass \
+            > infra/public-beta/evidence/privacy-support/result.json
+      - name: Retain privacy and support readiness evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-privacy-support-${{ github.run_id }}
+          path: infra/public-beta/evidence/privacy-support/result.json
           if-no-files-found: error
           retention-days: 14
       - name: Retain Playwright failure evidence

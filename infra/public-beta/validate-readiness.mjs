@@ -65,18 +65,28 @@ function validateStructure(repoRoot) {
     "infra/public-beta/write-preview-evidence.mjs",
     "infra/public-beta/write-accessibility-evidence.mjs",
     "infra/public-beta/write-incident-readiness-evidence.mjs",
+    "infra/public-beta/write-privacy-support-readiness-evidence.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",
     "docs/public-beta/READINESS.md",
     "docs/public-beta/INCIDENT_PLAYBOOK.md",
     "docs/public-beta/INCIDENT_DRILL.md",
+    "docs/public-beta/PRIVACY_SUPPORT_APPROVAL.md",
+    "docs/private-beta/PRIVACY_POLICY_DRAFT.md",
+    "docs/private-beta/SUPPORT_WORKFLOW_DRAFT.md",
+    "docs/private-beta/SUPPORT_LOG_TEMPLATE.md",
     "docs/public-beta/LIMITATIONS.md",
     "docs/public-beta/ACCESSIBILITY_REVIEW.md",
     "docs/public-beta/evidence-template.json",
     "apps/web/src/app/limitations/page.tsx",
     "apps/web/src/middleware.ts",
     "apps/web/e2e/live.spec.cjs",
+    "apps/api/src/logging/privacy.ts",
+    "apps/api/src/logging/logger.ts",
+    "apps/api/test/privacy.test.ts",
+    "infra/observability/log-fields.md",
+    "infra/security/GUARDRAILS.md",
   ];
   for (const path of requiredFiles) {
     if (!existsSync(resolve(repoRoot, path))) failures.push(`missing:${path}`);
@@ -102,6 +112,92 @@ function validateStructure(repoRoot) {
     if (!new RegExp(`^## .*${heading}`, "m").test(incident)) {
       failures.push(`incident-heading:${heading.toLowerCase()}`);
     }
+  }
+
+  const privacySupportApproval = readText(
+    repoRoot,
+    "docs/public-beta/PRIVACY_SUPPORT_APPROVAL.md",
+  );
+  if (
+    !/Current status:\*\* `PENDING_OWNER_LEGAL_AND_OPERATIONAL_APPROVAL`/.test(
+      privacySupportApproval,
+    )
+  ) {
+    failures.push("privacy-support-approval:status");
+  }
+  for (const heading of [
+    "Scope and prerequisites",
+    "Deployed configuration",
+    "Policy and providers",
+    "Retention and deletion",
+    "Support operations",
+    "Privacy and access controls",
+    "Findings",
+    "Sign-off",
+  ]) {
+    if (!new RegExp(`^## ${heading}`, "m").test(privacySupportApproval)) {
+      failures.push(
+        `privacy-support-approval:${heading.toLowerCase().replaceAll(" ", "-")}`,
+      );
+    }
+  }
+
+  const privacyPolicy = readText(
+    repoRoot,
+    "docs/private-beta/PRIVACY_POLICY_DRAFT.md",
+  );
+  for (const [label, pattern] of [
+    ["draft", /not published and not an active policy/i],
+    ["providers", /final published policy must name the providers actually active/i],
+    ["retention", /ordinary operational logs is \*\*14 days\*\*/i],
+    ["deletion", /request deletion where practicable/i],
+    ["place-ref", /PlaceRefs/i],
+  ]) {
+    if (!pattern.test(privacyPolicy)) failures.push(`privacy-policy:${label}`);
+  }
+
+  const supportWorkflow = readText(
+    repoRoot,
+    "docs/private-beta/SUPPORT_WORKFLOW_DRAFT.md",
+  );
+  for (const [label, pattern] of [
+    ["inactive", /no support channel or cohort has been activated/i],
+    ["private-channel", /private\*{0,2}\s+support channel/i],
+    ["safe-intake", /Never request a full home\/work address/i],
+    ["response-owner", /Product\/operations owner/i],
+    ["rollback", /rollback-private-beta[.]sh/],
+  ]) {
+    if (!pattern.test(supportWorkflow)) failures.push(`support-workflow:${label}`);
+  }
+
+  const supportLog = readText(
+    repoRoot,
+    "docs/private-beta/SUPPORT_LOG_TEMPLATE.md",
+  );
+  for (const [label, pattern] of [
+    ["restricted", /owner-restricted location, not in Git/i],
+    ["case-id", /Case ID/],
+    ["deletion", /Sensitive original deleted/],
+    ["forbidden", /Never place tester emails/i],
+  ]) {
+    if (!pattern.test(supportLog)) failures.push(`support-log:${label}`);
+  }
+
+  const privacyHelper = readText(repoRoot, "apps/api/src/logging/privacy.ts");
+  const logger = readText(repoRoot, "apps/api/src/logging/logger.ts");
+  const privacyTests = readText(repoRoot, "apps/api/test/privacy.test.ts");
+  const logFields = readText(repoRoot, "infra/observability/log-fields.md");
+  const guardrails = readText(repoRoot, "infra/security/GUARDRAILS.md");
+  for (const [label, text, pattern] of [
+    ["place-ref", privacyHelper, /toPrivacySafePlaceLogRef/],
+    ["selected-line-count", privacyHelper, /selectedLineCount/],
+    ["redaction", logger, /redactSensitive/],
+    ["coordinate-detection", logger, /looksLikePreciseCoordinatePair/],
+    ["privacy-tests", privacyTests, /never logs opaque geocode PlaceRef tokens/],
+    ["forbidden-fields", logFields, /MUST NOT.*retain/is],
+    ["guardrails", guardrails, /no default precise-coord retention/i],
+  ]) {
+    if (!pattern.test(text)) failures.push(`privacy-controls:${label}`);
   }
 
   const incidentDrill = readText(repoRoot, "docs/public-beta/INCIDENT_DRILL.md");
@@ -248,6 +344,24 @@ function validateStructure(repoRoot) {
     }
   }
 
+  const privacySupportReadinessWriter = readText(
+    repoRoot,
+    "infra/public-beta/write-privacy-support-readiness-evidence.mjs",
+  );
+  for (const [label, pattern] of [
+    ["commit-binding", /releaseCommit/],
+    ["controls-status", /CONTROLS_PASS_APPROVAL_CHANNEL_PENDING/],
+    ["policy-pending", /policyApprovalStatus:\s*"pending_owner_legal"/],
+    ["retention-pending", /retentionEnforcementStatus:\s*"pending_deployed_evidence"/],
+    ["channel-pending", /supportChannelStatus:\s*"pending_owner_approval"/],
+    ["owner-pending", /responseOwnerStatus:\s*"pending_owner_approval"/],
+    ["not-gate-pass", /eligibleForGatePass:\s*false/],
+  ]) {
+    if (!pattern.test(privacySupportReadinessWriter)) {
+      failures.push(`privacy-support-readiness-evidence:${label}`);
+    }
+  }
+
   const workflow = readText(repoRoot, ".github/workflows/ci.yml");
   for (const [label, pattern] of [
     ["job", /^  public-beta-readiness:/m],
@@ -258,6 +372,8 @@ function validateStructure(repoRoot) {
     ["accessibility-artifact", /public-beta-accessibility-/],
     ["incident-readiness-writer", /write-incident-readiness-evidence[.]mjs/],
     ["incident-readiness-artifact", /public-beta-incident-readiness-/],
+    ["privacy-support-writer", /write-privacy-support-readiness-evidence[.]mjs/],
+    ["privacy-support-artifact", /public-beta-privacy-support-/],
     ["node-tests", /node --test infra\/public-beta\/tests\/[^\s]+/],
     ["structure", /validate-readiness[.]mjs --structure-only/],
   ]) {

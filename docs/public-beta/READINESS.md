@@ -19,7 +19,7 @@ release evidence remain separate gates.
 | Incident response | CI emits commit-bound playbook-readiness evidence; rota/channel approval and tabletop drill remain pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
 | Public origin/TLS | Commit-bound, privacy-safe verifier implemented and locally tested; approved public target and external evidence pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, limitations link, public DNS/CDN review, and retained owner-reviewed artifact |
 | Limitations copy | Candidate `/limitations` route and planner-footer link pass local production E2E; approval/publication pending | Product/legal/owner approval and verified placement in the public core flow |
-| Privacy/support | Drafts present | Approved policy, retention controls, support channel, and response ownership |
+| Privacy/support | CI emits commit-bound policy/control readiness evidence; owner/legal approval, deployed retention proof, private channel, and response owners remain pending | Approved policy, retention controls, support channel, and response ownership |
 | Claims discipline | Automated/product rules present; publication review pending | Release copy review plus benchmark-backed methodology for any comparative statement; otherwise no comparative claim |
 
 ## Locally verifiable preparation
@@ -45,6 +45,10 @@ release evidence remain separate gates.
   readiness evidence. It is deliberately labeled
   `PLAYBOOK_PASS_ROTA_DRILL_PENDING`, leaves rota/channel/tabletop approval
   pending, and cannot pass the incident-response gate.
+- After structure validation passes, CI also writes commit-bound
+  privacy/support readiness evidence over the policy, retention/deletion,
+  runtime privacy controls, and safe support workflow. It remains explicitly
+  owner/legal/operational-approval pending and cannot pass the gate.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
 - The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,

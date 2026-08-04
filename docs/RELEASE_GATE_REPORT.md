@@ -174,6 +174,16 @@ authoritative latest-head CI audit is retained in draft PR #15 comments. No
 on-call rota or channel was activated, no tabletop or live incident action ran,
 and the incident-response gate remains open.
 
+The further stacked `codex/stage-f-privacy-support-evidence` candidate writes a
+commit-bound readiness artifact after the draft policy, safe support workflow,
+ledger shape, privacy-control tests/contracts, and approval protocol pass
+structure validation. Automated output is intentionally
+`CONTROLS_PASS_APPROVAL_CHANNEL_PENDING`, leaves owner/legal policy approval,
+deployed retention evidence, the private support path, and response owners
+pending, and is ineligible for gate passage. The authoritative latest-head CI
+audit is retained in draft PR #16 comments. No policy was published, no support
+channel activated, and no deployed retention/deletion behavior was claimed.
+
 These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, approved incident rota/tabletop, public origin/TLS,
 privacy/support approval, publication, or claims-review gates. No deployment,
