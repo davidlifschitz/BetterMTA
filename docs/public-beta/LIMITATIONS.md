@@ -1,7 +1,8 @@
 # BetterMTA public-beta limitations copy
 
-**Draft — not approved or published.** This copy must be reviewed and placed in
-the public product before a public-beta status decision.
+**Draft — not approved or published.** A candidate version is mirrored in the
+web `/limitations` route and linked from the planner footer for local review.
+It is not deployed and must be reviewed before a public-beta status decision.
 
 BetterMTA is an NYC subway-first route planner. It is designed to rank subway
 options around the lines you choose; it is not a complete regional trip

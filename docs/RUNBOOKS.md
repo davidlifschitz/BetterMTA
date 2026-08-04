@@ -17,6 +17,11 @@ deploy, set secrets, scale, enable features, expand a cohort, or approve launch.
 node --test infra/public-beta/tests/public-beta-readiness.test.mjs
 node infra/public-beta/validate-readiness.mjs --structure-only
 
+# Build/start the web app in production mode, then run its Playwright suite.
+# This checks /limitations plus request-nonce CSP and baseline app headers.
+npm --prefix apps/web run build
+npm --prefix apps/web run e2e
+
 # Local target only; authorized remote load needs HTTPS plus
 # --confirm-target LOAD_TEST (see infra/public-beta/README.md).
 node infra/public-beta/load-route-search.mjs \
@@ -28,8 +33,10 @@ captured the exact commit's ten live artifacts. Passing entries require real
 files beneath the selected evidence root, matching SHA-256 digests, and the
 expected release commit. Response bodies are capped at 1 MiB per load request;
 evidence artifacts over 50 MiB are rejected. `--structure-only` never grants a
-release status. The public-origin gate must verify TLS and runtime security
-headers because those controls may live at the edge rather than in Next.js.
+release status. Local production E2E verifies the app-owned nonce CSP, baseline
+headers, and linked limitations route. The public-origin gate must separately
+verify TLS, HSTS policy, CDN/proxy behavior, and the final runtime headers at
+the approved edge. Nonce rendering also requires preview/load capacity evidence.
 
 See `docs/public-beta/READINESS.md`, `INCIDENT_PLAYBOOK.md`, and
 `LIMITATIONS.md` for the pending gates and draft operating/public copy.

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiClientError } from "@/lib/api";
 import type {
@@ -826,6 +827,9 @@ export function TripApp() {
           Transportation Authority (MTA). BetterMTA is not affiliated with or
           endorsed by the MTA.
         </p>
+        <nav className="footer__links" aria-label="Product information">
+          <Link href="/limitations">Public-beta limitations</Link>
+        </nav>
       </footer>
 
       <LinePicker

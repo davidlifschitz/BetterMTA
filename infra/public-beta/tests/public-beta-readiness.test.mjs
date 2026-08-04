@@ -222,6 +222,19 @@ test("repository readiness structure is complete without claiming readiness", as
   }
 });
 
+test("structure validator requires the public limitations and header surfaces", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-readiness-structure-"));
+  const result = await runNode(readinessScript, [
+    "--structure-only",
+    "--repo-root",
+    root,
+  ]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /missing:apps\/web\/src\/app\/limitations\/page[.]tsx/);
+  assert.match(result.stderr, /missing:apps\/web\/src\/middleware[.]ts/);
+});
+
 test("pending evidence fails closed as NOT_READY", async () => {
   const root = await mkdtemp(join(tmpdir(), "bettermta-readiness-pending-"));
   const manifest = join(root, "evidence.json");
