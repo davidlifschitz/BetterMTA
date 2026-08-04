@@ -42,6 +42,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R31 | A public-origin check run from a private or privileged network is mistaken for independent public reachability | high | medium | Require approved HTTPS DNS origins, explicit confirmation, no redirects, commit-bound privacy-safe artifacts, public DNS/CDN review, and a separate external monitor before closing the gate | Infra + QA + Integration |
 | R32 | A runner-local production-container preview is mistaken for a hosted/public preview or used to infer CDN, platform, or external capacity behavior | high | medium | Label evidence `ci-runner-local-production-container`; bind it to commit and image ID; record no production mutation or external reachability; separately verify the approved hosted platform, public edge, capacity, and rollback before release | Infra + QA + Integration |
 | R33 | Automated axe, keyboard, and mobile checks are mistaken for completed human accessibility approval | high | medium | Emit commit-bound `AUTOMATED_PASS_HUMAN_PENDING` evidence with `eligibleForGatePass: false`; retain a same-commit human review covering keyboard, screen reader, visual/motion, findings, and sign-off; require no open critical core-flow failures and owner review before closing the gate | QA + Frontend + Integration |
+| R34 | A green incident-playbook structure artifact is mistaken for an approved rota, reachable incident channel, or completed tabletop drill | high | medium | Emit commit-bound `PLAYBOOK_PASS_ROTA_DRILL_PENDING` evidence with `eligibleForGatePass: false`; require owner-approved roles/channel/thresholds, a same-commit restricted tabletop record, no open critical findings, and release-owner sign-off before closing the gate | Infra + QA + Integration |
 
 ## Top watchlist for first integration
 
@@ -73,6 +74,7 @@ Likelihood: `high` \| `medium` \| `low`
 8. R31 independent public reachability and DNS/CDN evidence
 9. R32 runner-local preview scope versus hosted/public platform evidence
 10. R33 automated accessibility evidence versus human approval
+11. R34 incident playbook mechanics versus active response capability
 
 ## Follow-ups (tracked, not blocking controlled alpha)
 
@@ -82,7 +84,7 @@ Likelihood: `high` \| `medium` \| `low`
 | FU-GHA-01 | Upgrade GitHub-owned actions from deprecated Node 20 runtime | **DRAFT_PR_READY** | Stage C draft PR #8 uses `actions/checkout@v7` and `actions/setup-node@v7`; all eight jobs passed in run `30846000773`; close after owner merge. |
 | FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification; success = Colima + stack + LaunchAgent tunnel + Access + remote monitor without undocumented repair |
 | FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window; helpful before adding other testers |
-| FU-PUBLIC-BETA-01 | Capture and owner-review all ten Stage F evidence gates | **OPEN** | Harness/template, public-origin collection mechanics, runner-local preview proof, and commit-bound automated accessibility mechanics exist, but hosted operation, production load, owner preview acceptance or hosted-preview decision, rollback, human a11y, incident rota, authorized public TLS/DNS/CDN evidence, approvals, and publication evidence remain pending. |
+| FU-PUBLIC-BETA-01 | Capture and owner-review all ten Stage F evidence gates | **OPEN** | Harness/template, public-origin collection mechanics, runner-local preview proof, automated accessibility mechanics, and incident playbook-readiness mechanics exist, but hosted operation, production load, owner preview acceptance or hosted-preview decision, rollback, human a11y, approved incident rota/channel/tabletop, authorized public TLS/DNS/CDN evidence, approvals, and publication evidence remain pending. |
 
 Operating findings for Controlled Alpha Review 1: `docs/alpha/CONTROLLED_ALPHA_LOG.md`.
 

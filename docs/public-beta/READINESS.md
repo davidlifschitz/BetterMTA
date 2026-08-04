@@ -16,7 +16,7 @@ release evidence remain separate gates.
 | Preview deployment | Runner-local production-container artifact proven in CI for commit `9f10e50` with 14/14 smoke checks; owner acceptance or a hosted-platform preview decision remains pending | CI-created preview from an approved commit with core-flow smoke evidence and no production mutation |
 | Production rollback | Operator tooling prepared; live drill pending | Recorded prior images, executed rollback, health checks, candidate restore, elapsed time, and retained evidence |
 | Core-flow accessibility | Commit-bound automated evidence mechanics are proven in CI; human review for an owner-approved release commit remains pending | Green CI artifact plus human review with no critical core-flow failures |
-| Incident response | Playbook prepared; rota/channel approval pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
+| Incident response | CI emits commit-bound playbook-readiness evidence; rota/channel approval and tabletop drill remain pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
 | Public origin/TLS | Commit-bound, privacy-safe verifier implemented and locally tested; approved public target and external evidence pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, limitations link, public DNS/CDN review, and retained owner-reviewed artifact |
 | Limitations copy | Candidate `/limitations` route and planner-footer link pass local production E2E; approval/publication pending | Product/legal/owner approval and verified placement in the public core flow |
 | Privacy/support | Drafts present | Approved policy, retention controls, support channel, and response ownership |
@@ -41,6 +41,10 @@ release evidence remain separate gates.
   scan. It is deliberately labeled `AUTOMATED_PASS_HUMAN_PENDING` and cannot
   pass the gate until the retained human review records no critical core-flow
   failures for the same release commit.
+- After structure validation passes, CI writes commit-bound incident-playbook
+  readiness evidence. It is deliberately labeled
+  `PLAYBOOK_PASS_ROTA_DRILL_PENDING`, leaves rota/channel/tabletop approval
+  pending, and cannot pass the incident-response gate.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
 - The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,

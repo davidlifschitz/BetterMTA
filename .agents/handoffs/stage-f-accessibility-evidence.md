@@ -88,6 +88,11 @@ git diff --check
   `public-beta-accessibility-30957843171` matched that commit, the exact fixed
   check list, pending human status, gate ineligibility, no-mutation contract,
   valid timestamp, and privacy-safe no-URL/no-hostname shape.
+- Final PR #14 CI run `30958148193` passed 10/10 jobs for head
+  `2c499848b072b70368407d923032c5560db34b13`. Artifact
+  `public-beta-accessibility-30958148193` matched that final head and the same
+  check, pending-human, gate-ineligible, no-mutation, timestamp, and privacy
+  contract. PR #14 remained draft, mergeable, and clean.
 - Each later PR head requires a fresh run and artifact audit. The authoritative
   latest-head result is retained in draft PR #14 comments.
 
@@ -127,9 +132,9 @@ git diff --check
 
 ## 11. Exact next integration step
 
-Keep draft PR #14 stacked on `codex/stage-f-preview-container`; require all ten
-CI jobs and the latest `public-beta-accessibility-<run-id>` head-commit audit to
-remain green. Then the conductor must choose the approved target, reviewer,
-assistive-technology matrix, and release owner before the human protocol runs.
-Do not merge to `main`, deploy, conduct a human review against an unapproved
-target, or mark the public beta ready from this slice.
+Review draft PR #14 and its final audit, then continue the stacked Stage F
+evidence work from `codex/stage-f-incident-evidence`. The conductor must still
+choose the approved accessibility target, reviewer, assistive-technology
+matrix, and release owner before the human protocol runs. Do not merge to
+`main`, deploy, conduct a human review against an unapproved target, or mark the
+public beta ready from this slice.

@@ -133,6 +133,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACCESSIBILITY_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      INCIDENT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -168,6 +169,21 @@ jobs:
         with:
           name: public-beta-accessibility-${{ github.run_id }}
           path: infra/public-beta/evidence/accessibility/result.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Write incident playbook readiness evidence
+        run: |
+          set -euo pipefail
+          mkdir -p infra/public-beta/evidence/incident-readiness
+          node infra/public-beta/write-incident-readiness-evidence.mjs \
+            --release-commit "$INCIDENT_RELEASE_COMMIT" \
+            --playbook-status pass \
+            > infra/public-beta/evidence/incident-readiness/result.json
+      - name: Retain incident playbook readiness evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-incident-readiness-${{ github.run_id }}
+          path: infra/public-beta/evidence/incident-readiness/result.json
           if-no-files-found: error
           retention-days: 14
       - name: Retain Playwright failure evidence

@@ -124,6 +124,35 @@ The template remains `PENDING_HUMAN_REVIEW` in Git and the accessibility gate
 remains open until a completed review records `PASS` with no open critical
 core-flow finding.
 
+## Incident playbook readiness evidence
+
+The `public-beta-readiness` job writes an incident-readiness artifact only
+after the structure validator confirms that the playbook, tabletop template,
+writer, CI wiring, and fail-closed release status are present.
+
+```bash
+node infra/public-beta/write-incident-readiness-evidence.mjs \
+  --release-commit "$INCIDENT_RELEASE_COMMIT" \
+  --playbook-status pass \
+  > infra/public-beta/evidence/incident-readiness/result.json
+```
+
+For pull requests, `INCIDENT_RELEASE_COMMIT` is the reviewed head SHA; for
+pushes it is the push SHA. The writer accepts only a full lowercase commit SHA
+and a passing playbook-structure result. It emits the fixed status
+`PLAYBOOK_PASS_ROTA_DRILL_PENDING`, with rota and channel approval pending,
+tabletop status pending, `eligibleForGatePass: false`, and
+`productionMutation: false`. It emits no URL or hostname. CI uploads the result
+as `public-beta-incident-readiness-<run-id>`.
+
+This artifact proves only the operating contract is present. Copy
+`docs/public-beta/INCIDENT_DRILL.md` into the approved restricted evidence
+store, bind it to the same release commit, and complete it only after the owner
+approves the environment class, rota, restricted channel, stop/rollback
+thresholds, and evidence retention. Keep identities, contact details, channel
+names, protected origins, and private logs outside Git. A passing human drill
+with no open critical finding is still required.
+
 ## Readiness validation
 
 CI validates mechanics only:
@@ -134,10 +163,11 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 ```
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
-limitations route, nonce/header middleware, public-origin verifier, preview and
-accessibility evidence writers, human review template, and their test contracts
-are present. It never starts the app, verifies a public edge, performs a human
-review, or means the release is ready.
+limitations route, nonce/header middleware, public-origin verifier, preview,
+accessibility, and incident-readiness evidence writers, pending human review
+and tabletop templates, and their test contracts are present. It never starts
+the app, verifies a public edge, performs a human review or tabletop drill, or
+means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

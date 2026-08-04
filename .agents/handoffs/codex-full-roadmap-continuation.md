@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Audience:** Codex (or any agent) taking over the whole product trajectory  
-**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-accessibility-evidence`
+**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence`
 **Repo:** `davidlifschitz/BetterMTA`
 
 This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.agents/handoffs/p1-codex-continuation.md` and `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
@@ -17,8 +17,8 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
-| Active program branch | `codex/stage-f-accessibility-evidence` (stacked on the Stage F production-container preview candidate) |
-| Immediate unfinished work | Prove commit-bound automated accessibility evidence in CI and conduct the separately owner-approved human review; every hosted/live evidence gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
+| Active program branch | `codex/stage-f-incident-evidence` (stacked on the Stage F accessibility-evidence candidate) |
+| Immediate unfinished work | Prove commit-bound incident playbook-readiness evidence in CI, then obtain separate owner approval for the rota, restricted channel, thresholds, and tabletop drill; every hosted/live gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -93,7 +93,7 @@ Controlled alpha ≠ private beta ≠ public beta.
 | **M1** Static routing proof | GTFS graph + constrained search + golden cases | **Largely done** via OTP + routing library + benchmarks (not a custom graph search) |
 | **M2** Real-time routing | GTFS-RT, freshness, safe degrade | **Largely done** in live stack; honesty labeling required forever |
 | **M3** Product beta | Maps, geocoding, baseline comparison, analytics, feedback, preference learning, probes | **Partial** — geocode/preferred lines = **P1**; maps/feedback/learning/accounts still deferred (D2/D3) |
-| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — runner-local production-container preview proven in CI and automated a11y evidence prepared; human review and every hosted/live gate remain open; **Fly private/public path not activated** |
+| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — runner-local preview proven; automated a11y and incident-playbook evidence prepared; human reviews/approvals and every hosted/live gate remain open; **Fly private/public path not activated** |
 | **M5** Differentiation | Live reroute, delay handling, crowding/reliability, beat-default discovery, more modes | **Future** — after public-beta quality bar; modes = D1 |
 
 Treat `ROADMAP.md` as directional; ADR-locked deferrals override its older wording (e.g. “required-line state search”).
@@ -261,6 +261,16 @@ its artifact matched implementation commit `c27602b`; the authoritative latest
 head audit is retained in PR #14 comments. R33 preserves this distinction. See
 `.agents/handoffs/stage-f-accessibility-evidence.md`.
 
+**Stage F incident-evidence candidate (2026-08-04; playbook mechanics only):**
+The further stacked `codex/stage-f-incident-evidence` branch writes a
+commit-bound artifact after incident playbook structure passes and adds a
+restricted same-commit tabletop protocol. Automated output remains
+`PLAYBOOK_PASS_ROTA_DRILL_PENDING` and `eligibleForGatePass: false`; no rota,
+channel, threshold approval, tabletop, live incident action, or gate passage is
+claimed. The authoritative latest-head audit is retained in PR #15 comments.
+R34 preserves this distinction. See
+`.agents/handoffs/stage-f-incident-evidence.md`.
+
 **Exit:** `READY_FOR_PUBLIC_BETA`.
 
 ### Stage G — Differentiation & modes — M5 + Epic D1
@@ -333,7 +343,8 @@ that stream.
 
 | Absolute path | Branch / HEAD | Tip | Role |
 |---|---|---|---|
-| `/Users/thebiglipper/Developer/bettermta-stage-f-accessibility-evidence` | `codex/stage-f-accessibility-evidence` | current branch tip | **Primary for this slice.** Automated accessibility evidence and human review protocol candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence` | `codex/stage-f-incident-evidence` | current branch tip | **Primary for this slice.** Incident playbook-readiness evidence and tabletop protocol candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-accessibility-evidence` | `codex/stage-f-accessibility-evidence` | `2c49984` | Parent automated accessibility evidence candidate; draft PR #14 green and artifact audited |
 | `/Users/thebiglipper/Developer/bettermta-stage-f-preview-container` | `codex/stage-f-preview-container` | `9f10e50` | Parent runner-local production-container preview candidate; draft PR #13 green and artifact audited |
 | `/Users/thebiglipper/Developer/bettermta-stage-f-origin-verifier` | `codex/stage-f-public-origin-verifier` | `cebb79c` | Parent Stage F public-origin verifier candidate |
 | `/Users/thebiglipper/Developer/bettermta-stage-f-public-surface` | `codex/stage-f-public-surface` | `f0d77e3` | Parent Stage F public limitations/header candidate |
@@ -383,7 +394,7 @@ All already integrated into `agent/p1-address-preferred-lines`. Safe to ignore o
 
 ### 10.6 Default rule for new agents
 
-1. Continue the named active workstream in its primary worktree; for this handoff use `/Users/thebiglipper/Developer/bettermta-stage-f-accessibility-evidence` on `codex/stage-f-accessibility-evidence`.
+1. Continue the named active workstream in its primary worktree; for this handoff use `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence` on `codex/stage-f-incident-evidence`.
 2. Do not create more long-lived specialist worktrees without a parallelization plan and merge owner.
 3. Refresh this inventory with `git -C /Users/thebiglipper/Developer/bettermta worktree list` if the host layout may have changed.
 
@@ -395,13 +406,14 @@ All already integrated into `agent/p1-address-preferred-lines`. Safe to ignore o
 You are continuing BetterMTA. Read `.agents/handoffs/codex-full-roadmap-continuation.md` first,
 then `.agents/handoffs/p1-codex-continuation.md` for completed P1 Wave 4 evidence.
 
-Primary worktree: /Users/thebiglipper/Developer/bettermta-stage-f-accessibility-evidence
-Active branch: codex/stage-f-accessibility-evidence (stacked Stage F candidate)
+Primary worktree: /Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence
+Active branch: codex/stage-f-incident-evidence (stacked Stage F candidate)
 Live alpha: READY_FOR_P1_CONTROLLED_ALPHA on immutable P1 images; rollback points to the pre-P1 certified release.
 
-Immediate mission: finish and audit the automated accessibility artifact, then
-run the separately owner-approved human review against the same release commit.
-Do not treat automated or runner-local proof as human or hosted/public proof.
+Immediate mission: finish and audit the incident playbook-readiness artifact,
+then obtain separate owner approval before assigning a rota/channel or running
+the same-commit tabletop protocol. Do not treat structure proof as active
+incident capability or runner-local proof as hosted/public proof.
 Do not implement D1–D6 unless explicitly authorized.
 Do not merge to main unless the product owner asks. No competitor claims without benchmarks.
 No Fable orchestration unless requested — prefer focused agents with non-overlapping ownership.
@@ -412,8 +424,8 @@ No Fable orchestration unless requested — prefer focused agents with non-overl
 ## 12. Immediate vs later (one screen)
 
 **Do next**
-1. Review the stacked Stage F readiness/public-surface/origin/preview/accessibility candidates
-2. Capture owner-authorized hosted, load, rollback, human-a11y, incident, and public-edge evidence
+1. Review the stacked Stage F readiness/public-surface/origin/preview/accessibility/incident candidates
+2. Capture owner-authorized hosted, load, rollback, human-a11y, incident-tabletop, and public-edge evidence
 3. Keep `FU-NPM-01` separate; execute `FU-ALPHA-01` only with explicit logout/reboot approval
 
 **Do not do next**
