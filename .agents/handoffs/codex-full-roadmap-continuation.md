@@ -211,7 +211,7 @@ Sequence suggestion: arrive-by after routing stable; feedback before preference 
 - Public URL + TLS + clear limitations copy
 - Narrow scope still: subway-first NYC; no AI chat/social/native apps
 
-**Stage F readiness candidate (2026-08-04; mechanics only):** Draft PR #10 on
+**Stage F readiness candidate (2026-08-04; mechanics only):** Green draft PR #10 on
 `codex/stage-f-readiness-harness` adds a bounded privacy-safe route-search load
 probe, an exact ten-gate fail-closed evidence validator, live-mode fixture
 exclusion fixes, Playwright keyboard/mobile/axe coverage in CI, draft incident
