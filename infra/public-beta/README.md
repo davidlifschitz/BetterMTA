@@ -31,6 +31,39 @@ outage fallback paths. A probe result is only one input to that gate; record
 the release commit, dataset/snapshot, workload, and operating conditions in a
 separate evidence artifact.
 
+## Public-origin verifier
+
+The public-origin verifier performs unauthenticated, read-only GET requests. It
+checks the web root twice, `/limitations`, API liveness/readiness/status,
+runtime TLS validation for remote targets, the final security-header contract,
+fresh CSP nonces, and the public limitations markers. Requests never follow
+redirects, bodies are capped at 1 MiB, and output contains fixed reason codes
+instead of URLs, hostnames, response bodies, or request IDs.
+
+```bash
+# Local mechanics only; this cannot satisfy the public-origin gate.
+node infra/public-beta/verify-public-origin.mjs \
+  --web-url http://127.0.0.1:3000 \
+  --api-url http://127.0.0.1:8080 \
+  --release-commit "$(git rev-parse HEAD)"
+
+# Owner-authorized public target only. Save stdout under the approved,
+# non-committed evidence root used by the release manifest.
+node infra/public-beta/verify-public-origin.mjs \
+  --web-url "$BETTERMTA_WEB_BASE_URL" \
+  --api-url "$BETTERMTA_API_BASE_URL" \
+  --release-commit "$(git rev-parse HEAD)" \
+  --confirm-target PUBLIC_ORIGIN_CHECK \
+  > infra/public-beta/evidence/public-origin-tls.json
+```
+
+Remote targets must be origin-only HTTPS DNS names and both origins must be in
+the same local/remote class. The confirmation token authorizes only the bounded
+checks above; it does not authorize deployment, load, secrets, or configuration
+changes. A remote `PASS` is one artifact for owner review. It does not replace
+public-DNS/CDN review, independent external reachability, HSTS-policy approval,
+or the other nine Stage F gates.
+
 ## Readiness validation
 
 CI validates mechanics only:
@@ -41,8 +74,9 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 ```
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
-limitations route, nonce/header middleware, and their E2E contract are present.
-It never starts the app, verifies a public edge, or means the release is ready.
+limitations route, nonce/header middleware, public-origin verifier, and their
+test contracts are present. It never starts the app, verifies a public edge, or
+means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

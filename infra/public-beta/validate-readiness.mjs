@@ -61,6 +61,7 @@ function validateStructure(repoRoot) {
   const failures = [];
   const requiredFiles = [
     "infra/public-beta/load-route-search.mjs",
+    "infra/public-beta/verify-public-origin.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",
@@ -137,6 +138,23 @@ function validateStructure(repoRoot) {
   }
   if (/script-src[^;\n]*unsafe-(?:inline|eval)/.test(middleware)) {
     failures.push("web-headers:unsafe-script-source");
+  }
+
+  const originVerifier = readText(
+    repoRoot,
+    "infra/public-beta/verify-public-origin.mjs",
+  );
+  for (const [label, pattern] of [
+    ["remote-confirmation", /PUBLIC_ORIGIN_CHECK/],
+    ["https", /remote target must use HTTPS/],
+    ["commit-binding", /releaseCommit/],
+    ["bounded-body", /MAX_RESPONSE_BYTES/],
+    ["nonce-rotation", /nonce-not-rotated/],
+    ["privacy-safe-output", /failureCodes/],
+  ]) {
+    if (!pattern.test(originVerifier)) {
+      failures.push(`public-origin-verifier:${label}`);
+    }
   }
 
   const liveE2e = readText(repoRoot, "apps/web/e2e/live.spec.cjs");

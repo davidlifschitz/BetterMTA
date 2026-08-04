@@ -17,7 +17,7 @@ release evidence remain separate gates.
 | Production rollback | Operator tooling prepared; live drill pending | Recorded prior images, executed rollback, health checks, candidate restore, elapsed time, and retained evidence |
 | Core-flow accessibility | Mocked-live keyboard/mobile/axe suite prepared for CI | Green CI artifact plus human review with no critical core-flow failures |
 | Incident response | Playbook prepared; rota/channel approval pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
-| Public origin/TLS | App-owned nonce CSP and baseline headers pass local production E2E; public origin/TLS and edge verification pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, and limitations link verified |
+| Public origin/TLS | Commit-bound, privacy-safe verifier implemented and locally tested; approved public target and external evidence pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, limitations link, public DNS/CDN review, and retained owner-reviewed artifact |
 | Limitations copy | Candidate `/limitations` route and planner-footer link pass local production E2E; approval/publication pending | Product/legal/owner approval and verified placement in the public core flow |
 | Privacy/support | Drafts present | Approved policy, retention controls, support channel, and response ownership |
 | Claims discipline | Automated/product rules present; publication review pending | Release copy review plus benchmark-backed methodology for any comparative statement; otherwise no comparative claim |
@@ -34,6 +34,10 @@ release evidence remain separate gates.
   console errors on the tested pages.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
+- The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,
+  never follows redirects, bounds bodies, emits no hostnames, binds results to a
+  full release commit, and distinguishes local mechanics from eligible remote
+  evidence.
 - The evidence validator binds each passing gate to an artifact hash and the
   expected release commit.
 - CI runs structure tests but does not evaluate the pending template as ready.
@@ -42,6 +46,9 @@ The nonce policy makes the application shell request-rendered. Preview and
 approved load evidence must therefore confirm web capacity and p95 before any
 public release. TLS, HSTS, CDN/proxy behavior, and final headers still require
 verification at the approved public edge; local E2E is not that evidence.
+The verifier reduces collection error but does not authorize a target or prove
+independent public reachability. Run it only after owner approval and retain its
+remote artifact alongside public-DNS/CDN and external-monitor evidence.
 
 ## Required release review
 

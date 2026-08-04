@@ -13,6 +13,7 @@ const execFileAsync = promisify(execFile);
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(testDir, "../../..");
 const loadScript = join(repoRoot, "infra/public-beta/load-route-search.mjs");
+const originScript = join(repoRoot, "infra/public-beta/verify-public-origin.mjs");
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
 
 const REQUIRED_GATES = [
@@ -60,6 +61,71 @@ async function withServer(handler, fn) {
       server.close((error) => (error ? reject(error) : resolveClose()));
     });
   }
+}
+
+function publicWebHeaders(nonce, overrides = {}) {
+  return {
+    "content-type": "text/html; charset=utf-8",
+    "content-security-policy": [
+      "default-src 'self'",
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+    ].join("; "),
+    "cross-origin-opener-policy": "same-origin",
+    "cross-origin-resource-policy": "same-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(self)",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "x-permitted-cross-domain-policies": "none",
+    ...overrides,
+  };
+}
+
+function publicOriginFixture({
+  fixedNonce = false,
+  omitFrame = false,
+  largeLimitations = false,
+  dataMode = "live",
+} = {}) {
+  let webRequests = 0;
+  return (request, response) => {
+    request.resume();
+    if (request.url === "/" || request.url === "/limitations") {
+      webRequests += 1;
+      const nonce = fixedNonce ? "c2FtZS1ub25jZQ==" : Buffer.from(`nonce-${webRequests}`).toString("base64");
+      const overrides = omitFrame ? { "x-frame-options": undefined } : {};
+      const headers = Object.fromEntries(
+        Object.entries(publicWebHeaders(nonce, overrides)).filter(([, value]) => value !== undefined),
+      );
+      response.writeHead(200, headers);
+      if (request.url === "/") {
+        response.end('<!doctype html><a href="/limitations">Public-beta limitations</a>');
+      } else if (largeLimitations) {
+        response.end("x".repeat(1024 * 1024 + 1));
+      } else {
+        response.end(
+          "<!doctype html><h1>BetterMTA beta limitations</h1>" +
+            "<p>NYC subway-first. No account is required. " +
+            "BetterMTA does not claim to beat another product.</p>",
+        );
+      }
+      return;
+    }
+    if (request.url === "/health/live" || request.url === "/health/ready") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end('{"status":"ok"}');
+      return;
+    }
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ dataMode, staticDatasetVersion: "test-v1" }));
+      return;
+    }
+    response.writeHead(404).end();
+  };
 }
 
 test("bounded local load probe emits privacy-safe passing evidence", async () => {
@@ -168,6 +234,126 @@ test("load probe bounds response bodies instead of buffering an endless response
   });
 });
 
+test("public-origin verifier emits commit-bound privacy-safe local evidence", async () => {
+  await withServer(publicOriginFixture(), async (baseUrl) => {
+    const result = await runNode(originScript, [
+      "--web-url",
+      baseUrl,
+      "--api-url",
+      baseUrl,
+      "--release-commit",
+      "a".repeat(40),
+      "--timeout-ms",
+      "2000",
+    ]);
+
+    assert.equal(result.code, 0, result.stderr);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.status, "LOCAL_CHECK_PASS");
+    assert.equal(evidence.targetClass, "local");
+    assert.equal(evidence.releaseCommit, "a".repeat(40));
+    assert.equal(evidence.failureCount, 0);
+    assert.deepEqual(evidence.failureCodes, []);
+    assert.equal(evidence.eligibleForPublicOriginEvidence, false);
+    assert(!result.stdout.includes(new URL(baseUrl).host));
+  });
+});
+
+test("public-origin verifier refuses insecure or unconfirmed remote targets without hostname leakage", async () => {
+  for (const args of [
+    [
+      "--web-url",
+      "http://private.example.invalid",
+      "--api-url",
+      "http://api.example.invalid",
+    ],
+    [
+      "--web-url",
+      "https://private.example.invalid",
+      "--api-url",
+      "https://api.example.invalid",
+    ],
+  ]) {
+    const result = await runNode(originScript, [
+      ...args,
+      "--release-commit",
+      "b".repeat(40),
+    ]);
+
+    assert.equal(result.code, 2);
+    assert.match(result.stderr, /HTTPS|confirm-target/i);
+    assert(!result.stderr.includes("private.example.invalid"));
+    assert(!result.stderr.includes("api.example.invalid"));
+  }
+});
+
+test("public-origin verifier fails closed on missing headers and nonce reuse", async () => {
+  await withServer(
+    publicOriginFixture({ fixedNonce: true, omitFrame: true }),
+    async (baseUrl) => {
+      const result = await runNode(originScript, [
+        "--web-url",
+        baseUrl,
+        "--api-url",
+        baseUrl,
+        "--release-commit",
+        "c".repeat(40),
+      ]);
+
+      assert.equal(result.code, 1, result.stderr);
+      const evidence = JSON.parse(result.stdout);
+      assert.equal(evidence.status, "FAIL");
+      assert(evidence.failureCodes.includes("web:root:x-frame-options"));
+      assert(evidence.failureCodes.includes("web:limitations:x-frame-options"));
+      assert(evidence.failureCodes.includes("web:csp:nonce-not-rotated"));
+      assert(!result.stdout.includes(new URL(baseUrl).host));
+    },
+  );
+});
+
+test("public-origin verifier bounds response bodies", async () => {
+  await withServer(
+    publicOriginFixture({ largeLimitations: true }),
+    async (baseUrl) => {
+      const result = await runNode(originScript, [
+        "--web-url",
+        baseUrl,
+        "--api-url",
+        baseUrl,
+        "--release-commit",
+        "d".repeat(40),
+      ]);
+
+      assert.equal(result.code, 1, result.stderr);
+      const evidence = JSON.parse(result.stdout);
+      assert(evidence.failureCodes.includes("web:limitations:response-too-large"));
+      assert(!result.stdout.includes(new URL(baseUrl).host));
+    },
+  );
+});
+
+test("public-origin verifier never reflects an unexpected data mode", async () => {
+  await withServer(
+    publicOriginFixture({ dataMode: "unexpected\nprivate.example.invalid" }),
+    async (baseUrl) => {
+      const result = await runNode(originScript, [
+        "--web-url",
+        baseUrl,
+        "--api-url",
+        baseUrl,
+        "--release-commit",
+        "e".repeat(40),
+      ]);
+
+      assert.equal(result.code, 1, result.stderr);
+      const evidence = JSON.parse(result.stdout);
+      assert.equal(evidence.dataMode, "invalid");
+      assert(evidence.failureCodes.includes("api:status:data-mode"));
+      assert(!result.stdout.includes("private.example.invalid"));
+    },
+  );
+});
+
 test("repository readiness structure is complete without claiming readiness", async () => {
   const result = await runNode(readinessScript, ["--structure-only"]);
   assert.equal(result.code, 0, result.stderr);
@@ -222,7 +408,7 @@ test("repository readiness structure is complete without claiming readiness", as
   }
 });
 
-test("structure validator requires the public limitations and header surfaces", async () => {
+test("structure validator requires the public limitations, headers, and origin verifier", async () => {
   const root = await mkdtemp(join(tmpdir(), "bettermta-readiness-structure-"));
   const result = await runNode(readinessScript, [
     "--structure-only",
@@ -233,6 +419,7 @@ test("structure validator requires the public limitations and header surfaces", 
   assert.equal(result.code, 1);
   assert.match(result.stderr, /missing:apps\/web\/src\/app\/limitations\/page[.]tsx/);
   assert.match(result.stderr, /missing:apps\/web\/src\/middleware[.]ts/);
+  assert.match(result.stderr, /missing:infra\/public-beta\/verify-public-origin[.]mjs/);
 });
 
 test("pending evidence fails closed as NOT_READY", async () => {

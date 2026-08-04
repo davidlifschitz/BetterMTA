@@ -49,7 +49,7 @@
 - `public-beta/LIMITATIONS.md` — draft narrow-scope and non-claims copy; not approved or published
 - `public-beta/evidence-template.json` — pending-only, commit- and artifact-bound evidence manifest template
 - `../infra/fly/DEPLOY.md` — hosted-beta activation, read-only preflight, image-manifest capture, and guarded rollback
-- `../infra/public-beta/README.md` — bounded load probe, readiness validator, safety boundaries, and operator commands
+- `../infra/public-beta/README.md` — bounded load/origin probes, readiness validator, safety boundaries, and operator commands
 - `../infra/alpha/README.md` — controlled-alpha index (edge, host, tunnel, Access, scripts)
 - `../infra/alpha/HOST.md` — Phase 12A.5 macOS operating requirements + preflight
 - `../infra/alpha/TUNNEL.md` — Phase 12A.6 named Cloudflare Tunnel (interactive; secrets out of repo)
@@ -61,6 +61,7 @@
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 - `../.agents/handoffs/stage-f-readiness-harness.md` — Stage F local-mechanics implementation and residual live gates
 - `../.agents/handoffs/stage-f-public-surface.md` — Stage F limitations route, nonce security headers, local evidence, and residual edge/load gates
+- `../.agents/handoffs/stage-f-public-origin-verifier.md` — Stage F public-origin evidence collector, safety contract, and residual live gate
 
 ## Agent prompts
 The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts. Workstream handoffs live under `../.agents/handoffs/`.

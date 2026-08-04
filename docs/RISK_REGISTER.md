@@ -39,6 +39,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R28 | Process-local rate limits/metrics are treated as multi-replica durable, or geocode PlaceRef key lifecycle is mismanaged | high | medium | Stateless encrypted PlaceRefs now pass cross-replica/tamper/expiry/wrong-key tests; keep address flag off and API single-replica until the key is provisioned consistently, a shared rate limiter and aggregated observability are bound, and rotation/deploy evidence is recorded | Backend + Infra |
 | R29 | Partial, stale, synthetic, or cross-commit evidence is mistaken for public-beta readiness | high | medium | Exact ten-gate allowlist; fail-closed `NOT_READY`; expected-commit and SHA-256 binding; bounded artifacts; structure-only checks include the limitations/header test surfaces but cannot assert readiness; owner reviews live evidence together | QA + Infra + Integration |
 | R30 | Nonce-based CSP makes the Next.js shell request-rendered, increasing web capacity, latency, or cost versus a static shell | high | medium | Keep the policy small and app-owned; verify preview behavior, approved route-search/web load, p95, cache/CDN behavior, and capacity before public release; retain rollback evidence | Frontend + Infra + QA |
+| R31 | A public-origin check run from a private or privileged network is mistaken for independent public reachability | high | medium | Require approved HTTPS DNS origins, explicit confirmation, no redirects, commit-bound privacy-safe artifacts, public DNS/CDN review, and a separate external monitor before closing the gate | Infra + QA + Integration |
 
 ## Top watchlist for first integration
 
@@ -67,6 +68,7 @@ Likelihood: `high` \| `medium` \| `low`
 5. R11 claims discipline and reproducible benchmark evidence
 6. R28 multi-replica operational correctness before scaling
 7. R30 request-rendered web capacity and latency before public release
+8. R31 independent public reachability and DNS/CDN evidence
 
 ## Follow-ups (tracked, not blocking controlled alpha)
 
@@ -76,7 +78,7 @@ Likelihood: `high` \| `medium` \| `low`
 | FU-GHA-01 | Upgrade GitHub-owned actions from deprecated Node 20 runtime | **DRAFT_PR_READY** | Stage C draft PR #8 uses `actions/checkout@v7` and `actions/setup-node@v7`; all eight jobs passed in run `30846000773`; close after owner merge. |
 | FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification; success = Colima + stack + LaunchAgent tunnel + Access + remote monitor without undocumented repair |
 | FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window; helpful before adding other testers |
-| FU-PUBLIC-BETA-01 | Capture and owner-review all ten Stage F evidence gates | **OPEN** | Harness/template exist, but hosted operation, load, preview, rollback, human a11y, incident rota, public TLS/headers, approvals, and publication evidence remain pending. |
+| FU-PUBLIC-BETA-01 | Capture and owner-review all ten Stage F evidence gates | **OPEN** | Harness/template and public-origin collection mechanics exist, but hosted operation, load, preview, rollback, human a11y, incident rota, authorized public TLS/DNS/CDN evidence, approvals, and publication evidence remain pending. |
 
 Operating findings for Controlled Alpha Review 1: `docs/alpha/CONTROLLED_ALPHA_LOG.md`.
 

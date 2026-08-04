@@ -26,6 +26,13 @@ npm --prefix apps/web run e2e
 # --confirm-target LOAD_TEST (see infra/public-beta/README.md).
 node infra/public-beta/load-route-search.mjs \
   --base-url http://127.0.0.1:8080
+
+# Local public-origin mechanics only. An authorized remote run requires two
+# HTTPS origins plus --confirm-target PUBLIC_ORIGIN_CHECK.
+node infra/public-beta/verify-public-origin.mjs \
+  --web-url http://127.0.0.1:3000 \
+  --api-url http://127.0.0.1:8080 \
+  --release-commit "$(git rev-parse HEAD)"
 ```
 
 Use `docs/public-beta/evidence-template.json` only after the release owner has
@@ -36,7 +43,10 @@ evidence artifacts over 50 MiB are rejected. `--structure-only` never grants a
 release status. Local production E2E verifies the app-owned nonce CSP, baseline
 headers, and linked limitations route. The public-origin gate must separately
 verify TLS, HSTS policy, CDN/proxy behavior, and the final runtime headers at
-the approved edge. Nonce rendering also requires preview/load capacity evidence.
+the approved edge. `verify-public-origin.mjs` prepares a bounded, commit-bound
+artifact for that review but does not authorize remote traffic or prove public
+reachability by itself. Nonce rendering also requires preview/load capacity
+evidence.
 
 See `docs/public-beta/READINESS.md`, `INCIDENT_PLAYBOOK.md`, and
 `LIMITATIONS.md` for the pending gates and draft operating/public copy.
