@@ -10,9 +10,10 @@ const nextConfig: NextConfig = {
   },
   webpack: (config) => {
     config.resolve = config.resolve ?? {};
-    const alias: Record<string, string | false | string[]> = {
-      ...((config.resolve.alias as Record<string, string | false | string[]>) ??
-        {}),
+    const existingAliases =
+      (config.resolve.alias as Record<string, string | false | string[]>) ?? {};
+    let alias: Record<string, string | false | string[]> = {
+      ...existingAliases,
       "@contracts": path.resolve(__dirname, "../../contracts"),
     };
 
@@ -28,11 +29,20 @@ const nextConfig: NextConfig = {
       // The application imports this module through the @/* TypeScript alias.
       // Alias that exact request before path expansion, and retain the absolute
       // aliases for requests that Next/Webpack has already normalized.
-      alias["@/lib/api/create-client$"] = liveFactory;
-      alias["@/lib/api/create-client"] = liveFactory;
-      alias[path.resolve(__dirname, "src/lib/api/create-client.ts")] =
-        liveFactory;
-      alias[path.resolve(__dirname, "src/lib/api/create-client")] = liveFactory;
+      const exactLiveAliases = {
+        "@/lib/api/create-client$": liveFactory,
+        "@/lib/api/create-client": liveFactory,
+        [path.resolve(__dirname, "src/lib/api/create-client.ts")]: liveFactory,
+        [path.resolve(__dirname, "src/lib/api/create-client")]: liveFactory,
+      };
+      for (const key of Object.keys(exactLiveAliases)) {
+        delete existingAliases[key];
+      }
+      alias = {
+        ...exactLiveAliases,
+        ...existingAliases,
+        "@contracts": path.resolve(__dirname, "../../contracts"),
+      };
     }
 
     config.resolve.alias = alias;

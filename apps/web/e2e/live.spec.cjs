@@ -316,7 +316,9 @@ test.describe("BetterMTA live frontend (mocked API)", () => {
     const badges = page.locator("button.line-badge");
     expect(await badges.count()).toBeGreaterThan(9);
 
-    await page.getByRole("button", { name: /Close line picker/i }).click();
+    await page
+      .getByRole("button", { name: /Close preferred lines picker/i })
+      .click();
     await page.getByTestId("find-routes").click();
     await expect(page.getByTestId("results-list")).toBeVisible();
     const card = page.getByTestId("route-card").first();

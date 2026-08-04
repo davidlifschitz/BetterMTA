@@ -37,6 +37,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R26 | Preferred-line candidate coverage gap (OTP top-N misses preferences → silent 0-of-N) | critical | high | Stage C adds topology-aware subsets/vias, exact live GTFS inverse binding, and honest exhaustion semantics; hard live subset passes, five soft live watch failures remain before deployment/recertification | Routing + API + QA |
 | R27 | Rider confusion: “required” copy vs fill-gaps connectors / GS vs S labeling | medium | medium | FE copy + S/GS presentation (ADR-0023 note); partial-match banners; no runtime lineId rename | Frontend + Product |
 | R28 | Process-local rate limits/metrics are treated as multi-replica durable, or geocode PlaceRef key lifecycle is mismanaged | high | medium | Stateless encrypted PlaceRefs now pass cross-replica/tamper/expiry/wrong-key tests; keep address flag off and API single-replica until the key is provisioned consistently, a shared rate limiter and aggregated observability are bound, and rotation/deploy evidence is recorded | Backend + Infra |
+| R29 | Partial, stale, synthetic, or cross-commit evidence is mistaken for public-beta readiness | high | medium | Exact ten-gate allowlist; fail-closed `NOT_READY`; expected-commit and SHA-256 binding; bounded artifacts; structure-only CI cannot assert readiness; owner reviews live evidence together | QA + Infra + Integration |
 
 ## Top watchlist for first integration
 
@@ -56,6 +57,15 @@ Likelihood: `high` \| `medium` \| `low`
 7. R26 preferred-line candidate coverage (P1 routing waves; docs-only until implemented)  
 8. R25 geocode privacy/attribution when address/POI flag enables
 
+## Public-beta watchlist (Stage F)
+
+1. R29 readiness evidence provenance and freshness
+2. R6 route-search p95 under the approved workload
+3. R9 core-flow accessibility, including human review
+4. R24 dependency advisories before a public release
+5. R11 claims discipline and reproducible benchmark evidence
+6. R28 multi-replica operational correctness before scaling
+
 ## Follow-ups (tracked, not blocking controlled alpha)
 
 | ID | Item | Status | Notes |
@@ -64,6 +74,7 @@ Likelihood: `high` \| `medium` \| `low`
 | FU-GHA-01 | Upgrade GitHub-owned actions from deprecated Node 20 runtime | **DRAFT_PR_READY** | Stage C draft PR #8 uses `actions/checkout@v7` and `actions/setup-node@v7`; all eight jobs passed in run `30846000773`; close after owner merge. |
 | FU-ALPHA-01 | Mac logout/reboot LaunchAgent recovery drill | **PENDING_USER** | Non-blocking residual under current certification; success = Colima + stack + LaunchAgent tunnel + Access + remote monitor without undocumented repair |
 | FU-ALPHA-02 | Configure GitHub scheduled monitor secrets | **OPEN** | Optional for personal alpha window; helpful before adding other testers |
+| FU-PUBLIC-BETA-01 | Capture and owner-review all ten Stage F evidence gates | **OPEN** | Harness/template exist, but hosted operation, load, preview, rollback, human a11y, incident rota, public TLS/headers, approvals, and publication evidence remain pending. |
 
 Operating findings for Controlled Alpha Review 1: `docs/alpha/CONTROLLED_ALPHA_LOG.md`.
 

@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Audience:** Codex (or any agent) taking over the whole product trajectory  
-**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
+**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-readiness`
 **Repo:** `davidlifschitz/BetterMTA`
 
 This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.agents/handoffs/p1-codex-continuation.md` and `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
@@ -17,8 +17,8 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
-| Active program branch | `codex/stage-d-private-beta-prep` (candidate based on Stage C tip `fac7e06`; local validation green) |
-| Immediate unfinished work | Finish Stage D candidate validation/publishing; Fly activation, secrets, scaling, and cohort expansion remain owner-gated |
+| Active program branch | `codex/stage-f-readiness-harness` (stacked on green Stage D draft PR #9) |
+| Immediate unfinished work | Finish Stage F harness validation/publishing; every hosted/live evidence gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -187,7 +187,7 @@ Work:
 - Privacy policy + support workflow draft
 - Cohort 5–10 → expand carefully
 
-**Stage D preparation candidate (2026-08-04; not activated):** `codex/stage-d-private-beta-prep` adds expiring AES-256-GCM geocode PlaceRefs that resolve across API replicas sharing one key, fail closed on tamper/expiry/wrong-key, and refuse production address/POI boot without that key. Stable place-query/provider hashes and encrypted PlaceRefs are excluded or redacted from operational logs. Fly preparation now has strict public-origin validation, a read-only normal/initial preflight, prior-image manifest capture, guarded image-based rollback, exact one-Machine caps, serialized deployment, deterministic operator tests, and deploy-workflow manifest retention; current Fly guidance no longer uses a special releases-rollback command. Draft privacy/support documents are present but unpublished and unapproved. Local validation passes (API 123 passed + 1 intentional skip, API build, contracts, Fly operator/preflight, config parsing, Compose resolution, hygiene and high-confidence secret scan); remote draft-PR CI is pending. No Fly authentication, app creation, secrets, deployment, scaling, live change, flag-on, or cohort expansion occurred. The product remains `READY_FOR_P1_CONTROLLED_ALPHA`, not `READY_FOR_PRIVATE_BETA`.
+**Stage D preparation candidate (2026-08-04; not activated):** Green draft PR #9 on `codex/stage-d-private-beta-prep` adds expiring AES-256-GCM geocode PlaceRefs that resolve across API replicas sharing one key, fail closed on tamper/expiry/wrong-key, and refuse production address/POI boot without that key. Stable place-query/provider hashes and encrypted PlaceRefs are excluded or redacted from operational logs. Fly preparation now has strict public-origin validation, a read-only normal/initial preflight, prior-image manifest capture, guarded image-based rollback, exact one-Machine caps, serialized deployment, deterministic operator tests, and deploy-workflow manifest retention; current Fly guidance no longer uses a special releases-rollback command. Draft privacy/support documents are present but unpublished and unapproved. No Fly authentication, app creation, secrets, deployment, scaling, live change, flag-on, or cohort expansion occurred. The product remains `READY_FOR_P1_CONTROLLED_ALPHA`, not `READY_FOR_PRIVATE_BETA`.
 
 **Exit:** `READY_FOR_PRIVATE_BETA` with evidence — still not public.
 
@@ -210,6 +210,17 @@ Sequence suggestion: arrive-by after routing stable; feedback before preference 
 - Incident playbook + on-call lite
 - Public URL + TLS + clear limitations copy
 - Narrow scope still: subway-first NYC; no AI chat/social/native apps
+
+**Stage F readiness candidate (2026-08-04; mechanics only):** Green draft PR #10 on
+`codex/stage-f-readiness-harness` adds a bounded privacy-safe route-search load
+probe, an exact ten-gate fail-closed evidence validator, live-mode fixture
+exclusion fixes, Playwright keyboard/mobile/axe coverage in CI, draft incident
+operations, and limitations copy. Structure checks and synthetic validator
+tests are green; none of the pending hosted/private-beta, production load,
+preview, live rollback, human accessibility, on-call, public TLS/headers,
+approval, or publication evidence has been claimed. See
+`.agents/handoffs/stage-f-readiness-harness.md` and
+`docs/public-beta/READINESS.md`.
 
 **Exit:** `READY_FOR_PUBLIC_BETA`.
 
