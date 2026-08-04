@@ -18,6 +18,14 @@ fail() {
   exit 1
 }
 
+file_mode() {
+  if [ "$(uname -s)" = "Darwin" ]; then
+    stat -f '%Lp' "$1"
+  else
+    stat -c '%a' "$1"
+  fi
+}
+
 for script in \
   "${FLY_ROOT}/scripts/preflight-private-beta.sh" \
   "${FLY_ROOT}/scripts/capture-rollback-manifest.sh" \
@@ -82,7 +90,7 @@ if preflight_failure="$(
 )"; then
   fail "preflight accepted failed public health"
 fi
-if rg -q 'api[.]example[.]invalid|web[.]example[.]invalid' \
+if grep -E -q 'api[.]example[.]invalid|web[.]example[.]invalid' \
   <<<"$preflight_failure"; then
   fail "preflight failure output exposed protected hostnames"
 fi
@@ -96,7 +104,7 @@ fi
 
 manifest="${TEST_TMP}/rollback.json"
 "${FLY_ROOT}/scripts/capture-rollback-manifest.sh" --output "$manifest" >/dev/null
-manifest_mode="$(stat -f '%Lp' "$manifest" 2>/dev/null || stat -c '%a' "$manifest")"
+manifest_mode="$(file_mode "$manifest")"
 [ "$manifest_mode" = 600 ] || fail "rollback manifest mode is not 0600"
 jq -e '
   .schemaVersion == 1 and
@@ -139,7 +147,7 @@ if rollback_failure="$(
 )"; then
   fail "rollback accepted failed public health"
 fi
-if rg -q 'api[.]example[.]invalid|web[.]example[.]invalid' \
+if grep -E -q 'api[.]example[.]invalid|web[.]example[.]invalid' \
   <<<"$rollback_failure"; then
   fail "rollback failure output exposed protected hostnames"
 fi
@@ -156,62 +164,62 @@ if "${FLY_ROOT}/scripts/rollback-private-beta.sh" --manifest "$tampered" >/dev/n
   fail "rollback accepted an unexpected app"
 fi
 
-if rg -n "fly(ctl)? releases rollback" \
+if grep -E -R -n "fly(ctl)? releases rollback" \
   "${FLY_ROOT}" \
   "${REPO_ROOT}/docs" \
   "${REPO_ROOT}/.github/workflows/deploy.yml" >/dev/null; then
   fail "removed Fly rollback command is still documented or automated"
 fi
-rg -q "capture-rollback-manifest[.]sh" \
+grep -E -q "capture-rollback-manifest[.]sh" \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not capture the pre-deploy rollback set"
-rg -q 'preflight-private-beta[.]sh --initial-activation' \
+grep -E -q 'preflight-private-beta[.]sh --initial-activation' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not prove a genuinely initial activation"
-rg -q 'validate-public-origin[.]sh PUBLIC_API_BASE_URL' \
+grep -E -q 'validate-public-origin[.]sh PUBLIC_API_BASE_URL' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not use the shared public-origin validator"
-rg -q 'preflight-private-beta[.]sh --require-rollback-target' \
+grep -E -q 'preflight-private-beta[.]sh --require-rollback-target' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not preflight the retained rollback target"
-[ "$(rg -c 'preflight-private-beta[.]sh --require-rollback-target' \
+[ "$(grep -E -c 'preflight-private-beta[.]sh --require-rollback-target' \
   "${REPO_ROOT}/.github/workflows/deploy.yml")" -ge 2 ] ||
   fail "deploy workflow does not recheck Machine caps after deployment"
-rg -q "rollback-private-beta[.]sh" \
+grep -E -q "rollback-private-beta[.]sh" \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not point operators to the guarded rollback command"
-rg -q 'superfly/flyctl-actions/setup-flyctl@[0-9a-f]{40}' \
+grep -E -q 'superfly/flyctl-actions/setup-flyctl@[0-9a-f]{40}' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "Fly setup action is not pinned to an immutable commit"
-rg -q '^permissions:' "${REPO_ROOT}/.github/workflows/deploy.yml" &&
-  rg -q '^  contents: read$' "${REPO_ROOT}/.github/workflows/deploy.yml" ||
+grep -E -q '^permissions:' "${REPO_ROOT}/.github/workflows/deploy.yml" &&
+  grep -E -q '^  contents: read$' "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow permissions are not least-privilege"
-rg -q 'group: deploy-fly-\$\{\{ inputs[.]environment \}\}' \
+grep -E -q 'group: deploy-fly-\$\{\{ inputs[.]environment \}\}' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" &&
-  rg -q '^  cancel-in-progress: false$' \
+  grep -E -q '^  cancel-in-progress: false$' \
     "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not serialize per environment"
-rg -q -- '--image-label.*GITHUB_SHA' \
+grep -E -q -- '--image-label.*GITHUB_SHA' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" ||
   fail "deploy workflow does not label images with the source commit"
-[ "$(rg -c -- '--ha=false' "${REPO_ROOT}/.github/workflows/deploy.yml")" -eq 4 ] ||
+[ "$(grep -E -c -- '--ha=false' "${REPO_ROOT}/.github/workflows/deploy.yml")" -eq 4 ] ||
   fail "every workflow deploy must preserve the one-Machine cap"
-[ "$(rg -c -- '--strategy rolling' "${REPO_ROOT}/.github/workflows/deploy.yml")" -eq 4 ] ||
+[ "$(grep -E -c -- '--strategy rolling' "${REPO_ROOT}/.github/workflows/deploy.yml")" -eq 4 ] ||
   fail "every workflow deploy must select the rolling strategy"
-[ "$(rg -c -- '--yes' "${REPO_ROOT}/.github/workflows/deploy.yml")" -eq 4 ] ||
+[ "$(grep -E -c -- '--yes' "${REPO_ROOT}/.github/workflows/deploy.yml")" -eq 4 ] ||
   fail "every workflow deploy must be noninteractive"
-if rg -n 'NEXT_PUBLIC_API_BASE_URL=\$\{url\}|Health gate against https' \
+if grep -E -n 'NEXT_PUBLIC_API_BASE_URL=\$\{url\}|Health gate against https' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" >/dev/null; then
   fail "deploy workflow prints protected hostnames"
 fi
-if rg -n 'got: \$url|echo .*\$\{?(PUBLIC_API_BASE_URL|API_HOST)' \
+if grep -E -n 'got: \$url|echo .*\$\{?(PUBLIC_API_BASE_URL|API_HOST)' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" >/dev/null; then
   fail "deploy workflow failure output may expose a protected hostname"
 fi
-rg -q 'must be a non-localhost HTTPS origin' \
+grep -E -q 'must be a non-localhost HTTPS origin' \
   "${FLY_ROOT}/scripts/validate-public-origin.sh" ||
   fail "shared validator does not require a public HTTPS origin"
-if rg -n 'curl -[^ ]*S' \
+if grep -E -n 'curl -[^ ]*S' \
   "${REPO_ROOT}/.github/workflows/deploy.yml" >/dev/null; then
   fail "deploy workflow curl failures may expose protected hostnames"
 fi
