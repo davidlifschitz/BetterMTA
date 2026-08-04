@@ -79,16 +79,20 @@ After the smoke suite passes, CI writes a bounded JSON artifact with:
 
 ```bash
 node infra/public-beta/write-preview-evidence.mjs \
-  --release-commit "$GITHUB_SHA" \
+  --release-commit "$PREVIEW_RELEASE_COMMIT" \
   --image-id "$PREVIEW_IMAGE_ID" \
   --smoke-status pass
 ```
 
-The writer accepts only a full lowercase commit SHA, a Docker `sha256:` image
-ID, and a passing smoke result. It emits no URL or hostname and labels the
-artifact `ci-runner-local-production-container`, with production mutation and
-external reachability both false. This proves a CI-created production-container
-preview, not a hosted/public preview, edge integration, or release readiness.
+The workflow sets `PREVIEW_RELEASE_COMMIT` to the reviewed pull-request head SHA
+or, for a push run, the push SHA; GitHub's synthetic pull-request merge SHA is
+never used as release identity. The same value tags the image and binds the
+evidence. The writer accepts only a full lowercase commit SHA, a Docker
+`sha256:` image ID, and a passing smoke result. It emits no URL or hostname and
+labels the artifact `ci-runner-local-production-container`, with production
+mutation and external reachability both false. This proves a CI-created
+production-container preview, not a hosted/public preview, edge integration, or
+release readiness.
 
 ## Readiness validation
 

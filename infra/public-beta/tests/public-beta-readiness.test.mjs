@@ -494,6 +494,7 @@ test("repository readiness structure is complete without claiming readiness", as
     /docker build/,
     /--file apps\/web\/Dockerfile/,
     /npm --prefix contracts ci/,
+    /PREVIEW_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
     /--build-arg NEXT_PUBLIC_API_BASE_URL=http:\/\/127[.]0[.]0[.]1:3999/,
     /--build-arg NEXT_PUBLIC_API_MODE=live/,
     /--build-arg NEXT_PUBLIC_FLAG_FEEDBACK=false/,
@@ -502,11 +503,13 @@ test("repository readiness structure is complete without claiming readiness", as
     /BETTERMTA_E2E_EXTERNAL_BASE: http:\/\/127[.]0[.]0[.]1:3100/,
     /npm --prefix apps\/web run e2e/,
     /write-preview-evidence[.]mjs/,
+    /--release-commit "\$PREVIEW_RELEASE_COMMIT"/,
     /infra\/public-beta\/evidence\/preview/,
     /actions\/upload-artifact@v7/,
   ]) {
     assert.match(previewJob, pattern);
   }
+  assert.doesNotMatch(previewJob, /--release-commit "\$GITHUB_SHA"/);
   assert.doesNotMatch(previewJob, /\bfly(?:ctl)?\b|deploy|secret|scale/i);
 
   const playwrightConfig = await readFile(

@@ -93,6 +93,12 @@ cd apps/web && BETTERMTA_E2E_EXTERNAL_BASE=http://127.0.0.1:3100 npm run e2e
   `contracts/node_modules` and failed to resolve Ajv. A TDD regression now
   requires `npm --prefix contracts ci` inside that job, and the job installs
   both lockfile-pinned dependency trees. The replacement CI run is required.
+- Replacement CI run `30956256407` passed 10/10 jobs and retained a valid,
+  privacy-safe image/smoke artifact. Post-run provenance inspection caught that
+  the artifact used GitHub's synthetic pull-request merge SHA instead of the
+  reviewed head commit. A TDD regression now binds the image tag and evidence to
+  `github.event.pull_request.head.sha`, with `github.sha` only as the push-event
+  fallback. A final replacement CI run and artifact audit are required.
 - The explicit local preview container and image tag were removed after proof.
 
 ## 7. Fixture or sample-data instructions
