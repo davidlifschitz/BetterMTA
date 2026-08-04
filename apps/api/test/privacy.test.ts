@@ -3,8 +3,6 @@ import { createLogger, redactSensitive } from "../src/logging/logger.js";
 import {
   buildPrivacySafeRouteSearchLog,
   coarseGridId,
-  hashPlaceQuery,
-  hashVendorId,
   isSensitiveLogKey,
   redactAddressOrPoiText,
   toPrivacySafePlaceLogRef,
@@ -31,6 +29,14 @@ describe("privacy redaction (ADR-0022 / API_CONTRACT §11)", () => {
       poiQuery: "museum",
       label: "User typed label",
       providerPlaceId: "prov_opaque_277_park",
+      placeId: "pl_geo_v1.high_cardinality_encrypted_location_token",
+      debugMessage:
+        "resolve failed for pl_geo_v1.high_cardinality_encrypted_location_token",
+      debugValues: [
+        "pl_geo_v1.high_cardinality_encrypted_location_token",
+        "failure near 40.67912,-73.99534",
+        "safe aggregate",
+      ],
       vendorPlaceId: "mapbox.place.abc",
       proximityLat: 40.7512,
       proximityLon: -73.9758,
@@ -49,6 +55,13 @@ describe("privacy redaction (ADR-0022 / API_CONTRACT §11)", () => {
     expect(redacted.poiQuery).toBe("[redacted]");
     expect(redacted.label).toBe("[redacted]");
     expect(redacted.providerPlaceId).toBe("[redacted]");
+    expect(redacted.placeId).toBe("[redacted]");
+    expect(redacted.debugMessage).toBe("[redacted]");
+    expect(redacted.debugValues).toEqual([
+      "[redacted]",
+      "[redacted]",
+      "safe aggregate",
+    ]);
     expect(redacted.vendorPlaceId).toBe("[redacted]");
     expect(redacted.proximityLat).toBe("[redacted]");
     expect(redacted.proximityLon).toBe("[redacted]");
@@ -58,7 +71,7 @@ describe("privacy redaction (ADR-0022 / API_CONTRACT §11)", () => {
     expect(redacted.authorization).toBe("[redacted]");
     expect(redacted.apiKey).toBe("[redacted]");
     expect(redacted.queryLength).toBe(15);
-    expect(redacted.placeQueryHash).toBe("abc123");
+    expect(redacted.placeQueryHash).toBe("[redacted]");
     expect(redacted.requestId).toBe("req_1");
   });
 
@@ -74,28 +87,12 @@ describe("privacy redaction (ADR-0022 / API_CONTRACT §11)", () => {
   it("flags sensitive keys", () => {
     expect(isSensitiveLogKey("providerPlaceId")).toBe(true);
     expect(isSensitiveLogKey("formattedAddress")).toBe(true);
-    expect(isSensitiveLogKey("placeQueryHash")).toBe(false);
+    expect(isSensitiveLogKey("placeQueryHash")).toBe(true);
     expect(isSensitiveLogKey("queryLength")).toBe(false);
   });
 });
 
-describe("privacy hashing / coarsening helpers", () => {
-  it("hashes place queries stably without retaining plaintext", () => {
-    const a = hashPlaceQuery("  277 Park Avenue ");
-    const b = hashPlaceQuery("277 park avenue");
-    expect(a).toBe(b);
-    expect(a).toMatch(/^[a-f0-9]{16}$/);
-    expect(a).not.toContain("park");
-    expect(hashPlaceQuery("")).toBeUndefined();
-    expect(hashPlaceQuery(null)).toBeUndefined();
-  });
-
-  it("hashes vendor ids", () => {
-    const h = hashVendorId("prov_opaque_277_park");
-    expect(h).toMatch(/^[a-f0-9]{16}$/);
-    expect(h).not.toContain("277");
-  });
-
+describe("privacy coarsening helpers", () => {
   it("coarsens coordinates to ~1km grid", () => {
     expect(coarseGridId(40.67912, -73.99534)).toBe("40.67,-73.99");
     expect(coarseGridId(91, 0)).toBeUndefined();
@@ -122,6 +119,17 @@ describe("privacy hashing / coarsening helpers", () => {
     expect(coord).not.toHaveProperty("label");
   });
 
+  it("never logs opaque geocode PlaceRef tokens", () => {
+    const token = "pl_geo_v1.high_cardinality_encrypted_location_token";
+    const ref = toPrivacySafePlaceLogRef({ placeId: token });
+    expect(ref).toEqual({
+      refType: "placeId",
+      provider: "geocoder",
+      kind: "address_or_poi",
+    });
+    expect(JSON.stringify(ref)).not.toContain(token);
+  });
+
   it("builds PrivacySafeRouteSearchLog with counts not line lists", () => {
     const log = buildPrivacySafeRouteSearchLog({
       requestId: "req_x",
@@ -129,11 +137,10 @@ describe("privacy hashing / coarsening helpers", () => {
       destination: { coordinate: { lat: 40.75, lon: -73.98 } },
       timingType: "depart_now",
       selectedLineIds: ["F", "B", "G"],
-      placeQueryText: "277 Park",
     });
     expect(log.selectedLineCount).toBe(3);
     expect(log).not.toHaveProperty("selectedLineIds");
-    expect(log.placeQueryHash).toMatch(/^[a-f0-9]{16}$/);
+    expect(log).not.toHaveProperty("placeQueryHash");
     expect(JSON.stringify(log)).not.toMatch(/277 Park|Park Avenue/);
     expect(JSON.stringify(log)).not.toMatch(/40\.75001|-73\.98001/);
   });
@@ -325,7 +332,7 @@ describe("route-search privacy signals", () => {
 });
 
 describe("places endpoint privacy regression", () => {
-  it("never logs raw q or precise proximity; emits hash + metrics", async () => {
+  it("never logs raw q, a stable query hash, or precise proximity", async () => {
     const captured: string[] = [];
     const logger = createLogger("info");
     const origLog = console.log;
@@ -353,7 +360,7 @@ describe("places endpoint privacy regression", () => {
     expect(joined).toContain("places_ok");
     expect(joined).not.toMatch(/Carroll Street/);
     expect(joined).not.toMatch(/40\.67912|-73\.99534/);
-    expect(joined).toMatch(/placeQueryHash/);
+    expect(joined).not.toMatch(/placeQueryHash/);
     expect(joined).toMatch(/proximityGrid/);
     expect(
       metrics.getCounter("bettermta_places_search_total", { result: "ok" }) +
@@ -371,18 +378,23 @@ describe("logger end-to-end redaction", () => {
     };
     try {
       const logger = createLogger("info");
-      logger.info("leak_check", {
-        q: "secret address",
-        lat: 40.1,
-        providerPlaceId: "vend_1",
-        queryLength: 14,
-      });
+      logger.info(
+        "leak_check pl_geo_v1.high_cardinality_encrypted_location_token at 40.67912,-73.99534",
+        {
+          q: "secret address",
+          lat: 40.1,
+          providerPlaceId: "vend_1",
+          queryLength: 14,
+        },
+      );
     } finally {
       console.log = orig;
     }
     expect(captured[0]).not.toContain("secret address");
     expect(captured[0]).not.toContain("40.1");
     expect(captured[0]).not.toContain("vend_1");
+    expect(captured[0]).not.toContain("pl_geo_v1.");
+    expect(captured[0]).not.toContain("40.67912");
     expect(captured[0]).toContain('"queryLength":14');
   });
 });

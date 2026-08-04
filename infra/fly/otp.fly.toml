@@ -14,8 +14,8 @@
 #   # --config/--dockerfile paths are then relative to that context:
 #   fly deploy services/otp -a bettermta-otp -c ../infra/fly/otp.fly.toml
 #
-# One-action rollback:
-#   fly releases rollback -a bettermta-otp
+# Coordinated immutable-image rollback:
+#   ./infra/fly/scripts/rollback-private-beta.sh --manifest <path> --execute
 
 app = 'bettermta-otp'
 primary_region = 'ewr'

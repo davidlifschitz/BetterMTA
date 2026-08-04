@@ -35,7 +35,7 @@ export function createLogger(level: LogLevel = "info") {
     const safe = redactSensitive(fields);
     const line = JSON.stringify({
       level: at,
-      msg,
+      msg: redactSensitiveString(msg),
       ts: new Date().toISOString(),
       ...safe,
     });
@@ -69,28 +69,33 @@ export function redactSensitive(fields: LogFields): LogFields {
       continue;
     }
     if (Array.isArray(v)) {
-      out[k] = v.map((item) =>
-        item && typeof item === "object"
-          ? redactSensitive(item as LogFields)
-          : item,
-      );
+      out[k] = v.map(redactSensitiveValue);
       continue;
     }
     if (v && typeof v === "object") {
       out[k] = redactSensitive(v as LogFields);
       continue;
     }
-    // Catch lat/lon embedded in free-form strings (e.g. "40.67912,-73.99534").
-    if (typeof v === "string" && looksLikePreciseCoordinatePair(v)) {
-      out[k] = REDACTED;
-      continue;
-    }
-    out[k] = v;
+    out[k] = redactSensitiveValue(v);
   }
   return out;
 }
 
+function redactSensitiveValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redactSensitiveValue);
+  if (value && typeof value === "object") {
+    return redactSensitive(value as LogFields);
+  }
+  return typeof value === "string" ? redactSensitiveString(value) : value;
+}
+
+function redactSensitiveString(value: string): string {
+  return value.includes("pl_geo_v1.") || looksLikePreciseCoordinatePair(value)
+    ? REDACTED
+    : value;
+}
+
 /** Heuristic: decimal degree pair at >2 fractional digits. */
 export function looksLikePreciseCoordinatePair(value: string): boolean {
-  return /^-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}$/.test(value.trim());
+  return /-?\d{1,3}\.\d{3,}\s*,\s*-?\d{1,3}\.\d{3,}/.test(value);
 }

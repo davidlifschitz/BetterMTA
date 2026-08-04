@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-/** Stable BetterMTA placeId for a geocode-backed result (not providerPlaceId). */
+/** Stable provider-local seed id; production replaces it with an opaque PlaceRef. */
 export function placeIdForGeocode(seed: string): string {
   const digest = createHash("sha256").update(seed).digest("hex").slice(0, 16);
   return `pl_geo_${digest}`;

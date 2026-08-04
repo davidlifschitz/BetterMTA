@@ -168,6 +168,8 @@ deployments/*.env
 deployments/failed-*.env
 deployments/manifests/*
 !deployments/manifests/.gitkeep
+infra/fly/manifests/*
+!infra/fly/manifests/.gitkeep
 
 # Accidental cloudflared credentials dropped in-repo (template stays tracked)
 infra/alpha/cloudflared/*.json

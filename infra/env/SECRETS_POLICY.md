@@ -10,6 +10,7 @@
 - Postgres connection strings (`DATABASE_URL`)
 - Error-tracking DSNs (`SENTRY_DSN`, `ERROR_TRACKING_DSN`)
 - Place/geocode provider API keys
+- BetterMTA encrypted geocode PlaceRef keys (`BETTERMTA_PLACE_REF_KEY`)
 - Any signing keys or webhook secrets
 
 ## What may live in git
@@ -32,6 +33,10 @@
 3. Staging and production use **separate** Fly apps and secret stores.
 4. Preview/PR apps use staging-scoped or ephemeral credentials with least privilege; never production MTA keys if avoidable.
 5. Rotate by `fly secrets set` (new value) then verify `/health/ready` and `/v1/status`; revoke old provider keys after cutover.
+
+`BETTERMTA_PLACE_REF_KEY` is intentionally shared by compatible API replicas and
+rollback images. Rotation invalidates outstanding short-lived geocode PlaceRefs; rotate
+only during a controlled window and verify a fresh place-search → route-search flow.
 
 ## CI
 

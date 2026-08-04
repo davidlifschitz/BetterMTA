@@ -108,10 +108,14 @@ Merge-blocking rows are G01–G07 only. Fly BLOCKED / Google NOT_CLAIMED do not 
 
 ## Unblocks required for `READY_FOR_PRIVATE_BETA`
 
-1. Activate Fly (`flyctl` auth, apps, secrets, deploy) with non-localhost public API URL.  
-2. Complete one-action rollback drill (G18 / E.4).  
-3. Bind minimal production alerts (G19).  
-4. Human-accept shadow validity; close multi-line diversity residual risk for invite cohort.  
-5. Re-run gate + live smoke against Fly URL.
+Stage D preparation on `codex/stage-d-private-beta-prep` adds a tested candidate for encrypted cross-replica PlaceRefs, read-only Fly preflight, prior-image manifest capture, guarded image-based rollback, and draft privacy/support operations. It has **not** activated Fly or changed this report's status.
+
+1. Owner-approve and merge the prerequisite Stage C/Stage D branches; provision Fly authentication, apps, volumes, and secrets without exposing values.
+2. Run the read-only preflight, deploy immutable commit-labeled images with a non-localhost public HTTPS API origin, and record the exact release set.
+3. Complete an image-based rollback drill to the recorded prior set, restore the candidate, and retain evidence (G18 / E.4).
+4. Bind aggregated production logs/metrics and minimal alerts (G19); keep API at one replica until a shared rate limiter is proven.
+5. Owner/legal-approve the privacy policy, retention configuration, private support channel, and response workflow.
+6. Human-accept shadow validity and decide how the five soft multi-line diversity/timeout watch cases bound the invite cohort.
+7. Re-run the release gate, live smoke, privacy checks, and public health checks against the Fly URL before any cohort expansion.
 
 Public beta additionally needs G13/G15 closure, production domain/TLS, and explicit non-claims discipline (G20).

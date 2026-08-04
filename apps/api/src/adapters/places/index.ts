@@ -14,6 +14,12 @@ export { NominatimGeocoderAdapter } from "./nominatimGeocoder.js";
 export { createGeocoderProvider } from "./createGeocoder.js";
 export type { GeocoderProviderName } from "./createGeocoder.js";
 export { GeocodeResolveCache } from "./resolveCache.js";
+export {
+  GeocodePlaceRefCodec,
+  assertProductionPlaceRefKey,
+  decodeGeocodePlaceRefKey,
+} from "./placeRefCodec.js";
+export type { GeocodePlaceRefCodecOptions } from "./placeRefCodec.js";
 export { GeocodeQueryCache } from "./queryCache.js";
 export { placeIdForGeocode, privacySafeQueryCacheKey } from "./placeId.js";
 export {

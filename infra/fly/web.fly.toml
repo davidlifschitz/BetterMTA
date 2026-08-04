@@ -17,8 +17,8 @@
 #   fly deploy -a bettermta-web -c infra/fly/web.fly.toml \
 #     --build-arg NEXT_PUBLIC_API_BASE_URL=https://bettermta-api.fly.dev
 #
-# One-action rollback:
-#   fly releases rollback -a bettermta-web
+# Coordinated immutable-image rollback:
+#   ./infra/fly/scripts/rollback-private-beta.sh --manifest <path> --execute
 
 app = 'bettermta-web'
 primary_region = 'ewr'

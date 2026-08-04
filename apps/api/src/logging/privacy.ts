@@ -5,11 +5,7 @@
  * than logging raw address text, POI queries, precise coords, or vendor IDs.
  */
 
-import { createHash } from "node:crypto";
 import type { PlaceRef, Timing } from "../types.js";
-
-/** Truncated SHA-256 hex for free-text queries — never store the raw string. */
-export const PLACE_QUERY_HASH_LENGTH = 16;
 
 /** ~1 km coarsening (~0.01°). */
 export const COARSE_GRID_DECIMALS = 2;
@@ -31,7 +27,6 @@ export type PrivacySafeRouteSearchLog = {
   /** Preference *count* only — never emit raw selected-line lists here. */
   selectedLineCount?: number;
   timingType: Timing["type"];
-  placeQueryHash?: string;
 };
 
 /** Keys that must never appear in default logs/analytics (case-insensitive match). */
@@ -54,6 +49,7 @@ export const SENSITIVE_LOG_KEY_PATTERNS: readonly RegExp[] = [
   /^rawquery$/i,
   /^searchquery$/i,
   /^querytext$/i,
+  /^placequeryhash$/i,
   /^address$/i,
   /^formattedaddress$/i,
   /^street$/i,
@@ -73,20 +69,6 @@ export const SENSITIVE_LOG_KEY_PATTERNS: readonly RegExp[] = [
 
 export function isSensitiveLogKey(key: string): boolean {
   return SENSITIVE_LOG_KEY_PATTERNS.some((re) => re.test(key));
-}
-
-/**
- * Stable truncated hash of address / POI query text.
- * Empty / whitespace-only input yields undefined (nothing to hash).
- */
-export function hashPlaceQuery(text: string | undefined | null): string | undefined {
-  if (typeof text !== "string") return undefined;
-  const normalized = text.trim().toLowerCase();
-  if (normalized.length === 0) return undefined;
-  return createHash("sha256")
-    .update(normalized, "utf8")
-    .digest("hex")
-    .slice(0, PLACE_QUERY_HASH_LENGTH);
 }
 
 /**
@@ -113,6 +95,13 @@ export function toPrivacySafePlaceLogRef(
   extras?: { provider?: string; kind?: string },
 ): PrivacySafePlaceLogRef {
   if ("placeId" in ref) {
+    if (ref.placeId.startsWith("pl_geo_")) {
+      return {
+        refType: "placeId",
+        provider: extras?.provider ?? "geocoder",
+        kind: extras?.kind ?? "address_or_poi",
+      };
+    }
     return {
       refType: "placeId",
       placeId: ref.placeId,
@@ -147,7 +136,6 @@ export function buildPrivacySafeRouteSearchLog(input: {
   destination: PlaceRef;
   timingType: Timing["type"];
   selectedLineIds?: string[];
-  placeQueryText?: string;
   originExtras?: { provider?: string; kind?: string };
   destinationExtras?: { provider?: string; kind?: string };
 }): PrivacySafeRouteSearchLog {
@@ -161,9 +149,6 @@ export function buildPrivacySafeRouteSearchLog(input: {
     ),
     ...(selectedLineCount !== undefined ? { selectedLineCount } : {}),
     timingType: input.timingType,
-    ...(hashPlaceQuery(input.placeQueryText)
-      ? { placeQueryHash: hashPlaceQuery(input.placeQueryText) }
-      : {}),
   };
 }
 
@@ -173,13 +158,4 @@ export function buildPrivacySafeRouteSearchLog(input: {
  */
 export function redactAddressOrPoiText(_value: unknown): "[redacted]" {
   return "[redacted]";
-}
-
-/** Hash opaque vendor / provider place ids before logging. */
-export function hashVendorId(id: string | undefined | null): string | undefined {
-  if (typeof id !== "string" || id.length === 0) return undefined;
-  return createHash("sha256")
-    .update(id, "utf8")
-    .digest("hex")
-    .slice(0, PLACE_QUERY_HASH_LENGTH);
 }

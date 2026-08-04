@@ -106,6 +106,8 @@ services:
       BETTERMTA_DATA_INTERNAL_TOKEN: dev-local-token
       # Optional authenticated /internal/metrics scrape endpoint.
       BETTERMTA_METRICS_TOKEN: ${BETTERMTA_METRICS_TOKEN:-}
+      # Required before address/POI can be enabled in production; keep outside Git.
+      BETTERMTA_PLACE_REF_KEY: ${BETTERMTA_PLACE_REF_KEY:-}
       BETTERMTA_OTP_URL: http://otp:8080
       BETTERMTA_OTP_TIMEOUT_MS: "10000"
       BETTERMTA_REQUEST_TIMEOUT_MS: "15000"
