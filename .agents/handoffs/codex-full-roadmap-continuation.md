@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Audience:** Codex (or any agent) taking over the whole product trajectory  
-**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-origin-verifier`
+**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-preview-container`
 **Repo:** `davidlifschitz/BetterMTA`
 
 This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.agents/handoffs/p1-codex-continuation.md` and `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
@@ -17,8 +17,8 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
-| Active program branch | `codex/stage-f-public-origin-verifier` (stacked on green Stage F public-surface draft PR #11) |
-| Immediate unfinished work | Finish the public-origin verifier candidate; every hosted/live evidence gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
+| Active program branch | `codex/stage-f-preview-container` (stacked on the Stage F public-origin verifier candidate) |
+| Immediate unfinished work | Finish and review the runner-local production-container preview candidate; every hosted/live evidence gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -93,7 +93,7 @@ Controlled alpha ≠ private beta ≠ public beta.
 | **M1** Static routing proof | GTFS graph + constrained search + golden cases | **Largely done** via OTP + routing library + benchmarks (not a custom graph search) |
 | **M2** Real-time routing | GTFS-RT, freshness, safe degrade | **Largely done** in live stack; honesty labeling required forever |
 | **M3** Product beta | Maps, geocoding, baseline comparison, analytics, feedback, preference learning, probes | **Partial** — geocode/preferred lines = **P1**; maps/feedback/learning/accounts still deferred (D2/D3) |
-| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — CI exists; self-hosted alpha exists; **Fly private/public path not activated** |
+| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — runner-local production-container preview prepared; self-hosted alpha exists; **Fly private/public path not activated** |
 | **M5** Differentiation | Live reroute, delay handling, crowding/reliability, beat-default discovery, more modes | **Future** — after public-beta quality bar; modes = D1 |
 
 Treat `ROADMAP.md` as directional; ADR-locked deferrals override its older wording (e.g. “required-line state search”).
@@ -239,6 +239,16 @@ Local tests do not close the public-origin gate; approved remote, public
 DNS/CDN, and independent external-monitor evidence remain pending under R31.
 See `.agents/handoffs/stage-f-public-origin-verifier.md`.
 
+**Stage F production-container preview candidate (2026-08-04; runner-local):**
+The further stacked `codex/stage-f-preview-container` branch builds the real web
+Dockerfile in CI, starts the immutable image on loopback, runs the existing 14
+mocked-live core-flow/header/accessibility checks against it, scans served
+chunks for fixture markers, and retains commit/image-bound privacy-safe
+evidence. Local Docker proof is green. This does not create or validate a
+hosted/public preview, contact Fly, prove edge/CDN/external behavior, or change
+`NOT_READY`; R32 preserves that distinction. See
+`.agents/handoffs/stage-f-preview-container.md`.
+
 **Exit:** `READY_FOR_PUBLIC_BETA`.
 
 ### Stage G — Differentiation & modes — M5 + Epic D1
@@ -300,15 +310,22 @@ Secrets stay in `~/.config/bettermta/` and Cloudflare local config — never cop
 
 ---
 
-## 10. Full workspace inventory (host, 2026-08-03)
+## 10. Full workspace inventory (host, 2026-08-04)
 
-All BetterMTA git worktrees share one repo root (`bettermta`). Prefer **`bettermta-integration-live`** for continuing work. Older Step-2 / Wave-1 trees are historical — do not resume parallel feature work there unless explicitly reopening that stream.
+All BetterMTA git worktrees share one repo root (`bettermta`). Prefer the active
+stacked Stage F worktree for this readiness stream. Older Step-2 / Wave-1 trees
+are historical — do not resume feature work there unless explicitly reopening
+that stream.
 
 ### 10.1 Active / primary
 
 | Absolute path | Branch / HEAD | Tip | Role |
 |---|---|---|---|
-| `/Users/thebiglipper/Developer/bettermta-integration-live` | `agent/p1-address-preferred-lines` | `78c2ca5` | **Primary.** P1 Waves 0–4 complete; current controlled-alpha compose runs from here |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-preview-container` | `codex/stage-f-preview-container` | current branch tip | **Primary for this slice.** Runner-local production-container preview candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-origin-verifier` | `codex/stage-f-public-origin-verifier` | `cebb79c` | Parent Stage F public-origin verifier candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-public-surface` | `codex/stage-f-public-surface` | `f0d77e3` | Parent Stage F public limitations/header candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-readiness` | `codex/stage-f-readiness-harness` | `b20834d` | Parent Stage F evidence harness candidate |
+| `/Users/thebiglipper/Developer/bettermta-integration-live` | `codex/stage-d-private-beta-prep` | `48f701b` | Stage D private-beta preparation candidate; live compose lineage |
 | `/Users/thebiglipper/Developer/bettermta` | `main` | `cd7f860` | Bare/main checkout — **local `main` can lag `origin/main`**; remote tip at handoff was `54cc927` (PR #6). Prefer syncing before using as source of truth |
 
 ### 10.2 Step-2 specialist worktrees (pre-integration; largely superseded)
@@ -365,11 +382,13 @@ All already integrated into `agent/p1-address-preferred-lines`. Safe to ignore o
 You are continuing BetterMTA. Read `.agents/handoffs/codex-full-roadmap-continuation.md` first,
 then `.agents/handoffs/p1-codex-continuation.md` for completed P1 Wave 4 evidence.
 
-Primary worktree: /Users/thebiglipper/Developer/bettermta-integration-live
-P1 branch tip: agent/p1-address-preferred-lines @ 78c2ca5
+Primary worktree: /Users/thebiglipper/Developer/bettermta-stage-f-preview-container
+Active branch: codex/stage-f-preview-container (stacked Stage F candidate)
 Live alpha: READY_FOR_P1_CONTROLLED_ALPHA on immutable P1 images; rollback points to the pre-P1 certified release.
 
-Immediate mission: complete Stage C ops and quality hardening, then follow the Stage D→H roadmap in the full handoff.
+Immediate mission: finish the runner-local preview candidate, then continue the
+remaining owner-approved Stage D/Stage F evidence gates without treating local
+preview proof as hosted/public proof.
 Do not implement D1–D6 unless explicitly authorized.
 Do not merge to main unless the product owner asks. No competitor claims without benchmarks.
 No Fable orchestration unless requested — prefer focused agents with non-overlapping ownership.
@@ -380,9 +399,9 @@ No Fable orchestration unless requested — prefer focused agents with non-overl
 ## 12. Immediate vs later (one screen)
 
 **Do next**
-1. Execute Stage C hardening: `FU-NPM-01`, Wave 3 residuals, and live benchmark refresh
-2. Configure `FU-ALPHA-02` if useful; keep cohort and Fly expansion on hold
-3. Execute `FU-ALPHA-01` only with explicit approval for the logout/reboot drill
+1. Review the stacked Stage F readiness/public-surface/origin/preview candidates
+2. Capture owner-authorized hosted, load, rollback, human-a11y, incident, and public-edge evidence
+3. Keep `FU-NPM-01` separate; execute `FU-ALPHA-01` only with explicit logout/reboot approval
 
 **Do not do next**
 - Bus/NJ Transit/PATH “just because”

@@ -62,6 +62,7 @@ function validateStructure(repoRoot) {
   const requiredFiles = [
     "infra/public-beta/load-route-search.mjs",
     "infra/public-beta/verify-public-origin.mjs",
+    "infra/public-beta/write-preview-evidence.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",

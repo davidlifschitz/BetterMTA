@@ -145,6 +145,14 @@ bodies, missing/weak headers, reused nonces, limitations-copy drift, and API
 health/status failures. Local tests exercise the mechanics only; no remote
 target was contacted and no public-origin gate was closed.
 
+The further stacked `codex/stage-f-preview-container` candidate adds a CI-only
+production-container preview. It builds `apps/web/Dockerfile`, binds the image
+to runner-local loopback, runs the 14 mocked-live core-flow/header/accessibility
+checks against the container, and retains commit/image-bound privacy-safe
+evidence. Local Docker proof passes. This is not a hosted/public preview and
+does not prove cloud-platform, edge, external reachability, capacity, or
+rollback behavior.
+
 These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, incident rota, public origin/TLS,
 privacy/support approval, publication, or claims-review gates. No deployment,

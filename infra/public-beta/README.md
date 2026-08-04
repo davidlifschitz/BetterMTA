@@ -64,6 +64,36 @@ changes. A remote `PASS` is one artifact for owner review. It does not replace
 public-DNS/CDN review, independent external reachability, HSTS-policy approval,
 or the other nine Stage F gates.
 
+## Runner-local production-container preview
+
+The `public-beta-preview` CI job builds `apps/web/Dockerfile` in live mode,
+starts the resulting image only on `127.0.0.1:3100`, and points the existing
+14-test mocked-live Playwright suite at that container. The image bakes the
+runner-local mock API origin solely so Playwright can intercept API requests;
+the job never starts an API listener, contacts a cloud host, or mutates a
+deployment. The Docker build itself runs the full `verify:no-fixtures` scan,
+and external-container E2E also checks the JavaScript chunks served by the
+running image.
+
+After the smoke suite passes, CI writes a bounded JSON artifact with:
+
+```bash
+node infra/public-beta/write-preview-evidence.mjs \
+  --release-commit "$PREVIEW_RELEASE_COMMIT" \
+  --image-id "$PREVIEW_IMAGE_ID" \
+  --smoke-status pass
+```
+
+The workflow sets `PREVIEW_RELEASE_COMMIT` to the reviewed pull-request head SHA
+or, for a push run, the push SHA; GitHub's synthetic pull-request merge SHA is
+never used as release identity. The same value tags the image and binds the
+evidence. The writer accepts only a full lowercase commit SHA, a Docker
+`sha256:` image ID, and a passing smoke result. It emits no URL or hostname and
+labels the artifact `ci-runner-local-production-container`, with production
+mutation and external reachability both false. This proves a CI-created
+production-container preview, not a hosted/public preview, edge integration, or
+release readiness.
+
 ## Readiness validation
 
 CI validates mechanics only:
@@ -74,9 +104,9 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 ```
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
-limitations route, nonce/header middleware, public-origin verifier, and their
-test contracts are present. It never starts the app, verifies a public edge, or
-means the release is ready.
+limitations route, nonce/header middleware, public-origin verifier, preview
+evidence writer, and their test contracts are present. It never starts the app,
+verifies a public edge, or means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

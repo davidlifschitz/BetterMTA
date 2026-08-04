@@ -5,6 +5,14 @@ const { loadFixture } = require("./helpers/schema.cjs");
 const { execFileSync } = require("node:child_process");
 const { join } = require("node:path");
 
+const FIXTURE_MARKERS = [
+  "req_fixture_",
+  "createFixtureApiClient",
+  "Fixture status",
+  "gtfs_fixture_v1",
+  "fixture-client",
+];
+
 function withRequestId(fixture, id) {
   return { ...fixture, requestId: id };
 }
@@ -363,7 +371,29 @@ test.describe("BetterMTA live frontend (mocked API)", () => {
     ).toEqual([]);
   });
 
-  test("verify:no-fixtures script is clean after live build", async () => {
+  test("verify:no-fixtures script is clean after live build", async ({ page }) => {
+    const externalBase = process.env.BETTERMTA_E2E_EXTERNAL_BASE;
+    if (externalBase) {
+      await page.goto("/");
+      const sources = await page
+        .locator('script[src*="/_next/static/chunks/"]')
+        .evaluateAll((scripts) =>
+          scripts.map((script) => script.getAttribute("src")).filter(Boolean),
+        );
+      expect(sources.length).toBeGreaterThan(0);
+      for (const source of new Set(sources)) {
+        const chunkUrl = new URL(source, externalBase);
+        expect(chunkUrl.origin).toBe(externalBase);
+        const response = await page.request.get(chunkUrl.toString());
+        expect(response.ok()).toBe(true);
+        const body = await response.text();
+        for (const marker of FIXTURE_MARKERS) {
+          expect(body).not.toContain(marker);
+        }
+      }
+      return;
+    }
+
     const script = join(process.cwd(), "scripts/verify-no-fixtures.mjs");
     const out = execFileSync(process.execPath, [script], {
       encoding: "utf8",
