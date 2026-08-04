@@ -165,8 +165,17 @@ human status, and privacy/no-mutation contract. The latest head audit remains
 recorded on PR #14. No human accessibility review has occurred and this
 candidate does not close the accessibility gate or change release status.
 
+The further stacked `codex/stage-f-incident-evidence` candidate writes a
+commit-bound playbook-readiness artifact after structure validation and adds a
+restricted human tabletop protocol for the same release commit. Automated
+output is intentionally `PLAYBOOK_PASS_ROTA_DRILL_PENDING`, leaves rota,
+channel, and drill status pending, and is ineligible for gate passage. The
+authoritative latest-head CI audit is retained in draft PR #15 comments. No
+on-call rota or channel was activated, no tabletop or live incident action ran,
+and the incident-response gate remains open.
+
 These candidates do **not** close hosted private beta, load/p95, preview,
-live rollback, human accessibility, incident rota, public origin/TLS,
+live rollback, human accessibility, approved incident rota/tabletop, public origin/TLS,
 privacy/support approval, publication, or claims-review gates. No deployment,
 cohort change, or status change occurred. Current public-beta status is
 `NOT_READY`.

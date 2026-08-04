@@ -22,6 +22,10 @@ const accessibilityEvidenceScript = join(
   repoRoot,
   "infra/public-beta/write-accessibility-evidence.mjs",
 );
+const incidentReadinessEvidenceScript = join(
+  repoRoot,
+  "infra/public-beta/write-incident-readiness-evidence.mjs",
+);
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
 
 const REQUIRED_GATES = [
@@ -511,6 +515,84 @@ test("accessibility evidence rejects malformed inputs without reflecting them", 
   }
 });
 
+test("incident readiness evidence keeps owner approval and tabletop drill pending", async () => {
+  const releaseCommit = "d".repeat(40);
+  const result = await runNode(incidentReadinessEvidenceScript, [
+    "--release-commit",
+    releaseCommit,
+    "--playbook-status",
+    "pass",
+  ]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(
+    {
+      schemaVersion: evidence.schemaVersion,
+      status: evidence.status,
+      evidenceClass: evidence.evidenceClass,
+      gateId: evidence.gateId,
+      releaseCommit: evidence.releaseCommit,
+      checks: evidence.checks,
+      rotaStatus: evidence.rotaStatus,
+      channelStatus: evidence.channelStatus,
+      tabletopDrillStatus: evidence.tabletopDrillStatus,
+      eligibleForGatePass: evidence.eligibleForGatePass,
+      productionMutation: evidence.productionMutation,
+    },
+    {
+      schemaVersion: 1,
+      status: "PLAYBOOK_PASS_ROTA_DRILL_PENDING",
+      evidenceClass: "ci-incident-playbook-readiness",
+      gateId: "incident_response",
+      releaseCommit,
+      checks: [
+        "detection-severity-roles",
+        "stop-response-recovery",
+        "privacy-safe-communications-evidence",
+      ],
+      rotaStatus: "pending_owner_approval",
+      channelStatus: "pending_owner_approval",
+      tabletopDrillStatus: "pending",
+      eligibleForGatePass: false,
+      productionMutation: false,
+    },
+  );
+  assert.match(evidence.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert(!/https?:|hostname|url/i.test(result.stdout));
+});
+
+test("incident readiness evidence rejects malformed inputs without reflecting them", async () => {
+  const hostile = "invalid\nprivate.example.invalid";
+  for (const { args, errorCode } of [
+    {
+      args: [
+        "--release-commit",
+        hostile,
+        "--playbook-status",
+        "pass",
+      ],
+      errorCode: "invalid_release_commit",
+    },
+    {
+      args: [
+        "--release-commit",
+        "d".repeat(40),
+        "--playbook-status",
+        hostile,
+      ],
+      errorCode: "invalid_playbook_status",
+    },
+  ]) {
+    const result = await runNode(incidentReadinessEvidenceScript, args);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `ERROR ${errorCode}\n`);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
 test("repository readiness structure is complete without claiming readiness", async () => {
   const result = await runNode(readinessScript, ["--structure-only"]);
   assert.equal(result.code, 0, result.stderr);
@@ -537,6 +619,28 @@ test("repository readiness structure is complete without claiming readiness", as
     "Evidence",
   ]) {
     assert.match(incident, new RegExp(`^## .*${heading}`, "m"));
+  }
+
+  const incidentDrill = await readFile(
+    join(repoRoot, "docs/public-beta/INCIDENT_DRILL.md"),
+    "utf8",
+  );
+  assert.match(
+    incidentDrill,
+    /Current status:\*\* `PENDING_OWNER_APPROVAL_AND_DRILL`/,
+  );
+  for (const heading of [
+    "Scope and prerequisites",
+    "Environment and roles",
+    "Scenario",
+    "Timeline",
+    "Stop and rollback decisions",
+    "Recovery",
+    "Communications and privacy",
+    "Findings",
+    "Sign-off",
+  ]) {
+    assert.match(incidentDrill, new RegExp(`^## ${heading}`, "m"));
   }
 
   const limitations = await readFile(
@@ -604,6 +708,23 @@ test("repository readiness structure is complete without claiming readiness", as
     "accessibility evidence must be written only after the suite passes",
   );
   assert.doesNotMatch(readinessJob, /humanReviewStatus:\s*(?:pass|complete)/i);
+  for (const pattern of [
+    /INCIDENT_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /write-incident-readiness-evidence[.]mjs/,
+    /--release-commit "\$INCIDENT_RELEASE_COMMIT"/,
+    /--playbook-status pass/,
+    /infra\/public-beta\/evidence\/incident-readiness/,
+    /public-beta-incident-readiness-\$\{\{ github[.]run_id \}\}/,
+    /actions\/upload-artifact@v7/,
+  ]) {
+    assert.match(readinessJob, pattern);
+  }
+  assert(
+    readinessJob.indexOf("validate-readiness.mjs --structure-only") <
+      readinessJob.indexOf("write-incident-readiness-evidence.mjs"),
+    "incident readiness evidence must be written only after playbook structure passes",
+  );
+  assert.doesNotMatch(readinessJob, /(?:rota|channel|tabletopDrill)Status:\s*(?:pass|approved|active)/i);
 
   const liveE2e = await readFile(join(repoRoot, "apps/web/e2e/live.spec.cjs"), "utf8");
   for (const pattern of [
@@ -674,6 +795,11 @@ test("structure validator requires the public limitations, headers, and origin v
     result.stderr,
     /missing:docs\/public-beta\/ACCESSIBILITY_REVIEW[.]md/,
   );
+  assert.match(
+    result.stderr,
+    /missing:infra\/public-beta\/write-incident-readiness-evidence[.]mjs/,
+  );
+  assert.match(result.stderr, /missing:docs\/public-beta\/INCIDENT_DRILL[.]md/);
 });
 
 test("pending evidence fails closed as NOT_READY", async () => {

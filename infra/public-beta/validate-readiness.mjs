@@ -64,11 +64,13 @@ function validateStructure(repoRoot) {
     "infra/public-beta/verify-public-origin.mjs",
     "infra/public-beta/write-preview-evidence.mjs",
     "infra/public-beta/write-accessibility-evidence.mjs",
+    "infra/public-beta/write-incident-readiness-evidence.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",
     "docs/public-beta/READINESS.md",
     "docs/public-beta/INCIDENT_PLAYBOOK.md",
+    "docs/public-beta/INCIDENT_DRILL.md",
     "docs/public-beta/LIMITATIONS.md",
     "docs/public-beta/ACCESSIBILITY_REVIEW.md",
     "docs/public-beta/evidence-template.json",
@@ -99,6 +101,26 @@ function validateStructure(repoRoot) {
   ]) {
     if (!new RegExp(`^## .*${heading}`, "m").test(incident)) {
       failures.push(`incident-heading:${heading.toLowerCase()}`);
+    }
+  }
+
+  const incidentDrill = readText(repoRoot, "docs/public-beta/INCIDENT_DRILL.md");
+  if (!/Current status:\*\* `PENDING_OWNER_APPROVAL_AND_DRILL`/.test(incidentDrill)) {
+    failures.push("incident-drill:status");
+  }
+  for (const heading of [
+    "Scope and prerequisites",
+    "Environment and roles",
+    "Scenario",
+    "Timeline",
+    "Stop and rollback decisions",
+    "Recovery",
+    "Communications and privacy",
+    "Findings",
+    "Sign-off",
+  ]) {
+    if (!new RegExp(`^## ${heading}`, "m").test(incidentDrill)) {
+      failures.push(`incident-drill:${heading.toLowerCase().replaceAll(" ", "-")}`);
     }
   }
 
@@ -209,6 +231,23 @@ function validateStructure(repoRoot) {
     }
   }
 
+  const incidentReadinessWriter = readText(
+    repoRoot,
+    "infra/public-beta/write-incident-readiness-evidence.mjs",
+  );
+  for (const [label, pattern] of [
+    ["commit-binding", /releaseCommit/],
+    ["playbook-status", /PLAYBOOK_PASS_ROTA_DRILL_PENDING/],
+    ["rota-pending", /rotaStatus:\s*"pending_owner_approval"/],
+    ["channel-pending", /channelStatus:\s*"pending_owner_approval"/],
+    ["drill-pending", /tabletopDrillStatus:\s*"pending"/],
+    ["not-gate-pass", /eligibleForGatePass:\s*false/],
+  ]) {
+    if (!pattern.test(incidentReadinessWriter)) {
+      failures.push(`incident-readiness-evidence:${label}`);
+    }
+  }
+
   const workflow = readText(repoRoot, ".github/workflows/ci.yml");
   for (const [label, pattern] of [
     ["job", /^  public-beta-readiness:/m],
@@ -217,6 +256,8 @@ function validateStructure(repoRoot) {
     ["e2e", /npm --prefix apps\/web run e2e/],
     ["accessibility-writer", /write-accessibility-evidence[.]mjs/],
     ["accessibility-artifact", /public-beta-accessibility-/],
+    ["incident-readiness-writer", /write-incident-readiness-evidence[.]mjs/],
+    ["incident-readiness-artifact", /public-beta-incident-readiness-/],
     ["node-tests", /node --test infra\/public-beta\/tests\/[^\s]+/],
     ["structure", /validate-readiness[.]mjs --structure-only/],
   ]) {
