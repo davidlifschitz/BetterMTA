@@ -138,6 +138,13 @@ This is candidate evidence only; the nonce-rendered shell still needs preview
 capacity/load validation and the approved public edge still needs TLS and
 runtime-header verification.
 
+The further stacked `codex/stage-f-public-origin-verifier` candidate adds a
+commit-bound, privacy-safe, read-only verifier for the approved web/API origins.
+It fails closed on insecure or unconfirmed remote targets, redirects, oversized
+bodies, missing/weak headers, reused nonces, limitations-copy drift, and API
+health/status failures. Local tests exercise the mechanics only; no remote
+target was contacted and no public-origin gate was closed.
+
 These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, incident rota, public origin/TLS,
 privacy/support approval, publication, or claims-review gates. No deployment,
