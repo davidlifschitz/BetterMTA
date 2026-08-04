@@ -63,12 +63,14 @@ function validateStructure(repoRoot) {
     "infra/public-beta/load-route-search.mjs",
     "infra/public-beta/verify-public-origin.mjs",
     "infra/public-beta/write-preview-evidence.mjs",
+    "infra/public-beta/write-accessibility-evidence.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",
     "docs/public-beta/READINESS.md",
     "docs/public-beta/INCIDENT_PLAYBOOK.md",
     "docs/public-beta/LIMITATIONS.md",
+    "docs/public-beta/ACCESSIBILITY_REVIEW.md",
     "docs/public-beta/evidence-template.json",
     "apps/web/src/app/limitations/page.tsx",
     "apps/web/src/middleware.ts",
@@ -97,6 +99,28 @@ function validateStructure(repoRoot) {
   ]) {
     if (!new RegExp(`^## .*${heading}`, "m").test(incident)) {
       failures.push(`incident-heading:${heading.toLowerCase()}`);
+    }
+  }
+
+  const accessibilityReview = readText(
+    repoRoot,
+    "docs/public-beta/ACCESSIBILITY_REVIEW.md",
+  );
+  if (!/Current status:\*\* `PENDING_HUMAN_REVIEW`/.test(accessibilityReview)) {
+    failures.push("accessibility-review:status");
+  }
+  for (const heading of [
+    "Scope and prerequisites",
+    "Environment",
+    "Core flow",
+    "Keyboard",
+    "Screen reader",
+    "Visual and motion",
+    "Findings",
+    "Sign-off",
+  ]) {
+    if (!new RegExp(`^## ${heading}`, "m").test(accessibilityReview)) {
+      failures.push(`accessibility-review:${heading.toLowerCase().replaceAll(" ", "-")}`);
     }
   }
 
@@ -160,11 +184,29 @@ function validateStructure(repoRoot) {
 
   const liveE2e = readText(repoRoot, "apps/web/e2e/live.spec.cjs");
   for (const [label, pattern] of [
+    ["keyboard", /keyboard-only search flow/],
+    ["mobile-targets", /mobile viewport layout: readable results \+ 44px line toggles/],
+    ["axe", /a11y smoke: search \+ results screens/],
     ["limitations", /public-beta limitations are discoverable/],
     ["headers", /nonce-based baseline security headers/],
     ["csp-console", /cspConsoleErrors/],
   ]) {
     if (!pattern.test(liveE2e)) failures.push(`web-e2e:${label}`);
+  }
+
+  const accessibilityWriter = readText(
+    repoRoot,
+    "infra/public-beta/write-accessibility-evidence.mjs",
+  );
+  for (const [label, pattern] of [
+    ["commit-binding", /releaseCommit/],
+    ["automated-status", /AUTOMATED_PASS_HUMAN_PENDING/],
+    ["human-pending", /humanReviewStatus:\s*"pending"/],
+    ["not-gate-pass", /eligibleForGatePass:\s*false/],
+  ]) {
+    if (!pattern.test(accessibilityWriter)) {
+      failures.push(`accessibility-evidence:${label}`);
+    }
   }
 
   const workflow = readText(repoRoot, ".github/workflows/ci.yml");
@@ -173,6 +215,8 @@ function validateStructure(repoRoot) {
     ["contracts-install", /npm --prefix contracts ci/],
     ["browser-install", /playwright install --with-deps chromium/],
     ["e2e", /npm --prefix apps\/web run e2e/],
+    ["accessibility-writer", /write-accessibility-evidence[.]mjs/],
+    ["accessibility-artifact", /public-beta-accessibility-/],
     ["node-tests", /node --test infra\/public-beta\/tests\/[^\s]+/],
     ["structure", /validate-readiness[.]mjs --structure-only/],
   ]) {

@@ -131,6 +131,8 @@ jobs:
   public-beta-readiness:
     name: public-beta-readiness
     runs-on: ubuntu-latest
+    env:
+      ACCESSIBILITY_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -153,6 +155,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run mocked-live core-flow, mobile, keyboard, and accessibility checks
         run: npm --prefix apps/web run e2e
+      - name: Write automated accessibility evidence
+        run: |
+          set -euo pipefail
+          mkdir -p infra/public-beta/evidence/accessibility
+          node infra/public-beta/write-accessibility-evidence.mjs \
+            --release-commit "$ACCESSIBILITY_RELEASE_COMMIT" \
+            --suite-status pass \
+            > infra/public-beta/evidence/accessibility/result.json
+      - name: Retain automated accessibility evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-accessibility-${{ github.run_id }}
+          path: infra/public-beta/evidence/accessibility/result.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@v7

@@ -13,9 +13,9 @@ release evidence remain separate gates.
 |---|---|---|
 | Hosted private beta | Pending owner-authorized Stage D activation | Immutable hosted release, health/smoke evidence, approved privacy/support operation, and bounded cohort result |
 | Route API load/p95 | Harness implemented; beta-load evidence pending | Privacy-safe probe artifact showing p95 under 2,000 ms and error rate within the agreed limit for the recorded release/data snapshot |
-| Preview deployment | Runner-local production-container preview job and commit/image evidence writer implemented; local 14/14 proof passed; approved-commit CI artifact review pending | CI-created preview from an approved commit with core-flow smoke evidence and no production mutation |
+| Preview deployment | Runner-local production-container artifact proven in CI for commit `9f10e50` with 14/14 smoke checks; owner acceptance or a hosted-platform preview decision remains pending | CI-created preview from an approved commit with core-flow smoke evidence and no production mutation |
 | Production rollback | Operator tooling prepared; live drill pending | Recorded prior images, executed rollback, health checks, candidate restore, elapsed time, and retained evidence |
-| Core-flow accessibility | Mocked-live keyboard/mobile/axe suite prepared for CI | Green CI artifact plus human review with no critical core-flow failures |
+| Core-flow accessibility | Commit-bound automated evidence writer and CI artifact are implemented; first approved-commit artifact and human review remain pending | Green CI artifact plus human review with no critical core-flow failures |
 | Incident response | Playbook prepared; rota/channel approval pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
 | Public origin/TLS | Commit-bound, privacy-safe verifier implemented and locally tested; approved public target and external evidence pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, limitations link, public DNS/CDN review, and retained owner-reviewed artifact |
 | Limitations copy | Candidate `/limitations` route and planner-footer link pass local production E2E; approval/publication pending | Product/legal/owner approval and verified placement in the public core flow |
@@ -36,6 +36,11 @@ release evidence remain separate gates.
   starts that immutable image on runner-local loopback, runs all 14 mocked-live
   checks against the container, scans its served chunks for fixture markers, and
   retains privacy-safe commit/image evidence without contacting a cloud host.
+- After the mocked-live suite passes, CI writes commit-bound accessibility
+  evidence for the keyboard-only flow, mobile 44 px targets, and axe WCAG 2 A/AA
+  scan. It is deliberately labeled `AUTOMATED_PASS_HUMAN_PENDING` and cannot
+  pass the gate until the retained human review records no critical core-flow
+  failures for the same release commit.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
 - The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,

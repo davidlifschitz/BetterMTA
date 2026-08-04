@@ -18,6 +18,10 @@ const previewEvidenceScript = join(
   repoRoot,
   "infra/public-beta/write-preview-evidence.mjs",
 );
+const accessibilityEvidenceScript = join(
+  repoRoot,
+  "infra/public-beta/write-accessibility-evidence.mjs",
+);
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
 
 const REQUIRED_GATES = [
@@ -433,6 +437,80 @@ test("preview evidence rejects malformed identifiers without reflecting them", a
   }
 });
 
+test("accessibility evidence records automated pass while human review stays pending", async () => {
+  const releaseCommit = "c".repeat(40);
+  const result = await runNode(accessibilityEvidenceScript, [
+    "--release-commit",
+    releaseCommit,
+    "--suite-status",
+    "pass",
+  ]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(
+    {
+      schemaVersion: evidence.schemaVersion,
+      status: evidence.status,
+      evidenceClass: evidence.evidenceClass,
+      gateId: evidence.gateId,
+      releaseCommit: evidence.releaseCommit,
+      checks: evidence.checks,
+      humanReviewStatus: evidence.humanReviewStatus,
+      eligibleForGatePass: evidence.eligibleForGatePass,
+      productionMutation: evidence.productionMutation,
+    },
+    {
+      schemaVersion: 1,
+      status: "AUTOMATED_PASS_HUMAN_PENDING",
+      evidenceClass: "ci-mocked-live-accessibility",
+      gateId: "accessibility_core_flow",
+      releaseCommit,
+      checks: [
+        "keyboard-only-core-flow",
+        "mobile-44px-targets",
+        "axe-wcag2a-wcag2aa",
+      ],
+      humanReviewStatus: "pending",
+      eligibleForGatePass: false,
+      productionMutation: false,
+    },
+  );
+  assert.match(evidence.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert(!/https?:|hostname|url/i.test(result.stdout));
+});
+
+test("accessibility evidence rejects malformed inputs without reflecting them", async () => {
+  const hostile = "invalid\nprivate.example.invalid";
+  for (const { args, errorCode } of [
+    {
+      args: [
+        "--release-commit",
+        hostile,
+        "--suite-status",
+        "pass",
+      ],
+      errorCode: "invalid_release_commit",
+    },
+    {
+      args: [
+        "--release-commit",
+        "c".repeat(40),
+        "--suite-status",
+        hostile,
+      ],
+      errorCode: "invalid_suite_status",
+    },
+  ]) {
+    const result = await runNode(accessibilityEvidenceScript, args);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `ERROR ${errorCode}\n`);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
 test("repository readiness structure is complete without claiming readiness", async () => {
   const result = await runNode(readinessScript, ["--structure-only"]);
   assert.equal(result.code, 0, result.stderr);
@@ -474,6 +552,24 @@ test("repository readiness structure is complete without claiming readiness", as
     assert.match(limitations, phrase);
   }
 
+  const accessibilityReview = await readFile(
+    join(repoRoot, "docs/public-beta/ACCESSIBILITY_REVIEW.md"),
+    "utf8",
+  );
+  assert.match(accessibilityReview, /Current status:\*\* `PENDING_HUMAN_REVIEW`/);
+  for (const heading of [
+    "Scope and prerequisites",
+    "Environment",
+    "Core flow",
+    "Keyboard",
+    "Screen reader",
+    "Visual and motion",
+    "Findings",
+    "Sign-off",
+  ]) {
+    assert.match(accessibilityReview, new RegExp(`^## ${heading}`, "m"));
+  }
+
   const workflow = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8");
   for (const pattern of [
     /^  public-beta-readiness:/m,
@@ -484,6 +580,38 @@ test("repository readiness structure is complete without claiming readiness", as
     /validate-readiness[.]mjs --structure-only/,
   ]) {
     assert.match(workflow, pattern);
+  }
+
+  const readinessJob = workflow.match(
+    /^  public-beta-readiness:\n[\s\S]*?(?=^  public-beta-preview:)/m,
+  )?.[0];
+  assert(readinessJob, "public-beta-readiness job is required");
+  for (const pattern of [
+    /ACCESSIBILITY_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /npm --prefix apps\/web run e2e/,
+    /write-accessibility-evidence[.]mjs/,
+    /--release-commit "\$ACCESSIBILITY_RELEASE_COMMIT"/,
+    /--suite-status pass/,
+    /infra\/public-beta\/evidence\/accessibility/,
+    /public-beta-accessibility-\$\{\{ github[.]run_id \}\}/,
+    /actions\/upload-artifact@v7/,
+  ]) {
+    assert.match(readinessJob, pattern);
+  }
+  assert(
+    readinessJob.indexOf("npm --prefix apps/web run e2e") <
+      readinessJob.indexOf("write-accessibility-evidence.mjs"),
+    "accessibility evidence must be written only after the suite passes",
+  );
+  assert.doesNotMatch(readinessJob, /humanReviewStatus:\s*(?:pass|complete)/i);
+
+  const liveE2e = await readFile(join(repoRoot, "apps/web/e2e/live.spec.cjs"), "utf8");
+  for (const pattern of [
+    /keyboard-only search flow/,
+    /mobile viewport layout: readable results \+ 44px line toggles/,
+    /a11y smoke: search \+ results screens/,
+  ]) {
+    assert.match(liveE2e, pattern);
   }
 
   const previewJob = workflow.match(
@@ -538,6 +666,14 @@ test("structure validator requires the public limitations, headers, and origin v
   assert.match(result.stderr, /missing:apps\/web\/src\/middleware[.]ts/);
   assert.match(result.stderr, /missing:infra\/public-beta\/verify-public-origin[.]mjs/);
   assert.match(result.stderr, /missing:infra\/public-beta\/write-preview-evidence[.]mjs/);
+  assert.match(
+    result.stderr,
+    /missing:infra\/public-beta\/write-accessibility-evidence[.]mjs/,
+  );
+  assert.match(
+    result.stderr,
+    /missing:docs\/public-beta\/ACCESSIBILITY_REVIEW[.]md/,
+  );
 });
 
 test("pending evidence fails closed as NOT_READY", async () => {
