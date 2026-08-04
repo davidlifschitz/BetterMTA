@@ -84,6 +84,12 @@ git diff --check
 - All conductor contract validations pass.
 - Web unit tests pass 81/81 across 14 files.
 - All 14 mocked-live Playwright checks pass in 47.1 seconds.
+- Final PR #15 CI run `30958953291` passed 10/10 jobs for head
+  `894e7ed1d0fbaac9e4b320f4b61d20c9fd842516`. Artifact
+  `public-beta-incident-readiness-30958953291` matched that head, the exact
+  fixed check list, pending rota/channel/tabletop state, gate ineligibility,
+  no-mutation contract, valid timestamp, and privacy-safe no-URL/no-hostname
+  shape. PR #15 remained draft, mergeable, and clean.
 - All latest-head GitHub CI/artifact results must remain green. The
   authoritative remote audit is retained in draft PR #15 comments.
 
@@ -123,9 +129,8 @@ git diff --check
 
 ## 11. Exact next integration step
 
-Keep draft PR #15 stacked on `codex/stage-f-accessibility-evidence`; require all
-ten CI jobs and the latest `public-beta-incident-readiness-<run-id>` head-commit
-audit to remain green. Then obtain conductor approval before assigning the
-rota/channel or running the same-commit tabletop. Do not merge to `main`, page
-anyone, contact a live target, execute rollback, deploy, or mark the public beta
-ready from this slice.
+Review draft PR #15 and its final audit, then continue the stacked Stage F
+evidence work from `codex/stage-f-privacy-support-evidence`. Conductor approval
+is still required before assigning the rota/channel or running the same-commit
+tabletop. Do not merge to `main`, page anyone, contact a live target, execute
+rollback, deploy, or mark the public beta ready from this slice.

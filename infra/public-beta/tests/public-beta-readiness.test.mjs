@@ -26,6 +26,10 @@ const incidentReadinessEvidenceScript = join(
   repoRoot,
   "infra/public-beta/write-incident-readiness-evidence.mjs",
 );
+const privacySupportReadinessEvidenceScript = join(
+  repoRoot,
+  "infra/public-beta/write-privacy-support-readiness-evidence.mjs",
+);
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
 
 const REQUIRED_GATES = [
@@ -593,6 +597,87 @@ test("incident readiness evidence rejects malformed inputs without reflecting th
   }
 });
 
+test("privacy support evidence keeps policy, retention, channel, and owner approval pending", async () => {
+  const releaseCommit = "e".repeat(40);
+  const result = await runNode(privacySupportReadinessEvidenceScript, [
+    "--release-commit",
+    releaseCommit,
+    "--controls-status",
+    "pass",
+  ]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(
+    {
+      schemaVersion: evidence.schemaVersion,
+      status: evidence.status,
+      evidenceClass: evidence.evidenceClass,
+      gateId: evidence.gateId,
+      releaseCommit: evidence.releaseCommit,
+      checks: evidence.checks,
+      policyApprovalStatus: evidence.policyApprovalStatus,
+      retentionEnforcementStatus: evidence.retentionEnforcementStatus,
+      supportChannelStatus: evidence.supportChannelStatus,
+      responseOwnerStatus: evidence.responseOwnerStatus,
+      eligibleForGatePass: evidence.eligibleForGatePass,
+      productionMutation: evidence.productionMutation,
+    },
+    {
+      schemaVersion: 1,
+      status: "CONTROLS_PASS_APPROVAL_CHANNEL_PENDING",
+      evidenceClass: "ci-privacy-support-readiness",
+      gateId: "privacy_support_approval",
+      releaseCommit,
+      checks: [
+        "policy-and-provider-disclosure",
+        "retention-and-deletion-contract",
+        "privacy-safe-logging-controls",
+        "support-intake-and-response",
+      ],
+      policyApprovalStatus: "pending_owner_legal",
+      retentionEnforcementStatus: "pending_deployed_evidence",
+      supportChannelStatus: "pending_owner_approval",
+      responseOwnerStatus: "pending_owner_approval",
+      eligibleForGatePass: false,
+      productionMutation: false,
+    },
+  );
+  assert.match(evidence.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert(!/https?:|hostname|url|contact/i.test(result.stdout));
+});
+
+test("privacy support evidence rejects malformed inputs without reflecting them", async () => {
+  const hostile = "invalid\nprivate.example.invalid";
+  for (const { args, errorCode } of [
+    {
+      args: [
+        "--release-commit",
+        hostile,
+        "--controls-status",
+        "pass",
+      ],
+      errorCode: "invalid_release_commit",
+    },
+    {
+      args: [
+        "--release-commit",
+        "e".repeat(40),
+        "--controls-status",
+        hostile,
+      ],
+      errorCode: "invalid_controls_status",
+    },
+  ]) {
+    const result = await runNode(privacySupportReadinessEvidenceScript, args);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `ERROR ${errorCode}\n`);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
 test("repository readiness structure is complete without claiming readiness", async () => {
   const result = await runNode(readinessScript, ["--structure-only"]);
   assert.equal(result.code, 0, result.stderr);
@@ -641,6 +726,27 @@ test("repository readiness structure is complete without claiming readiness", as
     "Sign-off",
   ]) {
     assert.match(incidentDrill, new RegExp(`^## ${heading}`, "m"));
+  }
+
+  const privacySupportApproval = await readFile(
+    join(repoRoot, "docs/public-beta/PRIVACY_SUPPORT_APPROVAL.md"),
+    "utf8",
+  );
+  assert.match(
+    privacySupportApproval,
+    /Current status:\*\* `PENDING_OWNER_LEGAL_AND_OPERATIONAL_APPROVAL`/,
+  );
+  for (const heading of [
+    "Scope and prerequisites",
+    "Deployed configuration",
+    "Policy and providers",
+    "Retention and deletion",
+    "Support operations",
+    "Privacy and access controls",
+    "Findings",
+    "Sign-off",
+  ]) {
+    assert.match(privacySupportApproval, new RegExp(`^## ${heading}`, "m"));
   }
 
   const limitations = await readFile(
@@ -725,6 +831,26 @@ test("repository readiness structure is complete without claiming readiness", as
     "incident readiness evidence must be written only after playbook structure passes",
   );
   assert.doesNotMatch(readinessJob, /(?:rota|channel|tabletopDrill)Status:\s*(?:pass|approved|active)/i);
+  for (const pattern of [
+    /PRIVACY_SUPPORT_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /write-privacy-support-readiness-evidence[.]mjs/,
+    /--release-commit "\$PRIVACY_SUPPORT_RELEASE_COMMIT"/,
+    /--controls-status pass/,
+    /infra\/public-beta\/evidence\/privacy-support/,
+    /public-beta-privacy-support-\$\{\{ github[.]run_id \}\}/,
+    /actions\/upload-artifact@v7/,
+  ]) {
+    assert.match(readinessJob, pattern);
+  }
+  assert(
+    readinessJob.indexOf("validate-readiness.mjs --structure-only") <
+      readinessJob.indexOf("write-privacy-support-readiness-evidence.mjs"),
+    "privacy support evidence must be written only after controls structure passes",
+  );
+  assert.doesNotMatch(
+    readinessJob,
+    /(?:policyApproval|retentionEnforcement|supportChannel|responseOwner)Status:\s*(?:pass|approved|active)/i,
+  );
 
   const liveE2e = await readFile(join(repoRoot, "apps/web/e2e/live.spec.cjs"), "utf8");
   for (const pattern of [
@@ -800,6 +926,14 @@ test("structure validator requires the public limitations, headers, and origin v
     /missing:infra\/public-beta\/write-incident-readiness-evidence[.]mjs/,
   );
   assert.match(result.stderr, /missing:docs\/public-beta\/INCIDENT_DRILL[.]md/);
+  assert.match(
+    result.stderr,
+    /missing:infra\/public-beta\/write-privacy-support-readiness-evidence[.]mjs/,
+  );
+  assert.match(
+    result.stderr,
+    /missing:docs\/public-beta\/PRIVACY_SUPPORT_APPROVAL[.]md/,
+  );
 });
 
 test("pending evidence fails closed as NOT_READY", async () => {

@@ -153,6 +153,36 @@ thresholds, and evidence retention. Keep identities, contact details, channel
 names, protected origins, and private logs outside Git. A passing human drill
 with no open critical finding is still required.
 
+## Privacy and support readiness evidence
+
+The `public-beta-readiness` job writes privacy/support readiness evidence only
+after the structure validator confirms the draft policy, support workflow,
+restricted-ledger template, privacy-safe logging controls/tests, approval
+template, writer, and fail-closed release status are present.
+
+```bash
+node infra/public-beta/write-privacy-support-readiness-evidence.mjs \
+  --release-commit "$PRIVACY_SUPPORT_RELEASE_COMMIT" \
+  --controls-status pass \
+  > infra/public-beta/evidence/privacy-support/result.json
+```
+
+For pull requests, `PRIVACY_SUPPORT_RELEASE_COMMIT` is the reviewed head SHA;
+for pushes it is the push SHA. The writer accepts only a full lowercase commit
+SHA and a passing controls-structure result. It emits
+`CONTROLS_PASS_APPROVAL_CHANNEL_PENDING`, with owner/legal policy approval,
+deployed retention evidence, private support channel, and response owners all
+pending; `eligibleForGatePass` and `productionMutation` are false. It emits no
+URL, hostname, or contact field. CI uploads the result as
+`public-beta-privacy-support-<run-id>`.
+
+This artifact is not policy publication or operational approval. Copy
+`docs/public-beta/PRIVACY_SUPPORT_APPROVAL.md` into the approved restricted
+evidence store and bind it to the same release commit. The owner must verify the
+actual enabled providers/features, retention/deletion behavior, least-privilege
+access, reachable private support path, response owners, and reviewer
+disposition without putting identities, endpoints, or secrets in Git.
+
 ## Readiness validation
 
 CI validates mechanics only:
@@ -164,10 +194,10 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
 limitations route, nonce/header middleware, public-origin verifier, preview,
-accessibility, and incident-readiness evidence writers, pending human review
-and tabletop templates, and their test contracts are present. It never starts
-the app, verifies a public edge, performs a human review or tabletop drill, or
-means the release is ready.
+accessibility, incident-readiness, and privacy/support evidence writers, pending
+human review/tabletop/approval templates, and their test contracts are present.
+It never starts the app, verifies a public edge, performs a human review or
+tabletop, publishes a policy, activates support, or means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

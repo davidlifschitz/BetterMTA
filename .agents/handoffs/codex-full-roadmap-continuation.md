@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Audience:** Codex (or any agent) taking over the whole product trajectory  
-**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence`
+**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-privacy-support-evidence`
 **Repo:** `davidlifschitz/BetterMTA`
 
 This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.agents/handoffs/p1-codex-continuation.md` and `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
@@ -17,8 +17,8 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
-| Active program branch | `codex/stage-f-incident-evidence` (stacked on the Stage F accessibility-evidence candidate) |
-| Immediate unfinished work | Prove commit-bound incident playbook-readiness evidence in CI, then obtain separate owner approval for the rota, restricted channel, thresholds, and tabletop drill; every hosted/live gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
+| Active program branch | `codex/stage-f-privacy-support-evidence` (stacked on the Stage F incident-evidence candidate) |
+| Immediate unfinished work | Prove commit-bound privacy/support readiness evidence in CI, then obtain separate owner/legal/operational approval for deployed retention/deletion, the private support path, and response owners; every hosted/live gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -93,7 +93,7 @@ Controlled alpha ≠ private beta ≠ public beta.
 | **M1** Static routing proof | GTFS graph + constrained search + golden cases | **Largely done** via OTP + routing library + benchmarks (not a custom graph search) |
 | **M2** Real-time routing | GTFS-RT, freshness, safe degrade | **Largely done** in live stack; honesty labeling required forever |
 | **M3** Product beta | Maps, geocoding, baseline comparison, analytics, feedback, preference learning, probes | **Partial** — geocode/preferred lines = **P1**; maps/feedback/learning/accounts still deferred (D2/D3) |
-| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — runner-local preview proven; automated a11y and incident-playbook evidence prepared; human reviews/approvals and every hosted/live gate remain open; **Fly private/public path not activated** |
+| **M4** Public beta production | Load/SLO, CI/CD preview+rollback, privacy/support, a11y, incident playbook, public URL | **Partial** — runner-local preview proven; automated a11y, incident, and privacy/support evidence prepared; human/operational approvals and every hosted/live gate remain open; **Fly private/public path not activated** |
 | **M5** Differentiation | Live reroute, delay handling, crowding/reliability, beat-default discovery, more modes | **Future** — after public-beta quality bar; modes = D1 |
 
 Treat `ROADMAP.md` as directional; ADR-locked deferrals override its older wording (e.g. “required-line state search”).
@@ -271,6 +271,17 @@ claimed. The authoritative latest-head audit is retained in PR #15 comments.
 R34 preserves this distinction. See
 `.agents/handoffs/stage-f-incident-evidence.md`.
 
+**Stage F privacy/support-evidence candidate (2026-08-04; controls mechanics
+only):** The further stacked `codex/stage-f-privacy-support-evidence` branch
+writes a commit-bound artifact after the draft policy, support workflow, ledger
+shape, runtime privacy controls/tests, and approval protocol pass structure
+validation. Automated output remains
+`CONTROLS_PASS_APPROVAL_CHANNEL_PENDING` and `eligibleForGatePass: false`; no
+policy publication, deployed retention/deletion proof, support activation,
+response-owner assignment, or gate passage is claimed. The authoritative
+latest-head audit is retained in PR #16 comments. R35 preserves this
+distinction. See `.agents/handoffs/stage-f-privacy-support-evidence.md`.
+
 **Exit:** `READY_FOR_PUBLIC_BETA`.
 
 ### Stage G — Differentiation & modes — M5 + Epic D1
@@ -343,7 +354,8 @@ that stream.
 
 | Absolute path | Branch / HEAD | Tip | Role |
 |---|---|---|---|
-| `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence` | `codex/stage-f-incident-evidence` | current branch tip | **Primary for this slice.** Incident playbook-readiness evidence and tabletop protocol candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-privacy-support-evidence` | `codex/stage-f-privacy-support-evidence` | current branch tip | **Primary for this slice.** Privacy/support readiness evidence and approval protocol candidate |
+| `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence` | `codex/stage-f-incident-evidence` | `894e7ed` | Parent incident playbook-readiness evidence candidate; draft PR #15 green and artifact audited |
 | `/Users/thebiglipper/Developer/bettermta-stage-f-accessibility-evidence` | `codex/stage-f-accessibility-evidence` | `2c49984` | Parent automated accessibility evidence candidate; draft PR #14 green and artifact audited |
 | `/Users/thebiglipper/Developer/bettermta-stage-f-preview-container` | `codex/stage-f-preview-container` | `9f10e50` | Parent runner-local production-container preview candidate; draft PR #13 green and artifact audited |
 | `/Users/thebiglipper/Developer/bettermta-stage-f-origin-verifier` | `codex/stage-f-public-origin-verifier` | `cebb79c` | Parent Stage F public-origin verifier candidate |
@@ -394,7 +406,7 @@ All already integrated into `agent/p1-address-preferred-lines`. Safe to ignore o
 
 ### 10.6 Default rule for new agents
 
-1. Continue the named active workstream in its primary worktree; for this handoff use `/Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence` on `codex/stage-f-incident-evidence`.
+1. Continue the named active workstream in its primary worktree; for this handoff use `/Users/thebiglipper/Developer/bettermta-stage-f-privacy-support-evidence` on `codex/stage-f-privacy-support-evidence`.
 2. Do not create more long-lived specialist worktrees without a parallelization plan and merge owner.
 3. Refresh this inventory with `git -C /Users/thebiglipper/Developer/bettermta worktree list` if the host layout may have changed.
 
@@ -406,14 +418,15 @@ All already integrated into `agent/p1-address-preferred-lines`. Safe to ignore o
 You are continuing BetterMTA. Read `.agents/handoffs/codex-full-roadmap-continuation.md` first,
 then `.agents/handoffs/p1-codex-continuation.md` for completed P1 Wave 4 evidence.
 
-Primary worktree: /Users/thebiglipper/Developer/bettermta-stage-f-incident-evidence
-Active branch: codex/stage-f-incident-evidence (stacked Stage F candidate)
+Primary worktree: /Users/thebiglipper/Developer/bettermta-stage-f-privacy-support-evidence
+Active branch: codex/stage-f-privacy-support-evidence (stacked Stage F candidate)
 Live alpha: READY_FOR_P1_CONTROLLED_ALPHA on immutable P1 images; rollback points to the pre-P1 certified release.
 
-Immediate mission: finish and audit the incident playbook-readiness artifact,
-then obtain separate owner approval before assigning a rota/channel or running
-the same-commit tabletop protocol. Do not treat structure proof as active
-incident capability or runner-local proof as hosted/public proof.
+Immediate mission: finish and audit the privacy/support readiness artifact,
+then obtain separate owner/legal/operational approval before publishing policy,
+claiming deployed retention/deletion, or activating a support channel. Do not
+treat structure proof as operational approval or runner-local proof as
+hosted/public proof.
 Do not implement D1–D6 unless explicitly authorized.
 Do not merge to main unless the product owner asks. No competitor claims without benchmarks.
 No Fable orchestration unless requested — prefer focused agents with non-overlapping ownership.
@@ -424,8 +437,8 @@ No Fable orchestration unless requested — prefer focused agents with non-overl
 ## 12. Immediate vs later (one screen)
 
 **Do next**
-1. Review the stacked Stage F readiness/public-surface/origin/preview/accessibility/incident candidates
-2. Capture owner-authorized hosted, load, rollback, human-a11y, incident-tabletop, and public-edge evidence
+1. Review the stacked Stage F readiness/public-surface/origin/preview/accessibility/incident/privacy-support candidates
+2. Capture owner-authorized hosted, load, rollback, human-a11y, incident-tabletop, privacy/support, and public-edge evidence
 3. Keep `FU-NPM-01` separate; execute `FU-ALPHA-01` only with explicit logout/reboot approval
 
 **Do not do next**
