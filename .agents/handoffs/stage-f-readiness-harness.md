@@ -102,7 +102,8 @@ printing matched values.
   handoff was added; rerun at final verification.
 - `git diff --check`: initial two edited Markdown hard-break warnings were
   fixed; final rerun remains part of publication verification.
-- Remote CI: pending until the draft stacked PR is opened.
+- Draft PR #10 is open against `codex/stage-d-private-beta-prep`; remote CI is
+  pending on the final branch tip.
 
 ## 7. Fixture or sample-data instructions
 
@@ -144,8 +145,8 @@ printing matched values.
 
 ## 11. Exact next integration step
 
-Commit this workstream, push `codex/stage-f-readiness-harness`, open a draft PR
-against `codex/stage-d-private-beta-prep`, and require every CI job to pass. The
-next external action is not automatic: after owner merge/authorization, execute
-Stage D hosted activation and capture its immutable release/rollback evidence;
-only then collect the remaining Stage F gate artifacts for one exact commit.
+Require every CI job on draft PR #10 to pass, then merge only after the Stage D
+base and this stacked PR receive owner approval. The next external action is
+not automatic: after owner merge/authorization, execute Stage D hosted
+activation and capture its immutable release/rollback evidence; only then
+collect the remaining Stage F gate artifacts for one exact commit.
