@@ -60,6 +60,7 @@
 - `../docs/proposals/address-preferred-lines-fill-gaps.md` — ACCEPTED P1: address/POI + preferred lines fill gaps (ADR-0022/0023)
 - `../.agents/handoffs/integration-live.md` — integration-live + Phase 12A handoff
 - `../.agents/handoffs/stage-f-readiness-harness.md` — Stage F local-mechanics implementation and residual live gates
+- `../.agents/handoffs/stage-f-public-surface.md` — Stage F limitations route, nonce security headers, local evidence, and residual edge/load gates
 
 ## Agent prompts
 The `.agents/` directory contains shared context, conductor, routing, data, backend, frontend, infrastructure, benchmark, integration, single-agent, handoff, and review prompts. Workstream handoffs live under `../.agents/handoffs/`.

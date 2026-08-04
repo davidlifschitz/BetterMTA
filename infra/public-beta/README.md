@@ -40,8 +40,9 @@ node --test infra/public-beta/tests/public-beta-readiness.test.mjs
 node infra/public-beta/validate-readiness.mjs --structure-only
 ```
 
-`--structure-only` means the scripts, CI wiring, templates, incident plan, and
-limitations copy are present. It never means the release is ready.
+`--structure-only` means the scripts, CI wiring, templates, incident plan,
+limitations route, nonce/header middleware, and their E2E contract are present.
+It never starts the app, verifies a public edge, or means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

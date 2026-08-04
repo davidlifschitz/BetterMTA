@@ -384,4 +384,89 @@ test.describe("BetterMTA live frontend (mocked API)", () => {
       /not affiliated/i,
     );
   });
+
+  test("public-beta limitations are discoverable and scope claims stay honest", async ({
+    page,
+  }) => {
+    await installApiMocks(page);
+    await page.goto("/");
+
+    const limitationsLink = page.getByRole("link", {
+      name: /public-beta limitations/i,
+    });
+    await expect(limitationsLink).toBeVisible();
+    await limitationsLink.click();
+
+    await expect(page).toHaveURL(/\/limitations$/);
+    await expect(
+      page.getByRole("heading", { name: /BetterMTA beta limitations/i }),
+    ).toBeVisible();
+    await expect(page.getByText(/NYC subway-first/i)).toBeVisible();
+    await expect(page.getByText(/No account is required/i)).toBeVisible();
+    await expect(page.getByText(/does not claim to beat/i)).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /Back to trip planner/i }),
+    ).toHaveAttribute("href", "/");
+
+    const scan = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    const serious = scan.violations.filter(
+      (violation) =>
+        violation.impact === "serious" || violation.impact === "critical",
+    );
+    expect(
+      serious,
+      serious.map((violation) => violation.id).join(", "),
+    ).toEqual([]);
+  });
+
+  test("production pages return nonce-based baseline security headers", async ({
+    page,
+  }) => {
+    await installApiMocks(page);
+    const cspConsoleErrors = [];
+    const nonces = [];
+    page.on("console", (message) => {
+      if (
+        message.type() === "error" &&
+        /content security policy|refused to (?:load|execute|apply|connect)/i.test(
+          message.text(),
+        )
+      ) {
+        cspConsoleErrors.push(message.text());
+      }
+    });
+
+    for (const path of ["/", "/limitations"]) {
+      const response = await page.goto(path);
+      expect(response).not.toBeNull();
+      const headers = response.headers();
+      const csp = headers["content-security-policy"] ?? "";
+      const scriptSource =
+        csp
+          .split(";")
+          .map((directive) => directive.trim())
+          .find((directive) => directive.startsWith("script-src ")) ?? "";
+
+      expect(headers["x-content-type-options"]).toBe("nosniff");
+      expect(headers["x-frame-options"]).toBe("DENY");
+      expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+      expect(headers["cross-origin-opener-policy"]).toBe("same-origin");
+      expect(headers["permissions-policy"]).toContain("camera=()");
+      expect(headers["permissions-policy"]).toContain("microphone=()");
+      expect(headers["permissions-policy"]).toContain("geolocation=(self)");
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(csp).toContain("object-src 'none'");
+      expect(csp).toContain("base-uri 'self'");
+      const nonce = scriptSource.match(/'nonce-([A-Za-z0-9+/=]+)'/)?.[1];
+      expect(nonce).toBeTruthy();
+      nonces.push(nonce);
+      expect(scriptSource).not.toContain("'unsafe-inline'");
+      expect(scriptSource).not.toContain("'unsafe-eval'");
+    }
+
+    expect(new Set(nonces).size).toBe(2);
+    expect(cspConsoleErrors).toEqual([]);
+  });
 });

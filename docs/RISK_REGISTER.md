@@ -2,7 +2,7 @@
 
 **Owner:** Conductor  
 **Status:** Initial register for public-beta experiment  
-**Last updated:** 2026-08-03 (Stage C candidate; current live release unchanged)
+**Last updated:** 2026-08-04 (Stage F candidates; current live release unchanged)
 
 Severity: `critical` \| `high` \| `medium` \| `low`  
 Likelihood: `high` \| `medium` \| `low`
@@ -37,7 +37,8 @@ Likelihood: `high` \| `medium` \| `low`
 | R26 | Preferred-line candidate coverage gap (OTP top-N misses preferences → silent 0-of-N) | critical | high | Stage C adds topology-aware subsets/vias, exact live GTFS inverse binding, and honest exhaustion semantics; hard live subset passes, five soft live watch failures remain before deployment/recertification | Routing + API + QA |
 | R27 | Rider confusion: “required” copy vs fill-gaps connectors / GS vs S labeling | medium | medium | FE copy + S/GS presentation (ADR-0023 note); partial-match banners; no runtime lineId rename | Frontend + Product |
 | R28 | Process-local rate limits/metrics are treated as multi-replica durable, or geocode PlaceRef key lifecycle is mismanaged | high | medium | Stateless encrypted PlaceRefs now pass cross-replica/tamper/expiry/wrong-key tests; keep address flag off and API single-replica until the key is provisioned consistently, a shared rate limiter and aggregated observability are bound, and rotation/deploy evidence is recorded | Backend + Infra |
-| R29 | Partial, stale, synthetic, or cross-commit evidence is mistaken for public-beta readiness | high | medium | Exact ten-gate allowlist; fail-closed `NOT_READY`; expected-commit and SHA-256 binding; bounded artifacts; structure-only CI cannot assert readiness; owner reviews live evidence together | QA + Infra + Integration |
+| R29 | Partial, stale, synthetic, or cross-commit evidence is mistaken for public-beta readiness | high | medium | Exact ten-gate allowlist; fail-closed `NOT_READY`; expected-commit and SHA-256 binding; bounded artifacts; structure-only checks include the limitations/header test surfaces but cannot assert readiness; owner reviews live evidence together | QA + Infra + Integration |
+| R30 | Nonce-based CSP makes the Next.js shell request-rendered, increasing web capacity, latency, or cost versus a static shell | high | medium | Keep the policy small and app-owned; verify preview behavior, approved route-search/web load, p95, cache/CDN behavior, and capacity before public release; retain rollback evidence | Frontend + Infra + QA |
 
 ## Top watchlist for first integration
 
@@ -65,6 +66,7 @@ Likelihood: `high` \| `medium` \| `low`
 4. R24 dependency advisories before a public release
 5. R11 claims discipline and reproducible benchmark evidence
 6. R28 multi-replica operational correctness before scaling
+7. R30 request-rendered web capacity and latency before public release
 
 ## Follow-ups (tracked, not blocking controlled alpha)
 

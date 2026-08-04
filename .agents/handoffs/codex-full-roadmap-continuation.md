@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-04
 **Audience:** Codex (or any agent) taking over the whole product trajectory  
-**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-readiness`
+**Primary worktree:** `/Users/thebiglipper/Developer/bettermta-stage-f-public-surface`
 **Repo:** `davidlifschitz/BetterMTA`
 
 This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.agents/handoffs/p1-codex-continuation.md` and `docs/alpha/P1_WAVE4_CERTIFICATION.md`.
@@ -17,8 +17,8 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
-| Active program branch | `codex/stage-f-readiness-harness` (stacked on green Stage D draft PR #9) |
-| Immediate unfinished work | Finish Stage F harness validation/publishing; every hosted/live evidence gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
+| Active program branch | `codex/stage-f-public-surface` (stacked on green Stage F readiness draft PR #10 and Stage D draft PR #9) |
+| Immediate unfinished work | Finish and review the Stage F public-surface candidate; every hosted/live evidence gate and all Fly activation, secrets, scaling, and cohort changes remain owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -221,6 +221,14 @@ preview, live rollback, human accessibility, on-call, public TLS/headers,
 approval, or publication evidence has been claimed. See
 `.agents/handoffs/stage-f-readiness-harness.md` and
 `docs/public-beta/READINESS.md`.
+
+**Stage F public-surface candidate (2026-08-04; local only):** The stacked
+`codex/stage-f-public-surface` branch adds a discoverable `/limitations` route,
+planner-footer link, per-request nonce CSP, baseline security headers, and
+production E2E/structure checks. It does not approve or publish the copy, prove
+the public edge/TLS, establish HSTS policy, close preview/load capacity, or
+change `NOT_READY`. Request rendering is tracked as R30 until approved
+preview/load evidence exists. See `.agents/handoffs/stage-f-public-surface.md`.
 
 **Exit:** `READY_FOR_PUBLIC_BETA`.
 

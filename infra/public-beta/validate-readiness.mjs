@@ -68,6 +68,9 @@ function validateStructure(repoRoot) {
     "docs/public-beta/INCIDENT_PLAYBOOK.md",
     "docs/public-beta/LIMITATIONS.md",
     "docs/public-beta/evidence-template.json",
+    "apps/web/src/app/limitations/page.tsx",
+    "apps/web/src/middleware.ts",
+    "apps/web/e2e/live.spec.cjs",
   ];
   for (const path of requiredFiles) {
     if (!existsSync(resolve(repoRoot, path))) failures.push(`missing:${path}`);
@@ -103,6 +106,46 @@ function validateStructure(repoRoot) {
     ["claims", /no claim.*Google|does not claim.*Google/i],
   ]) {
     if (!pattern.test(limitations)) failures.push(`limitations:${label}`);
+  }
+
+  const limitationsPage = readText(
+    repoRoot,
+    "apps/web/src/app/limitations/page.tsx",
+  );
+  for (const [label, pattern] of [
+    ["heading", /BetterMTA beta limitations/],
+    ["scope", /NYC subway-first/i],
+    ["account", /No account is required/i],
+    ["claims", /does not claim to beat/i],
+    ["return-link", /Back to trip planner/],
+  ]) {
+    if (!pattern.test(limitationsPage)) {
+      failures.push(`limitations-page:${label}`);
+    }
+  }
+
+  const middleware = readText(repoRoot, "apps/web/src/middleware.ts");
+  for (const [label, pattern] of [
+    ["nonce", /crypto[.]randomUUID/],
+    ["csp", /Content-Security-Policy/],
+    ["nosniff", /X-Content-Type-Options/],
+    ["frame", /X-Frame-Options/],
+    ["permissions", /Permissions-Policy/],
+    ["referrer", /Referrer-Policy/],
+  ]) {
+    if (!pattern.test(middleware)) failures.push(`web-headers:${label}`);
+  }
+  if (/script-src[^;\n]*unsafe-(?:inline|eval)/.test(middleware)) {
+    failures.push("web-headers:unsafe-script-source");
+  }
+
+  const liveE2e = readText(repoRoot, "apps/web/e2e/live.spec.cjs");
+  for (const [label, pattern] of [
+    ["limitations", /public-beta limitations are discoverable/],
+    ["headers", /nonce-based baseline security headers/],
+    ["csp-console", /cspConsoleErrors/],
+  ]) {
+    if (!pattern.test(liveE2e)) failures.push(`web-e2e:${label}`);
   }
 
   const workflow = readText(repoRoot, ".github/workflows/ci.yml");

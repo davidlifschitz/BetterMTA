@@ -693,6 +693,82 @@ a {
   padding: 0 0.25rem;
 }
 
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.footer__links a,
+.info-actions a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent);
+  font-weight: 700;
+  text-underline-offset: 0.2em;
+}
+
+.info-shell {
+  width: min(100%, 680px);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 1.25rem 1rem 3rem;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.info-header,
+.info-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.info-header {
+  padding: 1.25rem;
+}
+
+.info-header h1,
+.info-card h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.info-header h1 {
+  margin: 0.15rem 0 0.6rem;
+  font-size: clamp(2rem, 7vw, 3.25rem);
+  line-height: 1.05;
+}
+
+.info-header p,
+.info-card p {
+  margin: 0;
+}
+
+.info-kicker {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.info-card {
+  padding: 1rem 1.1rem;
+}
+
+.info-card h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.2rem;
+}
+
+.info-actions {
+  padding: 0 0.25rem;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

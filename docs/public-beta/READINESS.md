@@ -17,8 +17,8 @@ release evidence remain separate gates.
 | Production rollback | Operator tooling prepared; live drill pending | Recorded prior images, executed rollback, health checks, candidate restore, elapsed time, and retained evidence |
 | Core-flow accessibility | Mocked-live keyboard/mobile/axe suite prepared for CI | Green CI artifact plus human review with no critical core-flow failures |
 | Incident response | Playbook prepared; rota/channel approval pending | Named on-call-lite owner, reachable private channel, drill evidence, and accepted stop/rollback thresholds |
-| Public origin/TLS | Pending | Approved public URL, valid TLS, secure headers, public health checks, and limitations link verified |
-| Limitations copy | Draft present | Product/legal/owner approval and verified placement in the public core flow |
+| Public origin/TLS | App-owned nonce CSP and baseline headers pass local production E2E; public origin/TLS and edge verification pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, and limitations link verified |
+| Limitations copy | Candidate `/limitations` route and planner-footer link pass local production E2E; approval/publication pending | Product/legal/owner approval and verified placement in the public core flow |
 | Privacy/support | Drafts present | Approved policy, retention controls, support channel, and response ownership |
 | Claims discipline | Automated/product rules present; publication review pending | Release copy review plus benchmark-backed methodology for any comparative statement; otherwise no comparative claim |
 
@@ -28,11 +28,20 @@ release evidence remain separate gates.
 - Playwright covers station selection, selected-line outcomes, stale/degraded
   honesty, error states, keyboard-only operation, mobile target sizing, and
   serious/critical WCAG scans.
+- Production-mode Playwright verifies the limitations route and footer link,
+  fresh request nonces, a nonce-based script policy with no script
+  `unsafe-inline`/`unsafe-eval`, baseline response headers, and no browser CSP
+  console errors on the tested pages.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
 - The evidence validator binds each passing gate to an artifact hash and the
   expected release commit.
 - CI runs structure tests but does not evaluate the pending template as ready.
+
+The nonce policy makes the application shell request-rendered. Preview and
+approved load evidence must therefore confirm web capacity and p95 before any
+public release. TLS, HSTS, CDN/proxy behavior, and final headers still require
+verification at the approved public edge; local E2E is not that evidence.
 
 ## Required release review
 

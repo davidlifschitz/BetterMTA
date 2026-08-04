@@ -130,7 +130,15 @@ release commit and SHA-256 artifact hashes; structure-only CI cannot emit a
 ready status. See `docs/public-beta/READINESS.md` and
 `infra/public-beta/README.md`.
 
-This preparation does **not** close hosted private beta, load/p95, preview,
+The stacked `codex/stage-f-public-surface` candidate makes the draft
+limitations discoverable at `/limitations` and adds app-owned, request-nonce
+CSP plus baseline security headers. Local production E2E verifies fresh nonces,
+the header contract, the linked limitations route, and no CSP console errors.
+This is candidate evidence only; the nonce-rendered shell still needs preview
+capacity/load validation and the approved public edge still needs TLS and
+runtime-header verification.
+
+These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, incident rota, public origin/TLS,
 privacy/support approval, publication, or claims-review gates. No deployment,
 cohort change, or status change occurred. Current public-beta status is
