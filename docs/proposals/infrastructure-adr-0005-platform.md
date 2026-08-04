@@ -31,7 +31,7 @@ Application services are not merged yet; this proposal selects a platform so inf
 | Postgres | Managed Postgres or Machine+volume | Managed Postgres | Built-in Postgres | External (Neon/Supabase) |
 | Health checks | First-class `[[http_service.checks]]` paths | Health check path per service | Health checks supported | Platform health ≠ app readiness contract |
 | Preview envs | PR review apps / Apps | Single-service (Hobby) / full-stack (Pro) | PR ephemeral environments | Vercel previews for web only |
-| One-action rollback | `fly releases rollback` / prior image | Instant rollback to retained build | Rollback within retention window | Vercel promote previous; workers separate |
+| One-action rollback | Redeploy recorded prior image set (`fly deploy --image`) | Instant rollback to retained build | Rollback within retention window | Vercel promote previous; workers separate |
 | Secrets | `fly secrets` | Dashboard / Blueprint sync | Project variables | Vercel env + worker secrets (split) |
 | Ops complexity | Medium (CLI, Machines) | Low (PaaS Blueprint) | Low–medium | High (two platforms) |
 | Beta cost predictability | Usage meters; IPv4 + volumes add up | Flat instance tiers — easiest to forecast | Usage + spend caps | Web cheap; workers duplicate fixed cost |
@@ -51,7 +51,7 @@ Application services are not merged yet; this proposal selects a platform so inf
 
 1. **One platform for api + web + always-on data poller** without serverless cold starts on readiness-critical paths.
 2. **Locked health contract maps cleanly** to Fly HTTP checks on `/health/live` and `/health/ready`.
-3. **One-action rollback** via previous release/image (`fly releases rollback`) matches Acceptance Criteria E.4.
+3. **One-action rollback** by redeploying a recorded compatible prior image set (`fly deploy --image`; see the [current Fly rollback guide](https://fly.io/docs/blueprints/rollback-guide/)) matches Acceptance Criteria E.4.
 4. **Secrets stay out of git** (`fly secrets set`); env templates in `infra/env/**` are placeholders only.
 5. **Cost at beta scale is lower than a three-Starter Render stack + Redis** when using small Machines + Upstash + a small Postgres Machine (feedback not required for search).
 6. Avoids **Vercel+worker dual-platform** complexity for an MVP experiment.

@@ -1,10 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { isDataUnavailableError } from "../../adapters/live/errors.js";
 import { ApiError } from "../../errors/apiError.js";
-import {
-  coarseGridId,
-  hashPlaceQuery,
-} from "../../logging/privacy.js";
+import { coarseGridId } from "../../logging/privacy.js";
 import {
   normalizePlaceProviderMetricId,
   type PlaceProviderResult,
@@ -135,7 +132,6 @@ export async function registerPlacesRoute(
         statusCode: 200,
         durationMs,
         queryLength: q.length,
-        placeQueryHash: hashPlaceQuery(q),
         resultCount: result.places.length,
         stationResultCount: result.places.length - geocodeCount,
         geocodeResultCount: geocodeCount,

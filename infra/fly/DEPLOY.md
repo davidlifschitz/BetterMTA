@@ -1,17 +1,22 @@
 # Deploy & rollback (Fly.io) — prepared, not activated
 
-**Phase 8 status:** Dockerfiles + compose + Fly TOML are ready.  
-**Cloud deploy:** **BLOCKED** — `flyctl` is not installed in this environment and no Fly
-credentials / apps exist. Do **not** claim a production deploy occurred.
+**Preparation status:** Dockerfiles, Fly TOML, read-only preflight, immutable-image
+manifest capture, and guarded rollback tooling are ready.
+**Cloud deploy:** **NOT ACTIVATED / NOT PROVEN.** Run the preflight below against
+current operator state. Do **not** claim a hosted deployment or private-beta readiness
+without retained evidence from the activation, health gates, and rollback drill.
 
 ## Prerequisites (activation checklist)
 
 - [ ] Install `flyctl` and authenticate (`fly auth login` or `FLY_API_TOKEN`)
+- [ ] Install `jq`, `curl`, and Python 3.11+ (the local TOML preflight uses `tomllib`)
 - [ ] Create apps (once per env): `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp`
 - [ ] Create volumes: `bettermta_data`, `bettermta_otp_graphs`
 - [ ] Set data bind host for private networking: `BETTERMTA_DATA_BIND_HOST=0.0.0.0`
       (defaults to `127.0.0.1` for compose + socat — see `infra/compose/README.md`)
 - [ ] Set secrets from `infra/env/*/.env.example` (`BETTERMTA_*` names)
+- [ ] Set `BETTERMTA_PLACE_REF_KEY` on the API from a 32-byte random base64/base64url
+      value; keep it stable across compatible deploys and rollback images
 - [ ] Seed OTP graph volume from a built `services/otp/var/otp/graphs/<version>/`
 - [ ] Know the public API origin for web bake (`NEXT_PUBLIC_API_BASE_URL`) — **required**
 - [ ] Dockerfiles present (confirmed paths below)
@@ -55,18 +60,48 @@ fly volumes create bettermta_otp_graphs -a bettermta-otp --region ewr --size 5
 
 ## Deploy (production) — PENDING activation
 
+Run the checked-in read-only gate first. It prints secret **names/status only**, never
+values or operator identity:
+
 ```bash
-fly deploy -a bettermta-data -c infra/fly/data.fly.toml
+BETTERMTA_API_BASE_URL=https://<api-host> \
+BETTERMTA_WEB_BASE_URL=https://<web-host> \
+./infra/fly/scripts/preflight-private-beta.sh --require-public-health
+```
+
+The deploy workflow additionally requires `--require-rollback-target` for a normal
+deployment. Its explicit `initial_activation` exception runs `--initial-activation`,
+which still verifies required secret names and volumes and refuses if any of the four apps
+already has a Machine or image-bearing release. It is not a general bypass for capture
+or preflight failure.
+
+Before every non-initial deploy, capture the currently healthy four-app image set. The
+output path should remain outside Git (the GitHub workflow retains it as a run artifact):
+
+```bash
+./infra/fly/scripts/capture-rollback-manifest.sh \
+  --output infra/fly/manifests/predeploy-YYYYMMDDTHHMMSSZ.json
+```
+
+Capture refuses to overwrite an existing path and creates the manifest with mode `0600`.
+
+```bash
+fly deploy -a bettermta-data -c infra/fly/data.fly.toml --image-label '<git-sha>' \
+  --ha=false --strategy rolling --yes
 
 # OTP: context = services/otp; --config path is relative to that context
-fly deploy services/otp -a bettermta-otp -c ../infra/fly/otp.fly.toml
+fly deploy services/otp -a bettermta-otp -c ../infra/fly/otp.fly.toml \
+  --image-label '<git-sha>' --ha=false --strategy rolling --yes
 
-fly deploy -a bettermta-api -c infra/fly/api.fly.toml
+fly deploy -a bettermta-api -c infra/fly/api.fly.toml --image-label '<git-sha>' \
+  --ha=false --strategy rolling --yes
 
 # Web: NEXT_PUBLIC_API_BASE_URL is bake-time. Dockerfile defaults to localhost —
 # always pass a real public API origin or browsers will call the wrong host.
 fly deploy -a bettermta-web -c infra/fly/web.fly.toml \
-  --build-arg NEXT_PUBLIC_API_BASE_URL=https://bettermta-api.fly.dev
+  --image-label '<git-sha>' \
+  --ha=false --strategy rolling --yes \
+  --build-arg 'NEXT_PUBLIC_API_BASE_URL=https://<api-host>'
 ```
 
 CI (`deploy.yml`) requires workflow input `public_api_base_url` and **fails closed** on
@@ -95,11 +130,34 @@ measured need. No Postgres for anonymous search.
 
 ## One-action rollback — PENDING until Fly activated
 
+Fly no longer provides a special `releases rollback` command. Its supported rollback
+model is to redeploy a recorded prior image. BetterMTA captures the four compatible
+images before deploy and redeploys them in dependency order through one guarded command:
+
 ```bash
-fly releases rollback -a bettermta-api
-fly releases rollback -a bettermta-web
-fly releases rollback -a bettermta-data
-fly releases rollback -a bettermta-otp
+BETTERMTA_API_BASE_URL=https://<api-host> \
+BETTERMTA_WEB_BASE_URL=https://<web-host> \
+./infra/fly/scripts/rollback-private-beta.sh \
+  --manifest infra/fly/manifests/predeploy-YYYYMMDDTHHMMSSZ.json \
+  --execute
+```
+
+Without `--execute`, the command is a validation-only dry run. Execution fails closed
+on an unexpected app/config/image, waits for all four deploys, checks Machine state,
+then probes API liveness/readiness/status and the web root. A mid-sequence platform
+failure can still leave a mixed image set; inspect all four app statuses before retrying.
+Rollback redeploys images only—current secrets, environment config, volumes, and data
+remain current. See the [Fly rollback guide](https://fly.io/docs/blueprints/rollback-guide/).
+
+After a successful activation and again after a rollback drill, require retained release
+images and public health in one read-only check:
+
+```bash
+BETTERMTA_API_BASE_URL=https://<api-host> \
+BETTERMTA_WEB_BASE_URL=https://<web-host> \
+./infra/fly/scripts/preflight-private-beta.sh \
+  --require-public-health \
+  --require-rollback-target
 ```
 
 ## Verify after deploy / rollback

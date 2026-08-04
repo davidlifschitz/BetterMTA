@@ -99,6 +99,8 @@ export interface ApiConfig {
   geocoderQueryCacheTtlMs: number;
   geocoderQueryCacheMax: number;
   geocoderResolveCacheTtlMs: number;
+  /** Base64/base64url AES-256 key for stateless encrypted geocode PlaceRefs. */
+  placeRefKey: string | null;
   flagDefaultsPath: string | null;
 }
 
@@ -186,6 +188,7 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
   const graphRaw = process.env.BETTERMTA_OTP_GRAPH_VERSION;
   const nominatimUaRaw = process.env.BETTERMTA_NOMINATIM_USER_AGENT;
   const nominatimEmailRaw = process.env.BETTERMTA_NOMINATIM_EMAIL;
+  const placeRefKeyRaw = process.env.BETTERMTA_PLACE_REF_KEY;
   const flagDefaultsPath =
     process.env.FLAG_DEFAULTS_PATH ??
     process.env.BETTERMTA_FLAG_DEFAULTS_PATH ??
@@ -299,6 +302,10 @@ export function loadConfig(overrides: Partial<ApiConfig> = {}): ApiConfig {
       "BETTERMTA_GEOCODER_RESOLVE_CACHE_TTL_MS",
       GEOCODER_RESOLVE_CACHE_TTL_MS_DEFAULT,
     ),
+    placeRefKey:
+      placeRefKeyRaw !== undefined && placeRefKeyRaw !== ""
+        ? placeRefKeyRaw
+        : null,
     flagDefaultsPath,
   };
 

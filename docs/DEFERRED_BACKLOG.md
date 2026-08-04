@@ -24,7 +24,7 @@
 
 | ID | Item | Status | Notes |
 |---|---|---|---|
-| STAGE-C-A3 | Multi-instance `pl_geo_*` resolution | STAGE_D_GATE | Current resolve cache is process-local; do not scale address/POI traffic across replicas without a shared or privacy-reviewed opaque-token design |
+| STAGE-C-A3 | Multi-instance `pl_geo_*` resolution | IMPLEMENTED_CANDIDATE | Stage D branch uses short-lived AES-256-GCM `pl_geo_v1.*` refs, cross-instance tests, production key lockout, and log redaction; merge/deploy/flag-on remain owner-gated |
 | STAGE-C-OBS | Metrics backend + alert delivery | STAGE_D_GATE | Authenticated API exporter and rules exist; scrape target, storage, rule loading, and notification routing are not active |
 | STAGE-C-LIVE | Preferred-line live watch failures | OPEN | Five soft live cases preserve candidate-diversity/timeout gaps; two-case hard live subset passes |
 

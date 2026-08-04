@@ -323,3 +323,5 @@ jobs:
               tomllib.loads(path.read_text(encoding="utf-8"))
               print("TOML OK:", path)
           '
+      - name: Test Fly operator scripts
+        run: ./infra/fly/tests/operator-scripts.test.sh

@@ -9,6 +9,9 @@ import { LiveDataAdapter } from "./adapters/live/LiveDataAdapter.js";
 import { LiveRoutingAdapter } from "./adapters/live/LiveRoutingAdapter.js";
 import {
   createGeocoderProvider,
+  assertProductionPlaceRefKey,
+  decodeGeocodePlaceRefKey,
+  GeocodePlaceRefCodec,
   GeocodeQueryCache,
   GeocodeResolveCache,
 } from "./adapters/places/index.js";
@@ -56,6 +59,7 @@ export async function buildApp(
 ): Promise<{ app: FastifyInstance; deps: AppDeps }> {
   const config = loadConfig(options.config);
   assertProductionAdapterLockout(config.adapterMode);
+  assertProductionPlaceRefKey(config.addressPoiEnabled, config.placeRefKey);
 
   const logger = options.deps?.logger ?? createLogger(config.logLevel);
 
@@ -234,7 +238,16 @@ async function resolveAdapters(
       : null;
   const geocodeResolveCache =
     config.addressPoiEnabled && geocoder
-      ? new GeocodeResolveCache(config.geocoderResolveCacheTtlMs)
+      ? new GeocodeResolveCache(
+          config.geocoderResolveCacheTtlMs,
+          undefined,
+          config.placeRefKey
+            ? new GeocodePlaceRefCodec({
+                key: decodeGeocodePlaceRefKey(config.placeRefKey),
+                ttlMs: config.geocoderResolveCacheTtlMs,
+              })
+            : null,
+        )
       : null;
   const placesOpts = {
     addressPoiEnabled: config.addressPoiEnabled,

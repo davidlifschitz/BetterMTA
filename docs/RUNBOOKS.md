@@ -302,16 +302,33 @@ Do **not** activate a partial/corrupt graph. Keep prior version until the new on
 
 ---
 
-## Deployment rollback (Fly releases) — PENDING
+## Deployment rollback (recorded Fly images) — PENDING
 
 **Status:** Pending until Fly apps exist and first deploy succeeds (Acceptance Criteria E.4).
+Current Fly guidance has no special rollback command: redeploy the exact prior
+image. BetterMTA records the compatible four-service set before mutation and
+rolls it back in dependency order. See the
+[official Fly rollback guide](https://fly.io/docs/blueprints/rollback-guide/).
 
 ```bash
-fly releases rollback -a bettermta-api
-fly releases rollback -a bettermta-web
-fly releases rollback -a bettermta-data
-fly releases rollback -a bettermta-otp
+./infra/fly/scripts/capture-rollback-manifest.sh \
+  --output infra/fly/manifests/pre-deploy-CHANGE_ID.json
+
+# Validate the rollback set without changing external state.
+./infra/fly/scripts/rollback-private-beta.sh \
+  --manifest infra/fly/manifests/pre-deploy-CHANGE_ID.json
+
+# Only after owner approval, with both origins supplied privately:
+BETTERMTA_API_BASE_URL='https://<api-host>' \
+BETTERMTA_WEB_BASE_URL='https://<web-host>' \
+./infra/fly/scripts/rollback-private-beta.sh \
+  --manifest infra/fly/manifests/pre-deploy-CHANGE_ID.json \
+  --execute
 ```
+
+The manifest is gitignored and must be retained in an access-controlled evidence
+store. Image rollback does not revert secrets, volumes, or Fly configuration. A
+mid-sequence failure can leave a mixed set; stop and inspect all four apps.
 
 Verify:
 
@@ -374,7 +391,7 @@ Four always-on Machines, no Postgres, **API exactly 1 replica** (in-memory rate 
 2. Check cache hit rate (`bettermta_cache_requests_total`); warm miss storm → inspect Redis.
 3. Check routing service CPU / timeouts; look for candidate explosion.
 4. Mitigations (flags): lower `result_count` toward 1; set `candidate_strategy=baseline_only`; disable `constraints_enabled` if constrained path is hot.
-5. If single bad deploy: **rollback API** (`fly releases rollback -a bettermta-api`).
+5. If a bad deploy is implicated: run the guarded four-service image rollback with the recorded pre-deploy manifest; do not roll back API alone.
 6. Capture `requestId`s for failing slow traces; file routing issue with snapshot IDs.
 
 ---
@@ -396,7 +413,7 @@ Four always-on Machines, no Postgres, **API exactly 1 replica** (in-memory rate 
 **Trigger:** `FrontendCrashSpike` or blank/error UI in production.
 
 1. Confirm release version in error tracker vs `fly releases -a bettermta-web`.
-2. **One-action rollback:** `fly releases rollback -a bettermta-web`.
+2. **One-action rollback:** run `infra/fly/scripts/rollback-private-beta.sh` with the recorded pre-deploy manifest so web/API/data/OTP stay compatible.
 3. Verify `https://<web-host>/` loads and can call API (CORS / `NEXT_PUBLIC_API_BASE_URL`).
 4. If API contract mismatch: rollback web and/or api to last known compatible pair.
 5. Block auto-deploys until fix merges; add regression test in frontend/QA.
@@ -407,12 +424,14 @@ Four always-on Machines, no Postgres, **API exactly 1 replica** (in-memory rate 
 
 **Trigger:** Bad deploy, readiness fail after release, sev-1 regression.
 
-### One-action commands
+### One-action command
 
 ```bash
-fly releases rollback -a bettermta-api
-fly releases rollback -a bettermta-web
-fly releases rollback -a bettermta-data
+BETTERMTA_API_BASE_URL='https://<api-host>' \
+BETTERMTA_WEB_BASE_URL='https://<web-host>' \
+./infra/fly/scripts/rollback-private-beta.sh \
+  --manifest infra/fly/manifests/pre-deploy-CHANGE_ID.json \
+  --execute
 ```
 
 ### Verify
@@ -474,7 +493,7 @@ Track Acceptance Criteria E.4 and related go/no-go items:
 
 | Item | Status |
 |---|---|
-| Post-first-deploy rollback drill (E.4): after first successful api/web deploy, run `fly releases rollback` once per app and verify `/health/live` + `/health/ready` | **Pending** — Fly not activated |
+| Post-first-deploy rollback drill (E.4): retain two known-good four-image sets, execute `rollback-private-beta.sh` against the recorded prior manifest, verify public health/readiness, then restore the candidate | **Pending** — Fly not activated |
 | Deploy workflow wired (Dockerfiles + flyctl steps) | **Prepared** — still `workflow_dispatch` + `ACTIVATE` guard; needs `FLY_API_TOKEN` |
 | Local compose Dockerfiles | **Prepared** — `docker-compose.yml` + images |
 | Alerts bound to a manager + Slack webhook | **Pending** |
@@ -529,7 +548,7 @@ See `infra/flags/flags.json`. Emergency product off switch: `maintenance_mode=tr
 
 | Signal | Where |
 |---|---|
-| `placeQueryHash`, `queryLength`, `proximityGrid`, `proximityProvided` | `places_ok` logs |
+| `queryLength`, `proximityGrid`, `proximityProvided` | `places_ok` logs |
 | `selectedLineCount`, PrivacySafe OD refs (`placeId` / `stationId` / `coarseGrid`) | `route_search_ok` logs |
 | `bettermta_place_provider_*`, `bettermta_candidate_*`, `bettermta_preference_coverage_total` | in-process `PrivacySafeMetrics` |
 
@@ -544,7 +563,7 @@ See `infra/flags/flags.json`. Emergency product off switch: `maintenance_mode=tr
 
 | Wave | Call |
 |---|---|
-| Places / geocode adapter | `hashPlaceQuery`, `coarseGridId`, `hashVendorId`, `PrivacySafeMetrics.recordPlaceProvider` |
+| Places / geocode adapter | `coarseGridId`, `PrivacySafeMetrics.recordPlaceProvider` |
 | Routing candidate orchestration | `PrivacySafeMetrics.recordCandidateCoverage` / `recordPreferenceCoverage` (or API `recordRouteSearchPrivacySignals`) |
 
 ---

@@ -75,7 +75,8 @@ export async function composePlaceSearch(
   }
 
   if (geocode.availability === "ok") {
-    deps.resolveCache?.rememberMany(geocode.places);
+    const publicPlaces = deps.resolveCache?.rememberMany(geocode.places);
+    if (publicPlaces) geocode = { ...geocode, places: publicPlaces };
   }
 
   return mergeStationAndGeocodePlaces({

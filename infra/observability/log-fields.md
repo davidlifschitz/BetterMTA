@@ -34,7 +34,7 @@ Default logs/analytics **MUST NOT** retain:
 | Allowed | Avoid by default |
 |---|---|
 | `requestId`, `placeId`, `stationId`, `kind`, BetterMTA `provider` | Precise `lat`/`lon`, proximity pins |
-| `queryLength`, `placeQueryHash` (truncated SHA-256), `proximityProvided`, `proximityGrid` (~1 km) | Raw `q` / address text |
+| `queryLength`, `proximityProvided`, `proximityGrid` (~1 km) | Raw `q` / address text and stable query hashes |
 | `selectedLineCount` (aggregates) | Raw preferred-line ID lists in ops logs |
 | `candidateCoverageStatus`, budget counters | OTP/vendor raw payloads |
 

@@ -41,6 +41,10 @@
 - `alpha/CONTROLLED_ALPHA_REVIEW_1.md` — first P1 learning review, R19–R27 reassessment, and Stage C decision
 - `alpha/RELIABILITY_DRILLS.md` — restart drills + residuals (`FU-ALPHA-01`, etc.)
 - `alpha/PERFORMANCE.md` — authenticated remote latency sample
+- `private-beta/PRIVACY_POLICY_DRAFT.md` — publishable private-beta privacy-policy draft; owner/legal and deployed-retention verification pending
+- `private-beta/SUPPORT_WORKFLOW_DRAFT.md` — privacy-minimized support intake, triage, stop, and rollback workflow draft
+- `private-beta/SUPPORT_LOG_TEMPLATE.md` — restricted-location case ledger shape; never store live rider cases in Git
+- `../infra/fly/DEPLOY.md` — hosted-beta activation, read-only preflight, image-manifest capture, and guarded rollback
 - `../infra/alpha/README.md` — controlled-alpha index (edge, host, tunnel, Access, scripts)
 - `../infra/alpha/HOST.md` — Phase 12A.5 macOS operating requirements + preflight
 - `../infra/alpha/TUNNEL.md` — Phase 12A.6 named Cloudflare Tunnel (interactive; secrets out of repo)

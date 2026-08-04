@@ -14,8 +14,8 @@
 #   fly deploy -a bettermta-data -c infra/fly/data.fly.toml
 
 #
-# One-action rollback:
-#   fly releases rollback -a bettermta-data
+# Coordinated immutable-image rollback:
+#   ./infra/fly/scripts/rollback-private-beta.sh --manifest <path> --execute
 #
 # Cost guardrail: single Machine, no autoscaling, poll interval env-bounded.
 

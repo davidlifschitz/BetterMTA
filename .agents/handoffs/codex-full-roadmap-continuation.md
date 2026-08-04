@@ -1,6 +1,6 @@
 # Codex continuation handoff — BetterMTA full roadmap
 
-**Date:** 2026-08-03  
+**Date:** 2026-08-04
 **Audience:** Codex (or any agent) taking over the whole product trajectory  
 **Primary worktree:** `/Users/thebiglipper/Developer/bettermta-integration-live`  
 **Repo:** `davidlifschitz/BetterMTA`
@@ -17,8 +17,8 @@ This is the **full-program** handoff. Completed P1 Wave 4 evidence lives in `.ag
 | Live origin | Self-hosted macOS + Docker/Colima + Cloudflare Tunnel + Access (ADR-0021) |
 | Live images | Immutable P1 release `rel-20260803T183449Z-78c2ca507c3f`; rollback points to pre-P1 certified release |
 | Integration lineage on `main` | Through PR #3–#6 docs/findings; **`main` does not yet contain P1 Waves 0–4 code** |
-| Active program branch | `agent/p1-address-preferred-lines` @ **`78c2ca5`** (Waves 0–4 done) |
-| Immediate unfinished work | Stage C candidate validation/CI → then **Stage D preparation only**; activation remains owner-gated |
+| Active program branch | `codex/stage-d-private-beta-prep` (candidate based on Stage C tip `fac7e06`; local validation green) |
+| Immediate unfinished work | Finish Stage D candidate validation/publishing; Fly activation, secrets, scaling, and cohort expansion remain owner-gated |
 
 **Hard rules (always):**
 - Do not silently change confirmed product/ADR decisions; propose reopenals.
@@ -173,7 +173,7 @@ Evaluate:
 | Wave3 Mediums | Spec lag, Docker FE flag ARG, geocode runbook, PlaceSuggest a11y, etc. | Before flag-on / private beta |
 | Benchmarks | Live SUT corpus refresh; keep SI/ferry Must-set deferred (ADR-0020) until reopened |
 
-**Stage C candidate result (2026-08-03):** Draft PR #8 is green across all eight CI jobs (run `30846000773`). Wave 3 implementation residuals are closed except process-local geocode resolution, which is an explicit Stage D multi-instance gate. The API now has an authenticated privacy-safe metrics exporter, while backend/pager activation remains Stage D. The hard live subset passes 2/2; five soft live cases preserve real candidate-diversity/timeout gaps. FU-NPM-01 is ready as draft PR #7 with green CI. FU-ALPHA-01 still needs explicit approval; FU-ALPHA-02 still needs operator-owned secrets and remains optional. No live redeploy, flag-on, cohort expansion, Fly activation, or `main` merge occurred.
+**Stage C candidate result (2026-08-03):** Draft PR #8 is green across all eight CI jobs (run `30846000773`). The API has an authenticated privacy-safe metrics exporter; backend/pager activation remains Stage D. The hard live subset passes 2/2; five soft live cases preserve real candidate-diversity/timeout gaps. FU-NPM-01 is ready as draft PR #7 with green CI. FU-ALPHA-01 still needs explicit approval; FU-ALPHA-02 still needs operator-owned secrets and remains optional. The process-local geocode-resolution residual recorded at this point has a tested Stage D implementation candidate below, but that candidate is not merged or deployed. No live redeploy, flag-on, cohort expansion, Fly activation, or `main` merge occurred.
 
 ### Stage D — Private beta (hosted) — Epic D5 + M4 subset
 
@@ -186,6 +186,8 @@ Work:
 - Rate limits / multi-instance place-resolve story (P1 A M3)
 - Privacy policy + support workflow draft
 - Cohort 5–10 → expand carefully
+
+**Stage D preparation candidate (2026-08-04; not activated):** `codex/stage-d-private-beta-prep` adds expiring AES-256-GCM geocode PlaceRefs that resolve across API replicas sharing one key, fail closed on tamper/expiry/wrong-key, and refuse production address/POI boot without that key. Stable place-query/provider hashes and encrypted PlaceRefs are excluded or redacted from operational logs. Fly preparation now has strict public-origin validation, a read-only normal/initial preflight, prior-image manifest capture, guarded image-based rollback, exact one-Machine caps, serialized deployment, deterministic operator tests, and deploy-workflow manifest retention; current Fly guidance no longer uses a special releases-rollback command. Draft privacy/support documents are present but unpublished and unapproved. Local validation passes (API 123 passed + 1 intentional skip, API build, contracts, Fly operator/preflight, config parsing, Compose resolution, hygiene and high-confidence secret scan); remote draft-PR CI is pending. No Fly authentication, app creation, secrets, deployment, scaling, live change, flag-on, or cohort expansion occurred. The product remains `READY_FOR_P1_CONTROLLED_ALPHA`, not `READY_FOR_PRIVATE_BETA`.
 
 **Exit:** `READY_FOR_PRIVATE_BETA` with evidence — still not public.
 

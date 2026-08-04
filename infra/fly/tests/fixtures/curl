@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'curl %s\n' "$*" >> "${FLY_TEST_LOG:?}"
+if [ "${FLY_TEST_CURL_FAIL:-false}" = true ]; then
+  printf 'curl failed for %s\n' "$*" >&2
+  exit 22
+fi

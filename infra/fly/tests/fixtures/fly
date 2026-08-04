@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app=""
+previous=""
+for arg in "$@"; do
+  if [ "$previous" = "-a" ] || [ "$previous" = "--app" ]; then
+    app="$arg"
+  fi
+  previous="$arg"
+done
+
+case "${1:-} ${2:-}" in
+  "version ")
+    echo "fly v-test"
+    ;;
+  "auth whoami")
+    echo "fixture-operator@example.invalid"
+    ;;
+  "status -a"|"status --app")
+    if [ "${FLY_TEST_INITIAL:-false}" = true ]; then
+      echo '{"Machines":[]}'
+    elif [ "${FLY_TEST_MULTI_MACHINE:-false}" = true ]; then
+      printf '{"Machines":[{"state":"started","config":{"image":"registry.fly.io/%s:rollback-base"}},{"state":"started","config":{"image":"registry.fly.io/%s:rollback-base"}}]}\n' "$app" "$app"
+    else
+      printf '{"Machines":[{"state":"started","config":{"image":"registry.fly.io/%s:rollback-base"}}]}\n' "$app"
+    fi
+    ;;
+  "machines list"|"machine list")
+    if [ "${FLY_TEST_INITIAL:-false}" = true ]; then
+      echo '[]'
+    else
+      echo '[{"state":"started"}]'
+    fi
+    ;;
+  "secrets list")
+    case "$app" in
+      bettermta-api)
+        echo '[{"Name":"BETTERMTA_DATA_INTERNAL_TOKEN"},{"Name":"BETTERMTA_METRICS_TOKEN"},{"Name":"BETTERMTA_PLACE_REF_KEY"}]'
+        ;;
+      bettermta-data|bettermta-otp)
+        echo '[{"Name":"BETTERMTA_INTERNAL_TOKEN"}]'
+        ;;
+      *)
+        echo '[]'
+        ;;
+    esac
+    ;;
+  "volumes list")
+    case "$app" in
+      bettermta-data) echo '[{"name":"bettermta_data"}]' ;;
+      bettermta-otp) echo '[{"name":"bettermta_otp_graphs"}]' ;;
+      *) echo '[]' ;;
+    esac
+    ;;
+  "releases --image"|"releases ")
+    if [ "${FLY_TEST_INITIAL:-false}" = true ]; then
+      echo '[]'
+    elif [ "${FLY_TEST_SINGLE_RELEASE:-false}" = true ]; then
+      printf '[{"Version":1,"ImageRef":"registry.fly.io/%s:current"}]\n' "$app"
+    else
+      printf '[{"Version":2,"ImageRef":"registry.fly.io/%s:current"},{"Version":1,"ImageRef":"registry.fly.io/%s:rollback-base"}]\n' "$app" "$app"
+    fi
+    ;;
+  "deploy -a"|"deploy --app")
+    printf 'fly %s\n' "$*" >> "${FLY_TEST_LOG:?}"
+    ;;
+  *)
+    echo "unexpected fake fly command: $*" >&2
+    exit 90
+    ;;
+esac

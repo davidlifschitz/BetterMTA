@@ -56,7 +56,14 @@ FEATURE_FLAGS_JSON='{"address_poi_enabled":true}'
 
 - No precise address/coordinate or raw query text in normal logs (`places_ok` logs `queryLength`, counts, flags only; logger redacts `query` / `lat` / `lon` keys).
 - Geocode query cache keys are **SHA-256** of normalized query + coarse proximity bucket (~0.1°), not raw pins.
-- Resolve cache is in-process, TTL-bounded (`pl_geo_*` → Place); not durable; not analytics.
+- Provider-local geocode ids are replaced at the API boundary by short-lived
+  `pl_geo_v1.*` PlaceRefs encrypted and authenticated with AES-256-GCM. The token
+  contains only route-needed place data, omits the upstream `providerPlaceId`, and can
+  be resolved by any compatible API replica holding `BETTERMTA_PLACE_REF_KEY`.
+- The in-process resolve cache remains a hot cache only; correctness no longer depends
+  on the search and route requests reaching the same replica. Tokens are TTL-bounded,
+  fail closed on tamper/expiry/wrong key, are never durably persisted, and are redacted
+  from logs.
 - No default retention of precise geocode query coordinates (ADR-0022 §5).
 - Geocode miss / provider unavailable → stations only or empty places; **never** silently substitute an unrelated station. Unresolved `pl_geo_*` PlaceRef → `null` from `resolvePlace` (route path surfaces `unknown_place`).
 
@@ -66,6 +73,8 @@ FEATURE_FLAGS_JSON='{"address_poi_enabled":true}'
 2. If flag on + geocoder configured, remaining `limit` slots fill with address/POI hits.
 3. Station matches keep `provider: "station_index"`.
 4. Timeouts / 429 / 5xx → bounded retry then `availability: unavailable` (station results still returned).
+5. Production refuses to boot with address/POI enabled unless
+   `BETTERMTA_PLACE_REF_KEY` decodes to exactly 32 bytes.
 
 ## Provider outage operations
 

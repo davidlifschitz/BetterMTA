@@ -36,7 +36,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R25 | Geocode vendor privacy, cost, or attribution miss after ADR-0022 reopen | high | medium | Provider abstraction; no default precise-coord retention; attribution; authenticated bounded metrics; geocoder alert/runbook before flag-on; secrets out of repo | Backend + FE + Infra |
 | R26 | Preferred-line candidate coverage gap (OTP top-N misses preferences → silent 0-of-N) | critical | high | Stage C adds topology-aware subsets/vias, exact live GTFS inverse binding, and honest exhaustion semantics; hard live subset passes, five soft live watch failures remain before deployment/recertification | Routing + API + QA |
 | R27 | Rider confusion: “required” copy vs fill-gaps connectors / GS vs S labeling | medium | medium | FE copy + S/GS presentation (ADR-0023 note); partial-match banners; no runtime lineId rename | Frontend + Product |
-| R28 | Process-local geocode PlaceRef resolution or metrics are treated as multi-replica durable | high | medium | Keep address flag off/current API single-replica; require shared privacy-reviewed resolve design and aggregated observability before Stage D scale-out | Backend + Infra |
+| R28 | Process-local rate limits/metrics are treated as multi-replica durable, or geocode PlaceRef key lifecycle is mismanaged | high | medium | Stateless encrypted PlaceRefs now pass cross-replica/tamper/expiry/wrong-key tests; keep address flag off and API single-replica until the key is provisioned consistently, a shared rate limiter and aggregated observability are bound, and rotation/deploy evidence is recorded | Backend + Infra |
 
 ## Top watchlist for first integration
 

@@ -17,8 +17,8 @@
 #   fly deploy -a bettermta-api -c infra/fly/api.fly.toml
 #   fly scale count 1 -a bettermta-api
 #
-# One-action rollback:
-#   fly releases rollback -a bettermta-api
+# Coordinated immutable-image rollback:
+#   ./infra/fly/scripts/rollback-private-beta.sh --manifest <path> --execute
 
 app = 'bettermta-api'
 primary_region = 'ewr'
@@ -33,6 +33,8 @@ primary_region = 'ewr'
   BETTERMTA_ADAPTER_MODE = 'live'
   BETTERMTA_TRUST_PROXY = '1'
   BETTERMTA_CONTRACTS_ROOT = '/repo/contracts'
+  BETTERMTA_DATA_INTERNAL_URL = 'http://bettermta-data.internal:8081'
+  BETTERMTA_OTP_URL = 'http://bettermta-otp.internal:8080'
   FLAG_DEFAULTS_PATH = '/app/config/flags.json'
 
 [http_service]
