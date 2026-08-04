@@ -88,6 +88,11 @@ cd apps/web && BETTERMTA_E2E_EXTERNAL_BASE=http://127.0.0.1:3100 npm run e2e
   in Debian `apt-get` on an upstream ARM64 `libssl3` hash mismatch before app
   assembly; the earlier full runtime image is the one used for the 14/14 proof.
   The independent GitHub runner job remains the final runtime-image gate.
+- First PR CI run `30955999872` passed 9/10 jobs. The new preview job built and
+  started the container but its schema-backed Playwright tests lacked
+  `contracts/node_modules` and failed to resolve Ajv. A TDD regression now
+  requires `npm --prefix contracts ci` inside that job, and the job installs
+  both lockfile-pinned dependency trees. The replacement CI run is required.
 - The explicit local preview container and image tag were removed after proof.
 
 ## 7. Fixture or sample-data instructions

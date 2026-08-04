@@ -493,6 +493,7 @@ test("repository readiness structure is complete without claiming readiness", as
   for (const pattern of [
     /docker build/,
     /--file apps\/web\/Dockerfile/,
+    /npm --prefix contracts ci/,
     /--build-arg NEXT_PUBLIC_API_BASE_URL=http:\/\/127[.]0[.]0[.]1:3999/,
     /--build-arg NEXT_PUBLIC_API_MODE=live/,
     /--build-arg NEXT_PUBLIC_FLAG_FEEDBACK=false/,
