@@ -128,6 +128,40 @@ jobs:
             npm --prefix apps/web run build
           npm --prefix apps/web run verify:no-fixtures
 
+  public-beta-readiness:
+    name: public-beta-readiness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            contracts/package-lock.json
+            apps/web/package-lock.json
+      - name: Install contract and web dependencies
+        run: |
+          npm --prefix contracts ci
+          npm --prefix apps/web ci
+      - name: Test readiness mechanics
+        run: |
+          node --test infra/public-beta/tests/public-beta-readiness.test.mjs
+          node infra/public-beta/validate-readiness.mjs --structure-only
+      - name: Install Playwright Chromium
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+      - name: Run mocked-live core-flow, mobile, keyboard, and accessibility checks
+        run: npm --prefix apps/web run e2e
+      - name: Retain Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-playwright-${{ github.run_id }}
+          path: apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 14
+
   routing:
     name: services-routing
     runs-on: ubuntu-latest

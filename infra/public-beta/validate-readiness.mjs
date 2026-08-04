@@ -1,0 +1,293 @@
+#!/usr/bin/env node
+
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import {
+  existsSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const defaultRepoRoot = resolve(scriptDir, "../..");
+
+const REQUIRED_GATES = Object.freeze([
+  "hosted_private_beta",
+  "load_p95",
+  "preview_deployment",
+  "production_rollback",
+  "accessibility_core_flow",
+  "incident_response",
+  "public_origin_tls",
+  "limitations_copy",
+  "privacy_support_approval",
+  "claims_discipline",
+]);
+const MAX_ARTIFACT_BYTES = 50 * 1024 * 1024;
+
+function parseArgs(args) {
+  const options = { repoRoot: defaultRepoRoot };
+  for (let index = 0; index < args.length; index += 1) {
+    const flag = args[index];
+    if (flag === "--structure-only") {
+      options.structureOnly = true;
+    } else if (["--evidence", "--repo-root", "--expected-commit"].includes(flag)) {
+      const value = args[index + 1];
+      if (value === undefined || value.startsWith("--")) {
+        throw new Error(`${flag} requires a value`);
+      }
+      if (flag === "--evidence") options.evidence = value;
+      if (flag === "--repo-root") options.repoRoot = resolve(value);
+      if (flag === "--expected-commit") options.expectedCommit = value;
+      index += 1;
+    } else {
+      throw new Error("unknown option");
+    }
+  }
+  if (options.structureOnly === Boolean(options.evidence)) {
+    throw new Error("choose exactly one of --structure-only or --evidence");
+  }
+  return options;
+}
+
+function readText(repoRoot, path) {
+  return readFileSync(resolve(repoRoot, path), "utf8");
+}
+
+function validateStructure(repoRoot) {
+  const failures = [];
+  const requiredFiles = [
+    "infra/public-beta/load-route-search.mjs",
+    "infra/public-beta/validate-readiness.mjs",
+    "infra/public-beta/tests/public-beta-readiness.test.mjs",
+    "infra/public-beta/README.md",
+    "docs/public-beta/READINESS.md",
+    "docs/public-beta/INCIDENT_PLAYBOOK.md",
+    "docs/public-beta/LIMITATIONS.md",
+    "docs/public-beta/evidence-template.json",
+  ];
+  for (const path of requiredFiles) {
+    if (!existsSync(resolve(repoRoot, path))) failures.push(`missing:${path}`);
+  }
+  if (failures.length > 0) return failures;
+
+  const readiness = readText(repoRoot, "docs/public-beta/READINESS.md");
+  if (!/Current status:\*\* `NOT_READY`/.test(readiness)) {
+    failures.push("readiness-status-not-fail-closed");
+  }
+
+  const incident = readText(repoRoot, "docs/public-beta/INCIDENT_PLAYBOOK.md");
+  for (const heading of [
+    "Detection",
+    "Severity",
+    "Roles",
+    "Stop conditions",
+    "Response",
+    "Communications",
+    "Recovery",
+    "Evidence",
+  ]) {
+    if (!new RegExp(`^## .*${heading}`, "m").test(incident)) {
+      failures.push(`incident-heading:${heading.toLowerCase()}`);
+    }
+  }
+
+  const limitations = readText(repoRoot, "docs/public-beta/LIMITATIONS.md");
+  for (const [label, pattern] of [
+    ["scope", /NYC subway/i],
+    ["freshness", /stale|degraded/i],
+    ["account", /no account/i],
+    ["claims", /no claim.*Google|does not claim.*Google/i],
+  ]) {
+    if (!pattern.test(limitations)) failures.push(`limitations:${label}`);
+  }
+
+  const workflow = readText(repoRoot, ".github/workflows/ci.yml");
+  for (const [label, pattern] of [
+    ["job", /^  public-beta-readiness:/m],
+    ["contracts-install", /npm --prefix contracts ci/],
+    ["browser-install", /playwright install --with-deps chromium/],
+    ["e2e", /npm --prefix apps\/web run e2e/],
+    ["node-tests", /node --test infra\/public-beta\/tests\/[^\s]+/],
+    ["structure", /validate-readiness[.]mjs --structure-only/],
+  ]) {
+    if (!pattern.test(workflow)) failures.push(`workflow:${label}`);
+  }
+
+  try {
+    const template = JSON.parse(
+      readText(repoRoot, "docs/public-beta/evidence-template.json"),
+    );
+    const ids = (template.gates ?? []).map((gate) => gate.id).sort();
+    if (JSON.stringify(ids) !== JSON.stringify([...REQUIRED_GATES].sort())) {
+      failures.push("evidence-template:gate-set");
+    }
+    if ((template.gates ?? []).some((gate) => gate.status === "pass")) {
+      failures.push("evidence-template:must-not-claim-pass");
+    }
+  } catch {
+    failures.push("evidence-template:invalid-json");
+  }
+  return failures;
+}
+
+function currentCommit(repoRoot) {
+  return execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
+}
+
+function safeArtifact(repoRoot, artifact) {
+  if (typeof artifact !== "string" || artifact.length === 0 || isAbsolute(artifact)) {
+    return null;
+  }
+  const candidate = resolve(repoRoot, artifact);
+  const rel = relative(repoRoot, candidate);
+  if (rel === "" || rel.startsWith(`..${sep}`) || rel === "..") return null;
+  if (!existsSync(candidate)) return null;
+  const artifactStat = statSync(candidate);
+  if (!artifactStat.isFile()) return null;
+  const realRoot = realpathSync(repoRoot);
+  const realCandidate = realpathSync(candidate);
+  const realRel = relative(realRoot, realCandidate);
+  if (realRel.startsWith(`..${sep}`) || realRel === "..") return null;
+  return { path: realCandidate, size: artifactStat.size };
+}
+
+function evaluateEvidence(manifest, { repoRoot, expectedCommit }) {
+  const reasons = [];
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+    return ["manifest:shape"];
+  }
+  if (manifest.schemaVersion !== 1) reasons.push("manifest:schema-version");
+  if (!/^[a-z0-9][a-z0-9._-]{2,80}$/.test(manifest.releaseId ?? "")) {
+    reasons.push("manifest:release-id");
+  }
+  if (Number.isNaN(Date.parse(manifest.generatedAt ?? ""))) {
+    reasons.push("manifest:generated-at");
+  }
+  if (!/^[0-9a-f]{40}$/.test(manifest.commit ?? "")) {
+    reasons.push("manifest:commit-shape");
+  } else if (manifest.commit !== expectedCommit) {
+    reasons.push("manifest:commit-mismatch");
+  }
+
+  const gates = Array.isArray(manifest.gates) ? manifest.gates : [];
+  const byId = new Map();
+  for (const gate of gates) {
+    if (
+      !gate ||
+      typeof gate.id !== "string" ||
+      !/^[a-z][a-z0-9_]{2,63}$/.test(gate.id) ||
+      byId.has(gate.id)
+    ) {
+      reasons.push("gate:duplicate-or-invalid-id");
+      continue;
+    }
+    byId.set(gate.id, gate);
+  }
+  for (const id of REQUIRED_GATES) {
+    const gate = byId.get(id);
+    if (!gate) {
+      reasons.push(`gate:${id}:missing`);
+      continue;
+    }
+    if (gate.status !== "pass") reasons.push(`gate:${id}:not-pass`);
+    if (Number.isNaN(Date.parse(gate.observedAt ?? ""))) {
+      reasons.push(`gate:${id}:observed-at`);
+    }
+    const artifact = safeArtifact(repoRoot, gate.artifact);
+    if (!artifact) {
+      reasons.push(`gate:${id}:artifact`);
+      continue;
+    }
+    if (artifact.size > MAX_ARTIFACT_BYTES) {
+      reasons.push(`gate:${id}:artifact-too-large`);
+      continue;
+    }
+    if (!/^[0-9a-f]{64}$/.test(gate.sha256 ?? "")) {
+      reasons.push(`gate:${id}:sha256-shape`);
+      continue;
+    }
+    const actual = createHash("sha256")
+      .update(readFileSync(artifact.path))
+      .digest("hex");
+    if (actual !== gate.sha256) reasons.push(`gate:${id}:sha256-mismatch`);
+  }
+  for (const id of byId.keys()) {
+    if (!REQUIRED_GATES.includes(id)) reasons.push("gate:unexpected-id");
+  }
+  return [...new Set(reasons)].sort();
+}
+
+function emitEvaluation(status, reasons = []) {
+  process.stdout.write(
+    `${JSON.stringify({
+      schemaVersion: 1,
+      status,
+      requiredGateCount: REQUIRED_GATES.length,
+      failureCount: reasons.length,
+      reasonCodes: reasons,
+    })}\n`,
+  );
+}
+
+function main() {
+  let options;
+  try {
+    options = parseArgs(process.argv.slice(2));
+  } catch (error) {
+    console.error(
+      `Readiness validation refused: ${error instanceof Error ? error.message : "invalid arguments"}`,
+    );
+    process.exitCode = 2;
+    return;
+  }
+
+  if (options.structureOnly) {
+    const failures = validateStructure(options.repoRoot);
+    if (failures.length > 0) {
+      console.error(`STRUCTURE_FAIL (${failures.join(",")})`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log("STRUCTURE_PASS (readiness mechanics present; release evidence not asserted)");
+    return;
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(resolve(options.evidence), "utf8"));
+  } catch {
+    emitEvaluation("NOT_READY", ["manifest:unreadable"]);
+    process.exitCode = 1;
+    return;
+  }
+  let expectedCommit = options.expectedCommit;
+  if (!expectedCommit) {
+    try {
+      expectedCommit = currentCommit(options.repoRoot);
+    } catch {
+      emitEvaluation("NOT_READY", ["manifest:expected-commit-unavailable"]);
+      process.exitCode = 1;
+      return;
+    }
+  }
+  const reasons = evaluateEvidence(manifest, {
+    repoRoot: options.repoRoot,
+    expectedCommit,
+  });
+  if (reasons.length > 0) {
+    emitEvaluation("NOT_READY", reasons);
+    process.exitCode = 1;
+    return;
+  }
+  emitEvaluation("READY_FOR_PUBLIC_BETA");
+}
+
+main();

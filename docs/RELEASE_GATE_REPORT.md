@@ -119,3 +119,19 @@ Stage D preparation on `codex/stage-d-private-beta-prep` adds a tested candidate
 7. Re-run the release gate, live smoke, privacy checks, and public health checks against the Fly URL before any cohort expansion.
 
 Public beta additionally needs G13/G15 closure, production domain/TLS, and explicit non-claims discipline (G20).
+
+## Public-beta readiness preparation
+
+The `codex/stage-f-readiness-harness` candidate adds a bounded, privacy-safe
+route-search load probe, a fail-closed ten-gate evidence validator, CI-backed
+live-mode fixture exclusion and core-flow Playwright coverage, draft incident
+operations, and explicit limitations copy. Evidence is bound to an exact
+release commit and SHA-256 artifact hashes; structure-only CI cannot emit a
+ready status. See `docs/public-beta/READINESS.md` and
+`infra/public-beta/README.md`.
+
+This preparation does **not** close hosted private beta, load/p95, preview,
+live rollback, human accessibility, incident rota, public origin/TLS,
+privacy/support approval, publication, or claims-review gates. No deployment,
+cohort change, or status change occurred. Current public-beta status is
+`NOT_READY`.

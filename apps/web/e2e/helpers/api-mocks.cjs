@@ -64,7 +64,7 @@ function defaultPlaces(q) {
     }
   }
   return {
-    contractVersion: "2026-07-30",
+    contractVersion: fixture.contractVersion,
     query: q,
     places: merged,
   };
@@ -92,8 +92,9 @@ async function installApiMocks(page, handlers = {}) {
     }
 
     if (path === "/v1/status") {
+      const healthyStatus = loadFixture("status/healthy.json");
       const body = h.status ?? {
-        contractVersion: "2026-07-30",
+        ...healthyStatus,
         dataMode: "live",
         staticDatasetVersion: "gtfs_e2e_v1",
         realtimeSnapshotId: "rt_e2e",

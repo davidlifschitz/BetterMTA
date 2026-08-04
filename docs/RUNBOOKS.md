@@ -1,10 +1,38 @@
 # BetterMTA Runbooks
 
 **Owner:** Infrastructure (+ Integration Phase 11 inventory)  
-**Status:** Local compose live path proven (Phases 8–10); Phase 12A local edge + 12A.13 remediations in place; controlled alpha **BLOCKED** (remote gates pending); Fly cloud **not activated**  
-**Related:** `docs/SLOS.md`, `docs/RELEASE_GATE_REPORT.md`, `docs/alpha/REMOTE_VALIDATION.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `docker-compose.yml`, `.agents/handoffs/integration-live.md`
+**Status:** Local compose and controlled-alpha paths proven; P1 controlled alpha certified; Fly private/public beta **not activated**; public beta `NOT_READY`
+**Related:** `docs/SLOS.md`, `docs/RELEASE_GATE_REPORT.md`, `docs/alpha/REMOTE_VALIDATION.md`, `docs/public-beta/READINESS.md`, `infra/observability/alerts.md`, `infra/fly/DEPLOY.md`, `infra/public-beta/README.md`, `docker-compose.yml`, `.agents/handoffs/integration-live.md`
 
-Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is **BLOCKED** until `flyctl` auth + app creation. Phase 11 go/no-go: **`BLOCKED`** (not ready for Fly private/public beta). Phase 12A controlled alpha: final status **`BLOCKED`** — **not** `READY_FOR_CONTROLLED_ALPHA` until remote gates pass (ADR-0021).
+Fly.io apps `bettermta-api`, `bettermta-web`, `bettermta-data`, `bettermta-otp` are **prepared in TOML only**. Activation is owner-gated until `flyctl` auth + app creation. The self-hosted controlled alpha is certified under ADR-0021, but that does not satisfy Fly private beta or public beta.
+
+---
+
+## Public beta readiness (Stage F) — `NOT_READY`
+
+The local harness prepares evidence mechanics only. It does not authenticate,
+deploy, set secrets, scale, enable features, expand a cohort, or approve launch.
+
+```bash
+node --test infra/public-beta/tests/public-beta-readiness.test.mjs
+node infra/public-beta/validate-readiness.mjs --structure-only
+
+# Local target only; authorized remote load needs HTTPS plus
+# --confirm-target LOAD_TEST (see infra/public-beta/README.md).
+node infra/public-beta/load-route-search.mjs \
+  --base-url http://127.0.0.1:8080
+```
+
+Use `docs/public-beta/evidence-template.json` only after the release owner has
+captured the exact commit's ten live artifacts. Passing entries require real
+files beneath the selected evidence root, matching SHA-256 digests, and the
+expected release commit. Response bodies are capped at 1 MiB per load request;
+evidence artifacts over 50 MiB are rejected. `--structure-only` never grants a
+release status. The public-origin gate must verify TLS and runtime security
+headers because those controls may live at the edge rather than in Next.js.
+
+See `docs/public-beta/READINESS.md`, `INCIDENT_PLAYBOOK.md`, and
+`LIMITATIONS.md` for the pending gates and draft operating/public copy.
 
 ---
 

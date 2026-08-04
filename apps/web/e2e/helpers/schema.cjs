@@ -2,7 +2,7 @@
  * Tiny AJV helper that validates payloads against conductor-owned schemas.
  */
 const { createRequire } = require("node:module");
-const { readFileSync } = require("node:fs");
+const { readFileSync, readdirSync } = require("node:fs");
 const { join } = require("node:path");
 
 const contractsRoot = join(__dirname, "../../../../contracts");
@@ -26,18 +26,10 @@ async function getAjv() {
   addFormats(ajv);
 
   const schemaDir = join(contractsRoot, "schemas");
-  for (const file of [
-    "common.schema.json",
-    "satisfaction.schema.json",
-    "itinerary.schema.json",
-    "data-snapshot.schema.json",
-    "api-error.schema.json",
-    "lines-response.schema.json",
-    "place-search-response.schema.json",
-    "route-search-request.schema.json",
-    "route-search-response.schema.json",
-    "status-response.schema.json",
-  ]) {
+  const schemaFiles = readdirSync(schemaDir)
+    .filter((file) => file.endsWith(".schema.json"))
+    .sort();
+  for (const file of schemaFiles) {
     const schema = JSON.parse(readFileSync(join(schemaDir, file), "utf8"));
     ajv.addSchema(schema, schema.$id || file);
   }
