@@ -183,6 +183,62 @@ actual enabled providers/features, retention/deletion behavior, least-privilege
 access, reachable private support path, response owners, and reviewer
 disposition without putting identities, endpoints, or secrets in Git.
 
+## Claims and publication-readiness evidence
+
+The `public-beta-readiness` job scans only the fixed publishable surfaces
+`apps/web/src` and `docs/public-beta/LIMITATIONS.md`. Named-competitor
+references are denied by default: only the explicit public non-claim and a
+small allowlist of neutral MTA attribution/implementation copy are accepted.
+Neutral MTA allowances match complete known source constructs at statement or
+comment boundaries; they do not remove arbitrary fragments from a sentence.
+Comparisons that wrap any neutral phrase still fail closed.
+The scanner preserves the internal route-set baseline phrase
+`~N min faster than fastest baseline` and the `next/font/google` implementation
+reference, while rejecting comparative variants such as “compared with,”
+“versus,” “arrives sooner,” “takes less time,” “better,” and “outperforms.”
+The explicit non-claim must appear in both canonical public files,
+`docs/public-beta/LIMITATIONS.md` and the actual returned JSX of
+`apps/web/src/app/limitations/page.tsx`; unused JSX, tests, and comments do not
+satisfy the rendered-page check. The simple `LimitationsPage` component must
+contain exactly one executable return; additional conditional or unreachable
+returns fail closed. Return words in the captured JSX and nested callback
+returns inside that expression are not alternate `LimitationsPage` returns.
+Function signature discovery masks comments, strings, and template literals
+while preserving source positions, so fake signatures cannot replace the real
+component.
+Straight and curly apostrophe contractions are accepted. Symlinks anywhere in
+the fixed surfaces fail closed.
+
+The scanner also verifies that the benchmark methodology contracts are regular,
+nonempty, non-symlink files containing their required stable markers:
+`benchmarks/README.md`, `benchmarks/docs/HUMAN_REVIEW.md`, and
+`benchmarks/docs/CI_QUALITY_GATES.md`.
+
+```bash
+node infra/public-beta/scan-public-claims.mjs \
+  > infra/public-beta/evidence/claims/scan.json
+
+node infra/public-beta/write-claims-readiness-evidence.mjs \
+  --release-commit "$(git rev-parse HEAD)" \
+  --scan-status pass \
+  > infra/public-beta/evidence/claims/result.json
+```
+
+The scanner emits privacy-safe `PASS` JSON with no absolute paths or matched
+copy. The writer emits
+`AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING`,
+`publicationReviewStatus: "pending"`,
+`comparativeClaimsStatus: "not_authorized"`,
+`eligibleForGatePass: false`, and `productionMutation: false`. CI retains both
+files as `public-beta-claims-<run-id>` for 14 days. The artifact proves only
+automated copy discipline for the reviewed commit; it does not approve,
+publish, or authorize a comparative claim.
+
+Complete `docs/public-beta/PUBLICATION_REVIEW.md` against the same release
+commit before treating any copy as publishable. Keep findings, attribution, and
+any exact comparative statement tied to the benchmark corpus and methodology;
+otherwise leave comparative claims unauthorized.
+
 ## Readiness validation
 
 CI validates mechanics only:
@@ -194,10 +250,12 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
 limitations route, nonce/header middleware, public-origin verifier, preview,
-accessibility, incident-readiness, and privacy/support evidence writers, pending
-human review/tabletop/approval templates, and their test contracts are present.
-It never starts the app, verifies a public edge, performs a human review or
-tabletop, publishes a policy, activates support, or means the release is ready.
+accessibility, incident-readiness, privacy/support, and claims evidence
+writers, pending human review/tabletop/approval/publication templates, benchmark
+methodology contracts, and their test contracts are present. It never starts the
+app, verifies a public edge, performs a human review or tabletop, publishes a
+policy or copy, activates support, authorizes a comparative claim, or means the
+release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

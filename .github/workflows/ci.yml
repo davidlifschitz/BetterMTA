@@ -135,8 +135,11 @@ jobs:
       ACCESSIBILITY_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       INCIDENT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       PRIVACY_SUPPORT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      CLAIMS_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
@@ -152,6 +155,26 @@ jobs:
         run: |
           node --test infra/public-beta/tests/public-beta-readiness.test.mjs
           node infra/public-beta/validate-readiness.mjs --structure-only
+      - name: Scan public claims
+        run: |
+          set -euo pipefail
+          mkdir -p infra/public-beta/evidence/claims
+          node infra/public-beta/scan-public-claims.mjs \
+            > infra/public-beta/evidence/claims/scan.json
+      - name: Write claims publication-readiness evidence
+        run: |
+          set -euo pipefail
+          node infra/public-beta/write-claims-readiness-evidence.mjs \
+            --release-commit "$CLAIMS_RELEASE_COMMIT" \
+            --scan-status pass \
+            > infra/public-beta/evidence/claims/result.json
+      - name: Retain automated claims readiness evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-claims-${{ github.run_id }}
+          path: infra/public-beta/evidence/claims
+          if-no-files-found: error
+          retention-days: 14
       - name: Install Playwright Chromium
         working-directory: apps/web
         run: npx playwright install --with-deps chromium

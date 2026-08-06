@@ -118,7 +118,10 @@ Stage D preparation on `codex/stage-d-private-beta-prep` adds a tested candidate
 6. Human-accept shadow validity and decide how the five soft multi-line diversity/timeout watch cases bound the invite cohort.
 7. Re-run the release gate, live smoke, privacy checks, and public health checks against the Fly URL before any cohort expansion.
 
-Public beta additionally needs G13/G15 closure, production domain/TLS, and explicit non-claims discipline (G20).
+Public beta additionally needs G13/G15 closure, production domain/TLS, and
+explicit non-claims discipline (G20). G20 remains `NOT_CLAIMED`; a green
+automated scan cannot replace publication review or authorize a comparative
+statement.
 
 ## Public-beta readiness preparation
 
@@ -183,6 +186,21 @@ deployed retention evidence, the private support path, and response owners
 pending, and is ineligible for gate passage. The authoritative latest-head CI
 audit is retained in draft PR #16 comments. No policy was published, no support
 channel activated, and no deployed retention/deletion behavior was claimed.
+
+The further stacked `codex/stage-f-claims-evidence` candidate scans the fixed
+publishable web/limitations surfaces with a deny-by-default named-competitor
+policy, preserving only the explicit canonical non-claim, fixed neutral MTA
+attribution/implementation copy, the internal route-set baseline phrase, and
+`next/font/google`. It rejects comparative variants and symlinked publishable
+or methodology paths, verifies that each methodology contract is a regular,
+nonempty file with stable markers, and writes commit-bound claims evidence. The
+automated result is intentionally
+`AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING`, leaves
+`comparativeClaimsStatus: not_authorized`, and is ineligible for gate passage.
+The same candidate adds `docs/public-beta/PUBLICATION_REVIEW.md` for a human
+same-commit inventory, claims classification, benchmark, attribution, findings,
+and sign-off review. No comparative claim was authorized, no copy was
+published, and the claims-discipline gate remains pending.
 
 These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, approved incident rota/tabletop, public origin/TLS,

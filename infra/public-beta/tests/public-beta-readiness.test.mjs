@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, open, readFile, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -30,7 +39,21 @@ const privacySupportReadinessEvidenceScript = join(
   repoRoot,
   "infra/public-beta/write-privacy-support-readiness-evidence.mjs",
 );
+const claimsScanScript = join(repoRoot, "infra/public-beta/scan-public-claims.mjs");
+const claimsReadinessEvidenceScript = join(
+  repoRoot,
+  "infra/public-beta/write-claims-readiness-evidence.mjs",
+);
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
+const CLAIMS_METHODOLOGY_FILES = [
+  "benchmarks/README.md",
+  "benchmarks/docs/HUMAN_REVIEW.md",
+  "benchmarks/docs/CI_QUALITY_GATES.md",
+];
+const CLAIMS_CANONICAL_NONCLAIM_FILES = [
+  "docs/public-beta/LIMITATIONS.md",
+  "apps/web/src/app/limitations/page.tsx",
+];
 
 const REQUIRED_GATES = [
   "hosted_private_beta",
@@ -60,6 +83,47 @@ async function runNode(script, args = [], { timeout = 30_000 } = {}) {
       stderr: error.stderr ?? "",
     };
   }
+}
+
+async function copyClaimsScanInputs(root) {
+  await cp(join(repoRoot, "apps/web/src"), join(root, "apps/web/src"), {
+    recursive: true,
+  });
+  await mkdir(join(root, "docs/public-beta"), { recursive: true });
+  await cp(
+    join(repoRoot, "docs/public-beta/LIMITATIONS.md"),
+    join(root, "docs/public-beta/LIMITATIONS.md"),
+  );
+  for (const relativePath of CLAIMS_METHODOLOGY_FILES) {
+    const destination = join(root, relativePath);
+    await mkdir(dirname(destination), { recursive: true });
+    await cp(join(repoRoot, relativePath), destination);
+  }
+}
+
+async function replaceCanonicalNonclaim(root, replacement) {
+  for (const relativePath of CLAIMS_CANONICAL_NONCLAIM_FILES) {
+    const filePath = join(root, relativePath);
+    const text = await readFile(filePath, "utf8");
+    await writeFile(filePath, text.replaceAll("does not claim to beat", replacement));
+  }
+}
+
+async function replaceRenderedPageNonclaim(root, replacement) {
+  const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+  const text = await readFile(filePath, "utf8");
+  await writeFile(filePath, text.replaceAll("does not claim to beat", replacement));
+}
+
+async function removeRenderedPageNonclaimSentence(root) {
+  const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+  const text = await readFile(filePath, "utf8");
+  const replaced = text.replace(
+    /BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper,\s+the MTA, or another product\./,
+    "This page describes limitations.",
+  );
+  assert.notEqual(replaced, text);
+  await writeFile(filePath, replaced);
 }
 
 async function withServer(handler, fn) {
@@ -676,6 +740,555 @@ test("privacy support evidence rejects malformed inputs without reflecting them"
     assert.equal(result.stderr, `ERROR ${errorCode}\n`);
     assert(!result.stderr.includes("private.example.invalid"));
   }
+});
+
+test("public claims scanner passes the current copy with privacy-safe evidence", async () => {
+  const result = await runNode(claimsScanScript);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(
+    {
+      schemaVersion: evidence.schemaVersion,
+      status: evidence.status,
+      scanClass: evidence.scanClass,
+      prohibitedMatches: evidence.prohibitedMatches,
+      nonClaimCopyPresent: evidence.nonClaimCopyPresent,
+      methodologyFiles: evidence.methodologyFiles,
+    },
+    {
+      schemaVersion: 1,
+      status: "PASS",
+      scanClass: "public-copy-named-competitor-claims",
+      prohibitedMatches: 0,
+      nonClaimCopyPresent: true,
+      methodologyFiles: [
+        "benchmarks/README.md",
+        "benchmarks/docs/HUMAN_REVIEW.md",
+        "benchmarks/docs/CI_QUALITY_GATES.md",
+      ],
+    },
+  );
+  assert.equal(typeof evidence.filesScanned, "number");
+  assert(evidence.filesScanned >= 2);
+  assert.match(evidence.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert(!/https?:|\/Users\//i.test(result.stdout));
+});
+
+test("public claims scanner ignores fake LimitationsPage signatures in non-executable source", async () => {
+  const fakeSignatures = [
+    "// export default function LimitationsPage() { return (<p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>); }",
+    "/* export default function LimitationsPage() { return (<p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>); } */",
+    'const fakeSignature = "export default function LimitationsPage() { return (<p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>); }";',
+    "const fakeSignature = `export default function LimitationsPage() { return (<p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>); }`;",
+  ];
+
+  for (const fakeSignature of fakeSignatures) {
+    const root = await mkdtemp(join(tmpdir(), "bettermta-claims-fake-signature-"));
+    await copyClaimsScanInputs(root);
+    const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+    const text = await readFile(filePath, "utf8");
+    await removeRenderedPageNonclaimSentence(root);
+    const realPage = await readFile(filePath, "utf8");
+    await writeFile(filePath, `${fakeSignature}\n${realPage}`);
+
+    const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+    assert.equal(result.code, 2, fakeSignature);
+    assert.equal(result.stdout, "", fakeSignature);
+    assert.equal(
+      result.stderr,
+      "ERROR missing_explicit_public_nonclaim\n",
+      fakeSignature,
+    );
+    assert(!result.stderr.includes("Google Maps"));
+  }
+});
+
+test("public claims scanner rejects a hostile named-competitor claim without reflecting it", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-hostile-"));
+  await copyClaimsScanInputs(root);
+  const hostile = "private.example.invalid BetterMTA is better than\nGoogle Maps";
+  await writeFile(join(root, "apps/web/src/hostile-claim.ts"), `${hostile}\n`);
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 1);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR prohibited_named_competitor_claim\n");
+  assert(!result.stderr.includes(hostile));
+  assert(!result.stderr.includes("private.example.invalid"));
+});
+
+test("public claims scanner rejects a table of named-competitor comparative variants", async () => {
+  const hostileVariants = [
+    "Compared with Google Maps, BetterMTA arrives sooner.",
+    "BetterMTA arrives earlier versus Apple Maps.",
+    "BetterMTA arrives sooner vs Citymapper.",
+    "BetterMTA takes less time than the MTA.",
+    "BetterMTA is better than Google Maps.",
+    "BetterMTA outperforms Citymapper.",
+  ];
+
+  for (const hostile of hostileVariants) {
+    const root = await mkdtemp(join(tmpdir(), "bettermta-claims-variant-"));
+    await copyClaimsScanInputs(root);
+    await writeFile(join(root, "apps/web/src/hostile-claim.ts"), `${hostile}\n`);
+
+    const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+    assert.equal(result.code, 1, hostile);
+    assert.equal(result.stdout, "", hostile);
+    assert.equal(result.stderr, "ERROR prohibited_named_competitor_claim\n", hostile);
+    assert(!result.stderr.includes(hostile));
+  }
+});
+
+test("public claims scanner rejects comparisons wrapping neutral MTA constructs", async () => {
+  const neutralConstructs = [
+    "official MTA information",
+    "Subway schedule and realtime data provided by the Metropolitan Transportation Authority (MTA).",
+    "BetterMTA is not affiliated with or endorsed by the MTA.",
+    "BetterMTA is not affiliated with or endorsed by the Metropolitan Transportation Authority.",
+    "Walking, transfers, service changes, station access, and elevator conditions can change; confirm critical accessibility needs and urgent service conditions with official MTA information.",
+    "Confirm critical accessibility needs and urgent service conditions with official MTA information, and follow station staff, posted signs, alerts, and emergency instructions when they conflict with an app result.",
+    "Existing line badges use inline CSS custom properties for MTA colors.",
+    "Canonical MTA gray for the 42 St Shuttle when catalog omits GS.",
+  ];
+
+  for (const neutralConstruct of neutralConstructs) {
+    const root = await mkdtemp(join(tmpdir(), "bettermta-claims-neutral-hostile-"));
+    await copyClaimsScanInputs(root);
+    const hostile = `BetterMTA is better than ${neutralConstruct}`;
+    await writeFile(join(root, "apps/web/src/hostile-neutral.ts"), `${hostile}\n`);
+
+    const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+    assert.equal(result.code, 1, neutralConstruct);
+    assert.equal(result.stdout, "", neutralConstruct);
+    assert.equal(
+      result.stderr,
+      "ERROR prohibited_named_competitor_claim\n",
+      neutralConstruct,
+    );
+    assert(!result.stderr.includes(hostile));
+  }
+});
+
+test("public claims scanner preserves the exact neutral MTA copy", async () => {
+  const result = await runNode(claimsScanScript);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  assert.equal(JSON.parse(result.stdout).nonClaimCopyPresent, true);
+});
+
+test("public claims scanner requires intact nonempty methodology contracts", async () => {
+  const cases = [
+    {
+      label: "empty",
+      mutate: async (filePath) => writeFile(filePath, ""),
+    },
+    {
+      label: "directory",
+      mutate: async (filePath) => {
+        await rm(filePath, { force: true, recursive: true });
+        await mkdir(filePath);
+      },
+    },
+    {
+      label: "malformed",
+      mutate: async (filePath) =>
+        writeFile(filePath, "# Wrong contract\nprivate.example.invalid\n"),
+    },
+  ];
+
+  for (const { label, mutate } of cases) {
+    const root = await mkdtemp(join(tmpdir(), `bettermta-claims-methodology-${label}-`));
+    await copyClaimsScanInputs(root);
+    await mutate(join(root, "benchmarks/README.md"));
+
+    const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+    assert.equal(result.code, 2, label);
+    assert.equal(result.stdout, "", label);
+    assert.equal(result.stderr, "ERROR invalid_methodology_contract\n", label);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
+test("public claims scanner rejects symlinks in publishable surfaces and methodology paths", async () => {
+  const outsideRoot = await mkdtemp(join(tmpdir(), "bettermta-claims-link-target-"));
+  const outsideFile = join(outsideRoot, "hostile.ts");
+  await writeFile(
+    outsideFile,
+    "private.example.invalid Compared with Google Maps, BetterMTA arrives sooner.\n",
+  );
+
+  const surfaceRoot = await mkdtemp(join(tmpdir(), "bettermta-claims-surface-link-"));
+  await copyClaimsScanInputs(surfaceRoot);
+  await symlink(outsideFile, join(surfaceRoot, "apps/web/src/hostile-link.ts"));
+  const surfaceResult = await runNode(claimsScanScript, [
+    "--repo-root",
+    surfaceRoot,
+  ]);
+  assert.equal(surfaceResult.code, 2);
+  assert.equal(surfaceResult.stdout, "");
+  assert.equal(surfaceResult.stderr, "ERROR symlink_in_public_surface\n");
+  assert(!surfaceResult.stderr.includes("private.example.invalid"));
+
+  const parentSurfaceRoot = await mkdtemp(
+    join(tmpdir(), "bettermta-claims-parent-surface-link-"),
+  );
+  await mkdir(join(parentSurfaceRoot, "apps"), { recursive: true });
+  await symlink(outsideRoot, join(parentSurfaceRoot, "apps/web"));
+  const parentSurfaceResult = await runNode(claimsScanScript, [
+    "--repo-root",
+    parentSurfaceRoot,
+  ]);
+  assert.equal(parentSurfaceResult.code, 2);
+  assert.equal(parentSurfaceResult.stdout, "");
+  assert.equal(
+    parentSurfaceResult.stderr,
+    "ERROR symlink_in_public_surface\n",
+  );
+  assert(!parentSurfaceResult.stderr.includes("private.example.invalid"));
+
+  const methodologyRoot = await mkdtemp(join(tmpdir(), "bettermta-claims-methodology-link-"));
+  await copyClaimsScanInputs(methodologyRoot);
+  const methodologyPath = join(methodologyRoot, "benchmarks/README.md");
+  await rm(methodologyPath);
+  await symlink(outsideFile, methodologyPath);
+  const methodologyResult = await runNode(claimsScanScript, [
+    "--repo-root",
+    methodologyRoot,
+  ]);
+  assert.equal(methodologyResult.code, 2);
+  assert.equal(methodologyResult.stdout, "");
+  assert.equal(
+    methodologyResult.stderr,
+    "ERROR symlink_in_methodology_contract\n",
+  );
+  assert(!methodologyResult.stderr.includes("private.example.invalid"));
+});
+
+test("public claims scanner requires the explicit nonclaim in both canonical public files", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-nonclaim-anchor-"));
+  await copyClaimsScanInputs(root);
+  await replaceCanonicalNonclaim(root, "BetterMTA may compare");
+  await writeFile(
+    join(root, "apps/web/src/nonclaim-test.ts"),
+    "// BetterMTA does not claim to beat Google Maps.\n",
+  );
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR missing_explicit_public_nonclaim\n");
+  assert(!result.stderr.includes("Google Maps"));
+});
+
+test("public claims scanner ignores neither line nor block comment nonclaims in rendered page source", async () => {
+  const comments = [
+    "// <p>\n// BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper,\n// the MTA, or another product.\n// </p>",
+    "/* <p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p> */",
+  ];
+
+  for (const comment of comments) {
+    const root = await mkdtemp(join(tmpdir(), "bettermta-claims-page-comment-"));
+    await copyClaimsScanInputs(root);
+    await replaceRenderedPageNonclaim(root, "BetterMTA may compare");
+    await writeFile(
+      join(root, "apps/web/src/app/limitations/page.tsx"),
+      `${await readFile(join(root, "apps/web/src/app/limitations/page.tsx"), "utf8")}\n${comment}\n`,
+    );
+
+    const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+    assert.equal(result.code, 2, comment);
+    assert.equal(result.stdout, "", comment);
+    assert.equal(result.stderr, "ERROR missing_explicit_public_nonclaim\n", comment);
+    assert(!result.stderr.includes("Google Maps"));
+  }
+});
+
+test("public claims scanner requires the nonclaim inside LimitationsPage returned JSX", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-unused-jsx-"));
+  await copyClaimsScanInputs(root);
+  await removeRenderedPageNonclaimSentence(root);
+  await writeFile(
+    join(root, "apps/web/src/app/limitations/page.tsx"),
+    `${await readFile(join(root, "apps/web/src/app/limitations/page.tsx"), "utf8")}\nconst unusedLimitationsCopy = (\n  <p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>\n);\n`,
+  );
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR missing_explicit_public_nonclaim\n");
+  assert(!result.stderr.includes("Google Maps"));
+});
+
+test("public claims scanner ignores return text and nested callback returns inside returned JSX", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-return-text-"));
+  await copyClaimsScanInputs(root);
+  const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+  const text = await readFile(filePath, "utf8");
+  const returnedContent = `      <p>Users can return to the planner.</p>
+      {["ready"].map(() => {
+        return "nested callback";
+      })}
+`;
+  const marker = '      <header className="info-header">\n';
+  assert(text.includes(marker));
+  await writeFile(filePath, text.replace(marker, returnedContent + marker));
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  assert.equal(JSON.parse(result.stdout).nonClaimCopyPresent, true);
+});
+
+test("public claims scanner rejects an unbraced early test return", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-early-return-"));
+  await copyClaimsScanInputs(root);
+  await removeRenderedPageNonclaimSentence(root);
+  const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+  const text = await readFile(filePath, "utf8");
+  const earlyReturn = `  if (process.env.NODE_ENV === "test")
+    return (
+      <p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>
+    );
+`;
+  await writeFile(filePath, text.replace("  return (\n", earlyReturn + "  return (\n"));
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR invalid_limitations_page_structure\n");
+  assert(!result.stderr.includes("Google Maps"));
+});
+
+test("public claims scanner rejects a braced conditional early return", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-braced-return-"));
+  await copyClaimsScanInputs(root);
+  await removeRenderedPageNonclaimSentence(root);
+  const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+  const text = await readFile(filePath, "utf8");
+  const earlyReturn = `  if (process.env.NODE_ENV === "test") {
+    return (
+      <p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>
+    );
+  }
+`;
+  await writeFile(filePath, text.replace("  return (\n", earlyReturn + "  return (\n"));
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR invalid_limitations_page_structure\n");
+  assert(!result.stderr.includes("Google Maps"));
+});
+
+test("public claims scanner rejects an unreachable trailing return", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-trailing-return-"));
+  await copyClaimsScanInputs(root);
+  const filePath = join(root, "apps/web/src/app/limitations/page.tsx");
+  const text = await readFile(filePath, "utf8");
+  const functionEnd = text.lastIndexOf("\n}\n");
+  assert(functionEnd >= 0);
+  const trailingReturn = `
+  return (
+    <p>BetterMTA does not claim to beat Google Maps, Apple Maps, Citymapper, the MTA, or another product.</p>
+  );`;
+  await writeFile(
+    filePath,
+    text.slice(0, functionEnd) + trailingReturn + text.slice(functionEnd),
+  );
+
+  const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR invalid_limitations_page_structure\n");
+  assert(!result.stderr.includes("Google Maps"));
+});
+
+test("public claims scanner accepts straight and curly contraction nonclaims in canonical files", async () => {
+  for (const replacement of ["doesn't claim to beat", "doesn’t claim to beat"]) {
+    const root = await mkdtemp(join(tmpdir(), "bettermta-claims-contraction-"));
+    await copyClaimsScanInputs(root);
+    await replaceCanonicalNonclaim(root, replacement);
+
+    const result = await runNode(claimsScanScript, ["--repo-root", root]);
+
+    assert.equal(result.code, 0, replacement);
+    assert.equal(result.stderr, "", replacement);
+    assert.equal(JSON.parse(result.stdout).nonClaimCopyPresent, true);
+  }
+});
+
+test("claims readiness evidence keeps publication review and comparative claims pending", async () => {
+  const releaseCommit = "f".repeat(40);
+  const result = await runNode(claimsReadinessEvidenceScript, [
+    "--release-commit",
+    releaseCommit,
+    "--scan-status",
+    "pass",
+  ]);
+
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stderr, "");
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual(
+    {
+      schemaVersion: evidence.schemaVersion,
+      status: evidence.status,
+      evidenceClass: evidence.evidenceClass,
+      gateId: evidence.gateId,
+      releaseCommit: evidence.releaseCommit,
+      checks: evidence.checks,
+      publicationReviewStatus: evidence.publicationReviewStatus,
+      comparativeClaimsStatus: evidence.comparativeClaimsStatus,
+      eligibleForGatePass: evidence.eligibleForGatePass,
+      productionMutation: evidence.productionMutation,
+    },
+    {
+      schemaVersion: 1,
+      status: "AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING",
+      evidenceClass: "ci-claims-discipline-readiness",
+      gateId: "claims_discipline",
+      releaseCommit,
+      checks: [
+        "named-competitor-claim-scan",
+        "explicit-public-nonclaim",
+        "benchmark-methodology-contract",
+        "publication-review-protocol",
+      ],
+      publicationReviewStatus: "pending",
+      comparativeClaimsStatus: "not_authorized",
+      eligibleForGatePass: false,
+      productionMutation: false,
+    },
+  );
+  assert.match(evidence.generatedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert(!/https?:|hostname|url|contact/i.test(result.stdout));
+});
+
+test("claims readiness tools reject malformed arguments with fixed non-reflecting errors", async () => {
+  const hostile = "invalid\nprivate.example.invalid";
+  for (const { args, errorCode } of [
+    {
+      args: [],
+      errorCode: "invalid_arguments",
+    },
+    {
+      args: [
+        "--release-commit",
+        hostile,
+        "--scan-status",
+        "pass",
+      ],
+      errorCode: "invalid_release_commit",
+    },
+    {
+      args: [
+        "--release-commit",
+        "f".repeat(40),
+        "--scan-status",
+        hostile,
+      ],
+      errorCode: "invalid_scan_status",
+    },
+  ]) {
+    const result = await runNode(claimsReadinessEvidenceScript, args);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `ERROR ${errorCode}\n`);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+
+  const scannerResult = await runNode(claimsScanScript, [
+    "--repo-root",
+    hostile,
+  ]);
+  assert.equal(scannerResult.code, 2);
+  assert.equal(scannerResult.stdout, "");
+  assert.equal(scannerResult.stderr, "ERROR invalid_arguments\n");
+  assert(!scannerResult.stderr.includes("private.example.invalid"));
+});
+
+test("claims discipline structure requires scanner, writer, review document, and ordered workflow", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-claims-structure-"));
+  const result = await runNode(readinessScript, [
+    "--structure-only",
+    "--repo-root",
+    root,
+  ]);
+
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /missing:infra\/public-beta\/scan-public-claims[.]mjs/);
+  assert.match(
+    result.stderr,
+    /missing:infra\/public-beta\/write-claims-readiness-evidence[.]mjs/,
+  );
+  assert.match(result.stderr, /missing:docs\/public-beta\/PUBLICATION_REVIEW[.]md/);
+  assert.match(result.stderr, /missing:benchmarks\/README[.]md/);
+  assert.match(result.stderr, /missing:benchmarks\/docs\/HUMAN_REVIEW[.]md/);
+  assert.match(result.stderr, /missing:benchmarks\/docs\/CI_QUALITY_GATES[.]md/);
+
+  const workflow = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8");
+  const readinessJob = workflow.match(
+    /^  public-beta-readiness:\n[\s\S]*?(?=^  public-beta-preview:)/m,
+  )?.[0];
+  assert(readinessJob, "public-beta-readiness job is required");
+  for (const pattern of [
+    /CLAIMS_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /scan-public-claims[.]mjs/,
+    /infra\/public-beta\/evidence\/claims\/scan[.]json/,
+    /write-claims-readiness-evidence[.]mjs/,
+    /--release-commit "\$CLAIMS_RELEASE_COMMIT"/,
+    /--scan-status pass/,
+    /infra\/public-beta\/evidence\/claims\/result[.]json/,
+    /public-beta-claims-\$\{\{ github[.]run_id \}\}/,
+    /actions\/upload-artifact@v7/,
+  ]) {
+    assert.match(readinessJob, pattern);
+  }
+  assert(
+    readinessJob.indexOf("validate-readiness.mjs --structure-only") <
+      readinessJob.indexOf("scan-public-claims.mjs"),
+    "claims scan must follow structure validation",
+  );
+  assert(
+    readinessJob.indexOf("scan-public-claims.mjs") <
+      readinessJob.indexOf("write-claims-readiness-evidence.mjs"),
+    "claims evidence must be written only after the scan passes",
+  );
+  assert(
+    readinessJob.indexOf("write-claims-readiness-evidence.mjs") <
+      readinessJob.indexOf("public-beta-claims-${{ github.run_id }}"),
+    "claims artifact must be uploaded after evidence is written",
+  );
+
+  const claimsCommitEnvLine = readinessJob
+    .split("\n")
+    .find((line) => line.includes("CLAIMS_RELEASE_COMMIT:"));
+  const checkoutRefLine = readinessJob
+    .split("\n")
+    .find((line) => line.trim().startsWith("ref:"));
+  assert(claimsCommitEnvLine, "claims release commit expression is required");
+  assert(checkoutRefLine, "readiness checkout must pin an explicit ref");
+  assert.equal(
+    checkoutRefLine.trim().slice("ref:".length).trim(),
+    claimsCommitEnvLine.slice(claimsCommitEnvLine.indexOf(":") + 1).trim(),
+    "readiness checkout ref and recorded release commit must be identical",
+  );
 });
 
 test("repository readiness structure is complete without claiming readiness", async () => {

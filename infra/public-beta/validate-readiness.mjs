@@ -66,6 +66,8 @@ function validateStructure(repoRoot) {
     "infra/public-beta/write-accessibility-evidence.mjs",
     "infra/public-beta/write-incident-readiness-evidence.mjs",
     "infra/public-beta/write-privacy-support-readiness-evidence.mjs",
+    "infra/public-beta/scan-public-claims.mjs",
+    "infra/public-beta/write-claims-readiness-evidence.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",
@@ -77,8 +79,12 @@ function validateStructure(repoRoot) {
     "docs/private-beta/SUPPORT_WORKFLOW_DRAFT.md",
     "docs/private-beta/SUPPORT_LOG_TEMPLATE.md",
     "docs/public-beta/LIMITATIONS.md",
+    "docs/public-beta/PUBLICATION_REVIEW.md",
     "docs/public-beta/ACCESSIBILITY_REVIEW.md",
     "docs/public-beta/evidence-template.json",
+    "benchmarks/README.md",
+    "benchmarks/docs/HUMAN_REVIEW.md",
+    "benchmarks/docs/CI_QUALITY_GATES.md",
     "apps/web/src/app/limitations/page.tsx",
     "apps/web/src/middleware.ts",
     "apps/web/e2e/live.spec.cjs",
@@ -268,6 +274,81 @@ function validateStructure(repoRoot) {
     }
   }
 
+  const claimsScanner = readText(
+    repoRoot,
+    "infra/public-beta/scan-public-claims.mjs",
+  );
+  for (const [label, pattern] of [
+    ["publishable-surfaces", /apps\/web\/src/],
+    ["limitations-surface", /docs\/public-beta\/LIMITATIONS[.]md/],
+    ["named-competitors", /Google\\s\+Maps|Apple\\s\+Maps|Citymapper|MTA/],
+    ["explicit-nonclaim", /does.*not.*claim.*to.*beat/],
+    ["route-set-comparison", /fastest\\s\+baseline/],
+    ["next-font-google", /next.*font.*google/],
+    ["fixed-error", /prohibited_named_competitor_claim/],
+    ["methodology-contract", /benchmarks\/docs\/HUMAN_REVIEW[.]md/],
+    ["methodology-markers", /METHODOLOGY_CONTRACTS|markers/],
+    ["canonical-nonclaim-files", /CANONICAL_NONCLAIM_FILES/],
+    ["contraction-nonclaim", /doesn.*t|don.*t/],
+    ["neutral-mta-copy", /SAFE_NEUTRAL_COPY_PATTERNS/],
+    ["neutral-copy-boundaries", /hasStatementBoundary|removeSafeNeutralCopy/],
+    ["rendered-nonclaim-check", /RENDERED_NONCLAIM/],
+    ["comment-resistant-rendered-check", /stripSourceComments/],
+    ["returned-jsx-extraction", /extractLimitationsPageReturnedJsx/],
+    ["balanced-return-parsing", /findMatchingDelimiter/],
+    ["executable-source-mask", /maskNonExecutableSource/],
+    ["masked-signature-discovery", /executableSource/],
+    ["single-return-contract", /returnCount\s*!==\s*1/],
+    ["invalid-page-structure", /invalid_limitations_page_structure/],
+    ["skip-return-expression", /index\s*=\s*expressionEnd/],
+    ["surface-symlink-failure", /symlink_in_public_surface/],
+    ["methodology-symlink-failure", /symlink_in_methodology_contract/],
+  ]) {
+    if (!pattern.test(claimsScanner)) {
+      failures.push(`claims-scanner:${label}`);
+    }
+  }
+
+  const claimsWriter = readText(
+    repoRoot,
+    "infra/public-beta/write-claims-readiness-evidence.mjs",
+  );
+  for (const [label, pattern] of [
+    ["commit-binding", /releaseCommit/],
+    ["scan-status", /scanStatus/],
+    ["pending-status", /AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING/],
+    ["publication-pending", /publicationReviewStatus:\s*"pending"/],
+    ["comparative-not-authorized", /comparativeClaimsStatus:\s*"not_authorized"/],
+    ["not-gate-pass", /eligibleForGatePass:\s*false/],
+  ]) {
+    if (!pattern.test(claimsWriter)) {
+      failures.push(`claims-evidence:${label}`);
+    }
+  }
+
+  const publicationReview = readText(
+    repoRoot,
+    "docs/public-beta/PUBLICATION_REVIEW.md",
+  );
+  if (!/Current status:\*\* `PENDING_PUBLICATION_REVIEW`/.test(publicationReview)) {
+    failures.push("publication-review:status");
+  }
+  for (const heading of [
+    "Scope and prerequisites",
+    "Publication inventory",
+    "Claims classification",
+    "Benchmark evidence",
+    "Limitations and attribution",
+    "Findings",
+    "Sign-off",
+  ]) {
+    if (!new RegExp(`^## ${heading}`, "m").test(publicationReview)) {
+      failures.push(
+        `publication-review:${heading.toLowerCase().replaceAll(" ", "-")}`,
+      );
+    }
+  }
+
   const middleware = readText(repoRoot, "apps/web/src/middleware.ts");
   for (const [label, pattern] of [
     ["nonce", /crypto[.]randomUUID/],
@@ -374,10 +455,50 @@ function validateStructure(repoRoot) {
     ["incident-readiness-artifact", /public-beta-incident-readiness-/],
     ["privacy-support-writer", /write-privacy-support-readiness-evidence[.]mjs/],
     ["privacy-support-artifact", /public-beta-privacy-support-/],
+    ["claims-commit", /CLAIMS_RELEASE_COMMIT:\s*\$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/],
+    ["claims-scanner", /scan-public-claims[.]mjs/],
+    ["claims-scan-artifact", /infra\/public-beta\/evidence\/claims\/scan[.]json/],
+    ["claims-writer", /write-claims-readiness-evidence[.]mjs/],
+    ["claims-result-artifact", /infra\/public-beta\/evidence\/claims\/result[.]json/],
+    ["claims-artifact", /public-beta-claims-\$\{\{ github[.]run_id \}\}/],
     ["node-tests", /node --test infra\/public-beta\/tests\/[^\s]+/],
     ["structure", /validate-readiness[.]mjs --structure-only/],
   ]) {
     if (!pattern.test(workflow)) failures.push(`workflow:${label}`);
+  }
+  const readinessJob = workflow.match(
+    /^  public-beta-readiness:\n[\s\S]*?(?=^  public-beta-preview:)/m,
+  )?.[0];
+  if (!readinessJob) {
+    failures.push("workflow:public-beta-readiness-job");
+  } else {
+    const structureIndex = readinessJob.indexOf("validate-readiness.mjs --structure-only");
+    const scanIndex = readinessJob.indexOf("scan-public-claims.mjs");
+    const writerIndex = readinessJob.indexOf("write-claims-readiness-evidence.mjs");
+    const artifactIndex = readinessJob.indexOf("public-beta-claims-${{ github.run_id }}");
+    if (
+      structureIndex < 0 ||
+      scanIndex < 0 ||
+      writerIndex < 0 ||
+      artifactIndex < 0 ||
+      !(structureIndex < scanIndex && scanIndex < writerIndex && writerIndex < artifactIndex)
+    ) {
+      failures.push("workflow:claims-order");
+    }
+    const claimsCommitEnvLine = readinessJob
+      .split("\n")
+      .find((line) => line.includes("CLAIMS_RELEASE_COMMIT:"));
+    const checkoutRefLine = readinessJob
+      .split("\n")
+      .find((line) => line.trim().startsWith("ref:"));
+    if (!claimsCommitEnvLine || !checkoutRefLine) {
+      failures.push("workflow:claims-checkout-ref");
+    } else if (
+      checkoutRefLine.trim().slice("ref:".length).trim() !==
+      claimsCommitEnvLine.slice(claimsCommitEnvLine.indexOf(":") + 1).trim()
+    ) {
+      failures.push("workflow:claims-checkout-ref-mismatch");
+    }
   }
 
   try {

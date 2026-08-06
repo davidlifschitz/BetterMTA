@@ -96,7 +96,9 @@ git diff --check
   and the current partial web tree, recovering 1.6 GiB. The current lockfile
   install then passed. No source, evidence, Git data, or live state was removed.
 - Latest-head GitHub CI/artifact results must remain green. The authoritative
-  remote audit is retained in draft PR #16 comments.
+  remote audit is retained in draft PR #16 comments. This is the final parent
+  privacy/support CI evidence for the stacked workstream; it is not claims
+  evidence and does not substitute for a fresh CI run on a later child head.
 
 ## 7. Fixture or sample-data instructions
 
@@ -138,7 +140,10 @@ git diff --check
 
 Keep draft PR #16 stacked on `codex/stage-f-incident-evidence`; require all ten
 CI jobs and the latest `public-beta-privacy-support-<run-id>` head-commit audit
-to remain green. Then obtain owner/legal/operational approval before publishing
-policy, claiming deployed retention/deletion, or activating support. Do not
-merge to `main`, contact live providers/support channels, change secrets,
-deploy, or mark the public beta ready from this slice.
+to remain green. The stacked claims/publication-readiness child must retain a
+new head-commit audit for its own `public-beta-claims-<run-id>` artifact; the
+parent privacy artifact remains only its final inherited control evidence. Then
+obtain owner/legal/operational approval before publishing policy, claiming
+deployed retention/deletion, or activating support. Do not merge to `main`,
+contact live providers/support channels, change secrets, deploy, or mark the
+public beta ready from this slice.
