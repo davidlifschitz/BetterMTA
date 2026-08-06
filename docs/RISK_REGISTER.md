@@ -2,7 +2,7 @@
 
 **Owner:** Conductor  
 **Status:** Initial register for public-beta experiment  
-**Last updated:** 2026-08-04 (Stage F candidates; current live release unchanged)
+**Last updated:** 2026-08-05 (Stage F claims/publication-readiness candidate; current live release unchanged)
 
 Severity: `critical` \| `high` \| `medium` \| `low`  
 Likelihood: `high` \| `medium` \| `low`
@@ -44,6 +44,7 @@ Likelihood: `high` \| `medium` \| `low`
 | R33 | Automated axe, keyboard, and mobile checks are mistaken for completed human accessibility approval | high | medium | Emit commit-bound `AUTOMATED_PASS_HUMAN_PENDING` evidence with `eligibleForGatePass: false`; retain a same-commit human review covering keyboard, screen reader, visual/motion, findings, and sign-off; require no open critical core-flow failures and owner review before closing the gate | QA + Frontend + Integration |
 | R34 | A green incident-playbook structure artifact is mistaken for an approved rota, reachable incident channel, or completed tabletop drill | high | medium | Emit commit-bound `PLAYBOOK_PASS_ROTA_DRILL_PENDING` evidence with `eligibleForGatePass: false`; require owner-approved roles/channel/thresholds, a same-commit restricted tabletop record, no open critical findings, and release-owner sign-off before closing the gate | Infra + QA + Integration |
 | R35 | Draft privacy/support documents and green privacy-control tests are mistaken for a published policy, enforced retention, reachable support channel, or assigned response owner | critical | medium | Emit commit-bound `CONTROLS_PASS_APPROVAL_CHANNEL_PENDING` evidence with `eligibleForGatePass: false`; require same-commit restricted owner/legal/operational approval, deployed retention/deletion proof, actual provider disclosure, private channel verification, response owners, and no open critical findings | Privacy + Infra + Integration |
+| R36 | A green automated public-claims scan is mistaken for human publication approval, or scanner phrasing gaps miss unsupported named-competitor superiority wording | high | medium | Use deny-by-default named-competitor scanning with only fixed neutral MTA and explicit non-claim exceptions; anchor the non-claim in both canonical limitations files; reject comparative variants and symlinks with fixed non-reflecting errors; validate regular, nonempty methodology files and stable markers; emit `AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING` with `comparativeClaimsStatus: not_authorized` and `eligibleForGatePass: false`; require same-commit publication review, benchmark methodology, attribution, findings, and sign-off | QA + Product + Infra |
 
 ## Top watchlist for first integration
 
@@ -77,6 +78,7 @@ Likelihood: `high` \| `medium` \| `low`
 10. R33 automated accessibility evidence versus human approval
 11. R34 incident playbook mechanics versus active response capability
 12. R35 privacy/support mechanics versus published and operational approval
+13. R36 automated claims scan versus human publication approval and phrasing coverage
 
 ## Follow-ups (tracked, not blocking controlled alpha)
 

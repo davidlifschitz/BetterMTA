@@ -20,7 +20,7 @@ release evidence remain separate gates.
 | Public origin/TLS | Commit-bound, privacy-safe verifier implemented and locally tested; approved public target and external evidence pending | Approved public URL, valid TLS, runtime headers verified end to end, public health checks, limitations link, public DNS/CDN review, and retained owner-reviewed artifact |
 | Limitations copy | Candidate `/limitations` route and planner-footer link pass local production E2E; approval/publication pending | Product/legal/owner approval and verified placement in the public core flow |
 | Privacy/support | CI emits commit-bound policy/control readiness evidence; owner/legal approval, deployed retention proof, private channel, and response owners remain pending | Approved policy, retention controls, support channel, and response ownership |
-| Claims discipline | Automated/product rules present; publication review pending | Release copy review plus benchmark-backed methodology for any comparative statement; otherwise no comparative claim |
+| Claims discipline | Commit-bound named-competitor scan and pending-only writer present; publication review pending | Release copy review plus benchmark-backed methodology for any comparative statement; otherwise no comparative claim |
 
 ## Locally verifiable preparation
 
@@ -49,6 +49,30 @@ release evidence remain separate gates.
   privacy/support readiness evidence over the policy, retention/deletion,
   runtime privacy controls, and safe support workflow. It remains explicitly
   owner/legal/operational-approval pending and cannot pass the gate.
+- After structure validation passes, CI scans only `apps/web/src` and
+  `docs/public-beta/LIMITATIONS.md` with a deny-by-default named-competitor
+  policy. Only the explicit public non-claim and fixed neutral MTA
+  attribution/implementation wording are allowed; comparative variants such
+  as “compared with,” “versus,” “arrives sooner,” “takes less time,” “better,”
+  and “outperforms” fail with fixed non-reflecting errors. The route-set phrase
+  `~N min faster than fastest baseline` and `next/font/google` remain allowed.
+  Neutral MTA allowances are complete known constructs tied to statement or
+  comment boundaries, so a comparison wrapping a neutral phrase still fails.
+  The explicit non-claim must be anchored in both canonical limitations files;
+  the page copy must be inside `LimitationsPage`’s returned JSX, not unused
+  JSX, a test, or a comment. `LimitationsPage` must contain exactly one
+  executable return, so conditional or unreachable extra returns fail closed.
+  Return words and nested callback returns inside that returned JSX are ignored
+  as component-control-flow returns. Straight or curly contraction forms are
+  accepted. Signature discovery masks comments, strings, and template literals
+  while preserving positions. Symlinks fail closed, and the three benchmark
+  methodology contracts must be regular, nonempty files with their required
+  stable markers.
+- After the scan passes, CI writes commit-bound claims evidence with status
+  `AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING`,
+  `comparativeClaimsStatus: "not_authorized"`, and
+  `eligibleForGatePass: false`. It retains `scan.json` and `result.json` as a
+  privacy-safe claims artifact; this is not publication approval.
 - The bounded load probe refuses insecure remote targets and requires explicit
   confirmation before remote traffic.
 - The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,
@@ -73,10 +97,13 @@ remote artifact alongside public-DNS/CDN and external-monitor evidence.
 ## Required release review
 
 The release owner must review the evidence manifest, risk register, benchmark
-report, accessibility summary, latency artifact, known limitations, incident
-drill, public-origin/TLS checks, and rollback evidence together. A passing tool
-result is necessary but not sufficient if the underlying evidence is stale,
-synthetic, out of scope, or collected from another commit.
+report and methodology contracts, `docs/public-beta/PUBLICATION_REVIEW.md`,
+accessibility summary, latency artifact, known limitations and attribution,
+incident drill, public-origin/TLS checks, and rollback evidence together. A
+passing tool result is necessary but not sufficient if the underlying evidence
+is stale, synthetic, out of scope, or collected from another commit. The claims
+artifact never authorizes a named-competitor comparison or publication by
+itself.
 
 No merge, deploy, public launch, cohort expansion, or status change is
 authorized by this document.
