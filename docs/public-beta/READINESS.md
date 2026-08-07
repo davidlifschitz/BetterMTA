@@ -12,7 +12,7 @@ release evidence remain separate gates.
 | Gate | Current evidence state | Exit evidence |
 |---|---|---|
 | Hosted private beta | Pending owner-authorized Stage D activation | Immutable hosted release, health/smoke evidence, approved privacy/support operation, and bounded cohort result |
-| Route API load/p95 | Harness implemented; beta-load evidence pending | Privacy-safe probe artifact showing p95 under 2,000 ms and error rate within the agreed limit for the recorded release/data snapshot |
+| Route API load/p95 | Commit- and snapshot-bound probe plus CI synthetic loopback artifact implemented; approved target/data snapshot evidence pending | Owner-approved target and data snapshot with a privacy-safe probe artifact showing p95 under 2,000 ms and error rate within the agreed limit for the recorded release/data snapshot |
 | Preview deployment | Runner-local production-container artifact proven in CI for commit `9f10e50` with 14/14 smoke checks; owner acceptance or a hosted-platform preview decision remains pending | CI-created preview from an approved commit with core-flow smoke evidence and no production mutation |
 | Production rollback | Operator tooling prepared; live drill pending | Recorded prior images, executed rollback, health checks, candidate restore, elapsed time, and retained evidence |
 | Core-flow accessibility | Commit-bound automated evidence mechanics are proven in CI; human review for an owner-approved release commit remains pending | Green CI artifact plus human review with no critical core-flow failures |
@@ -73,8 +73,47 @@ release evidence remain separate gates.
   `comparativeClaimsStatus: "not_authorized"`, and
   `eligibleForGatePass: false`. It retains `scan.json` and `result.json` as a
   privacy-safe claims artifact; this is not publication approval.
-- The bounded load probe refuses insecure remote targets and requires explicit
-  confirmation before remote traffic.
+- The bounded load probe requires a full lowercase release commit and validates
+  the complete canonical `/v1/status` response (including contract version,
+  data mode, dataset version, realtime fields, degraded, and messages) before
+  and after measured route load. Its SHA-256 snapshot fingerprint covers only
+  stable contract/data/dataset/snapshot identity; realtime age, degraded state,
+  and messages are excluded from identity. Invalid, extra, missing, or
+  degraded status and changed snapshots fail closed. Status and route requests
+  fail closed on redirects, so a checked target cannot escape to a second
+  origin. Latency percentiles cover all measured requests, are finite,
+  nonnegative, and monotonic, with slow failed requests independently rejected
+  at the p95 threshold. The optional fixture file and serialized request body
+  are each bounded to 1 MiB before parsing or network I/O. It refuses insecure
+  remote targets and requires explicit confirmation before remote traffic.
+- CI runs the Node-built-ins-only synthetic runner on loopback with 100 measured
+  route requests, serializes in-process runs before any output mutation,
+  passes explicit absolute child script/cwd paths, and resolves and anchors the
+  real output parent by device/inode,
+  completes and validates an exact-inventory sibling stage, and publishes it
+  with one final directory-entry rename before retaining only
+  `probe.json` and `result.json` in `public-beta-load-readiness-<run-id>`. Its fixed result status is
+  `SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING`, with
+  `probeClass: "synthetic-local"`, `dataSnapshotStatus: "synthetic"`,
+  `eligibleForGatePass: false`, and `betaCapacityEvidence: false`; it is never
+  beta-capacity evidence and does not close `load_p95`. The writer rejects
+  unexpected probe keys, non-monotonic percentiles, or unexpected nested
+  threshold/status/failure fields. Runner failures clean only the owned stage;
+  relative anchored-parent operations prevent renamed/replaced parents from
+  orphaning stages or mutating replacement paths. After awaited children and
+  test hooks, cwd identity is fstat-verified and unrelated cwd changes are
+  repaired before relative cleanup/publication. A final-path symlink or
+  regular-file, symlink, or non-empty directory swap is atomically quarantined
+  as an opaque entry without following symlink entries; the empty real output
+  directory is established before quarantine cleanup and remains the primary
+  restoration guarantee. If the requested absolute parent path is moved, the
+  original anchored parent is restored while the replacement parent remains
+  untouched. Deterministic in-process mutation windows are
+  closed. Final files must deep-match the writer-validated canonical probe/result
+  projection, including timestamps, fingerprints, counts, metrics, thresholds,
+  status checks, and flags. Same-UID external kernel-level races between
+  synchronous validation and rename remain outside pure Node’s absolute
+  exclusion boundary.
 - The public-origin verifier refuses non-HTTPS or unconfirmed remote targets,
   never follows redirects, bounds bodies, emits no hostnames, binds results to a
   full release commit, and distinguishes local mechanics from eligible remote
@@ -93,6 +132,9 @@ capacity. Those remain separate owner-reviewed evidence.
 The verifier reduces collection error but does not authorize a target or prove
 independent public reachability. Run it only after owner approval and retain its
 remote artifact alongside public-DNS/CDN and external-monitor evidence.
+The synthetic load artifact proves only that the bounded mechanics and fixture
+runner work on one checked-out commit. It is deliberately not a hosted load
+test, an approved data snapshot, a capacity result, or a `load_p95` gate pass.
 
 ## Required release review
 

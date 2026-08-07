@@ -144,6 +144,12 @@ git diff --check
   variant is covered; human review is still required.
 - The child-head CI artifact audit has not yet been run, so remote workflow
   behavior and uploaded artifact contents remain unverified locally.
+- Parent PR #17 final audit evidence is the same-commit claims-artifact review
+  recorded for `public-beta-claims-<run-id>`: the automated result remains
+  `AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING`,
+  `comparativeClaimsStatus: not_authorized`, `eligibleForGatePass: false`, and
+  `productionMutation: false`. It is parent-owned publication-readiness
+  evidence, not approval, publication, or a load/p95 result.
 
 ## 9. Known limitations
 

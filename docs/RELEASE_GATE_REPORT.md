@@ -202,6 +202,29 @@ same-commit inventory, claims classification, benchmark, attribution, findings,
 and sign-off review. No comparative claim was authorized, no copy was
 published, and the claims-discipline gate remains pending.
 
+The further stacked `codex/stage-f-load-evidence` candidate hardens the route
+probe with exact release-commit binding, complete canonical before/after
+`/v1/status` validation, stable snapshot identity, redirect refusal, bounded
+1 MiB fixture/request bodies, all-request finite monotonic latency accounting,
+and slow-failure rejection. It adds a strict metrics/threshold-validating
+load-readiness writer and a Node-built-ins-only loopback runner that serializes
+in-process runs, passes explicit absolute child cwd/script paths, resolves and
+anchors the real output parent by device/inode, completes an exact-inventory
+sibling stage, synchronously revalidates bounded no-follow JSON using the
+writer’s canonical validator/projection and deep cross-file equality immediately
+before publication, and publishes 100 synthetic requests in CI with one final
+directory-entry rename. CI passes an absolute
+`$GITHUB_WORKSPACE/infra/public-beta/evidence/load` output path while the
+artifact upload retains only the two exact JSON files. On failure, the runner
+atomically quarantines a non-empty final output entry and establishes an empty
+real directory before quarantine cleanup. The retained result is intentionally
+`SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING`, `eligibleForGatePass: false`, and
+`betaCapacityEvidence: false`; it contains no loopback origin and does not
+prove hosted capacity, an approved target, or a real data snapshot. The parent
+claims handoff retains the final PR #17 audit evidence as parent-owned
+same-commit claims-artifact review; this load slice does not reclassify that
+evidence or perform remote CI. The route load/p95 gate remains pending.
+
 These candidates do **not** close hosted private beta, load/p95, preview,
 live rollback, human accessibility, approved incident rota/tabletop, public origin/TLS,
 privacy/support approval, publication, or claims-review gates. No deployment,

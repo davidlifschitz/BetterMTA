@@ -68,6 +68,8 @@ function validateStructure(repoRoot) {
     "infra/public-beta/write-privacy-support-readiness-evidence.mjs",
     "infra/public-beta/scan-public-claims.mjs",
     "infra/public-beta/write-claims-readiness-evidence.mjs",
+    "infra/public-beta/write-load-readiness-evidence.mjs",
+    "infra/public-beta/run-synthetic-load-evidence.mjs",
     "infra/public-beta/validate-readiness.mjs",
     "infra/public-beta/tests/public-beta-readiness.test.mjs",
     "infra/public-beta/README.md",
@@ -326,6 +328,94 @@ function validateStructure(repoRoot) {
     }
   }
 
+  const loadReadinessWriter = readText(
+    repoRoot,
+    "infra/public-beta/write-load-readiness-evidence.mjs",
+  );
+  for (const [label, pattern] of [
+    ["commit-binding", /releaseCommit/],
+    ["probe-input", /--probe/],
+    ["snapshot-fingerprint", /snapshotFingerprint/],
+    ["synthetic-pending-status", /SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING/],
+    ["load-evidence-class", /ci-load-p95-readiness/],
+    ["synthetic-local-class", /synthetic-local/],
+    ["target-pending", /targetApprovalStatus/],
+    ["snapshot-synthetic", /dataSnapshotStatus/],
+    ["exact-probe-schema", /PROBE_FIELDS/],
+    ["exact-status-check-schema", /STATUS_CHECK_FIELDS/],
+    ["exact-threshold-schema", /THRESHOLD_FIELDS/],
+    ["exact-failure-kind-schema", /FAILURE_KIND_FIELDS/],
+    ["normalized-threshold-output", /p95Ms: probe[.]thresholds[.]p95Ms/],
+    ["not-gate-pass", /eligibleForGatePass:\s*false/],
+    ["not-capacity-evidence", /betaCapacityEvidence:\s*false/],
+    ["no-production-mutation", /productionMutation:\s*false/],
+  ]) {
+    if (!pattern.test(loadReadinessWriter)) {
+      failures.push(`load-readiness-evidence:${label}`);
+    }
+  }
+
+  const loadProbe = readText(repoRoot, "infra/public-beta/load-route-search.mjs");
+  for (const [label, pattern] of [
+    ["canonical-contract-version", /CONTRACT_VERSION|contractVersion/],
+    ["canonical-realtime-age", /realtimeAgeSeconds/],
+    ["canonical-degraded", /degraded/],
+    ["canonical-messages", /messages/],
+    ["exact-status-fields", /STATUS_FIELDS/],
+    ["stable-identity-fingerprint", /const identity/],
+    ["all-measured-durations", /measuredDurations/],
+    ["slow-failure-latency-gate", /latency_threshold_exceeded/],
+    ["snapshot-change-failure", /snapshot_changed/],
+    ["no-follow-redirects", /redirect:\s*["']error["']/],
+    ["bounded-fixture-read", /readBoundedFile/],
+    ["bounded-request-body", /MAX_REQUEST_BODY_BYTES/],
+    ["request-body-size-check", /Buffer\.byteLength\(body/],
+  ]) {
+    if (!pattern.test(loadProbe)) failures.push(`load-probe:${label}`);
+  }
+
+  const syntheticLoadRunner = readText(
+    repoRoot,
+    "infra/public-beta/run-synthetic-load-evidence.mjs",
+  );
+  for (const [label, pattern] of [
+    ["built-in-http", /node:http/],
+    ["loopback-bind", /127[.]0[.]0[.]1/],
+    ["ephemeral-port", /listen\(0/],
+    ["real-probe", /load-route-search[.]mjs/],
+    ["real-writer", /write-load-readiness-evidence[.]mjs/],
+    ["one-hundred-requests", /["']--requests["'][\s\S]{0,40}["']100["']/],
+    ["output-dir", /--output-dir/],
+    ["clean-shutdown", /server[.]close/],
+    ["canonical-status-fixture", /contractVersion:[\s\S]{0,240}realtimeAgeSeconds[\s\S]{0,120}degraded[\s\S]{0,120}messages/],
+    ["stage-directory", /stageDir/],
+    ["atomic-rename", /rename/],
+    ["exact-stage-inventory", /validateStage/],
+    ["output-lstat", /lstat/],
+    ["output-realpath", /realpath/],
+    ["anchored-parent-cwd", /process[.]chdir/],
+    ["parent-identity", /fstatSync/],
+    ["serialized-run-guard", /runInProgress/],
+    ["cwd-anchor-verification", /ensureAnchorCwd/],
+    ["explicit-child-cwd", /cwd,/],
+    ["final-stage-validation", /validateProbe/],
+    ["final-result-validation", /buildEvidence/],
+    ["stage-dir-no-follow", /stageDetails[\s\S]{0,120}isSymbolicLink/],
+    ["bounded-artifacts", /MAX_ARTIFACT_BYTES/],
+    ["final-no-follow-rename", /renameSync/],
+    ["quarantine-restoration", /quarantine/],
+    ["quarantine-no-follow-cleanup", /rmSync/],
+    ["final-directory-swap-safety", /restoreEmptyOutputDirectory/],
+    ["failure-cleanup", /cleanStage/],
+    ["test-failure-injection", /failureAt/],
+    ["publication-hook", /beforePublish/],
+    ["probe-output", /probe[.]json/],
+    ["result-output", /result[.]json/],
+  ]) {
+    const matches = pattern instanceof RegExp ? pattern.test(syntheticLoadRunner) : false;
+    if (!matches) failures.push(`synthetic-load-runner:${label}`);
+  }
+
   const publicationReview = readText(
     repoRoot,
     "docs/public-beta/PUBLICATION_REVIEW.md",
@@ -456,11 +546,17 @@ function validateStructure(repoRoot) {
     ["privacy-support-writer", /write-privacy-support-readiness-evidence[.]mjs/],
     ["privacy-support-artifact", /public-beta-privacy-support-/],
     ["claims-commit", /CLAIMS_RELEASE_COMMIT:\s*\$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/],
+    ["load-commit", /LOAD_RELEASE_COMMIT:\s*\$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/],
     ["claims-scanner", /scan-public-claims[.]mjs/],
     ["claims-scan-artifact", /infra\/public-beta\/evidence\/claims\/scan[.]json/],
     ["claims-writer", /write-claims-readiness-evidence[.]mjs/],
     ["claims-result-artifact", /infra\/public-beta\/evidence\/claims\/result[.]json/],
     ["claims-artifact", /public-beta-claims-\$\{\{ github[.]run_id \}\}/],
+    ["load-runner", /run-synthetic-load-evidence[.]mjs/],
+    ["load-output-absolute", /--output-dir "\$GITHUB_WORKSPACE\/infra\/public-beta\/evidence\/load"/],
+    ["load-probe-artifact", /infra\/public-beta\/evidence\/load\/probe[.]json/],
+    ["load-result-artifact", /infra\/public-beta\/evidence\/load\/result[.]json/],
+    ["load-artifact", /public-beta-load-readiness-\$\{\{ github[.]run_id \}\}/],
     ["node-tests", /node --test infra\/public-beta\/tests\/[^\s]+/],
     ["structure", /validate-readiness[.]mjs --structure-only/],
   ]) {
@@ -473,29 +569,38 @@ function validateStructure(repoRoot) {
     failures.push("workflow:public-beta-readiness-job");
   } else {
     const structureIndex = readinessJob.indexOf("validate-readiness.mjs --structure-only");
+    const loadRunnerIndex = readinessJob.indexOf("run-synthetic-load-evidence.mjs");
+    const loadArtifactIndex = readinessJob.indexOf("public-beta-load-readiness-${{ github.run_id }}");
     const scanIndex = readinessJob.indexOf("scan-public-claims.mjs");
     const writerIndex = readinessJob.indexOf("write-claims-readiness-evidence.mjs");
     const artifactIndex = readinessJob.indexOf("public-beta-claims-${{ github.run_id }}");
     if (
       structureIndex < 0 ||
+      loadRunnerIndex < 0 ||
+      loadArtifactIndex < 0 ||
       scanIndex < 0 ||
       writerIndex < 0 ||
       artifactIndex < 0 ||
-      !(structureIndex < scanIndex && scanIndex < writerIndex && writerIndex < artifactIndex)
+      !(structureIndex < loadRunnerIndex && loadRunnerIndex < loadArtifactIndex && loadArtifactIndex < scanIndex && scanIndex < writerIndex && writerIndex < artifactIndex)
     ) {
       failures.push("workflow:claims-order");
     }
     const claimsCommitEnvLine = readinessJob
       .split("\n")
       .find((line) => line.includes("CLAIMS_RELEASE_COMMIT:"));
+    const loadCommitEnvLine = readinessJob
+      .split("\n")
+      .find((line) => line.includes("LOAD_RELEASE_COMMIT:"));
     const checkoutRefLine = readinessJob
       .split("\n")
       .find((line) => line.trim().startsWith("ref:"));
-    if (!claimsCommitEnvLine || !checkoutRefLine) {
+    if (!claimsCommitEnvLine || !loadCommitEnvLine || !checkoutRefLine) {
       failures.push("workflow:claims-checkout-ref");
     } else if (
       checkoutRefLine.trim().slice("ref:".length).trim() !==
-      claimsCommitEnvLine.slice(claimsCommitEnvLine.indexOf(":") + 1).trim()
+      claimsCommitEnvLine.slice(claimsCommitEnvLine.indexOf(":") + 1).trim() ||
+      checkoutRefLine.trim().slice("ref:".length).trim() !==
+      loadCommitEnvLine.slice(loadCommitEnvLine.indexOf(":") + 1).trim()
     ) {
       failures.push("workflow:claims-checkout-ref-mismatch");
     }
