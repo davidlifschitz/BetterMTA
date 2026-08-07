@@ -15,11 +15,13 @@ fail as `response_too_large` rather than consuming unbounded memory.
 ```bash
 # Local development target
 node infra/public-beta/load-route-search.mjs \
-  --base-url http://127.0.0.1:8080
+  --base-url http://127.0.0.1:8080 \
+  --release-commit "$(git rev-parse HEAD)"
 
 # Authorized remote target only
 node infra/public-beta/load-route-search.mjs \
   --base-url "$BETTERMTA_LOAD_BASE_URL" \
+  --release-commit "$(git rev-parse HEAD)" \
   --confirm-target LOAD_TEST \
   --requests 100 \
   --concurrency 5
@@ -27,9 +29,79 @@ node infra/public-beta/load-route-search.mjs \
 
 Remote execution must be separately authorized by the owner. The route API
 gate is p95 below 2,000 ms under the agreed beta workload, excluding upstream
-outage fallback paths. A probe result is only one input to that gate; record
-the release commit, dataset/snapshot, workload, and operating conditions in a
-separate evidence artifact.
+outage fallback paths. The probe requires a full lowercase release commit and
+checks `/v1/status` before and after load. It accepts only bounded,
+privacy-safe canonical `StatusResponse` fields from
+`contracts/openapi/bettermta-v1.yaml`, including the contract version, data
+mode, dataset version, optional realtime snapshot/age, degraded flag, and
+messages. Extra or malformed fields fail closed. The SHA-256
+`snapshotFingerprint` includes only stable contract/data/dataset/snapshot
+identity; dynamic age, degraded state, and messages are validated but never
+hashed or emitted. Before/after checks must be valid and non-degraded, and a
+changed snapshot fails closed. Latency percentiles use every measured request;
+p50/p95/p99 must remain finite, nonnegative, and monotonic, and slow failed
+requests are independently rejected at the p95 threshold. Status and route
+requests use `redirect: "error"`; a redirect attempt fails closed before any
+second origin can receive traffic. The optional `--fixture` file and its
+serialized request body are each capped at 1 MiB before parsing or fetching;
+the exact boundary is accepted and any larger input fails with a fixed
+non-reflecting error. The probe never emits the target origin, status tokens,
+bodies, or sensitive values.
+A probe result is only one input to that gate; record the approved target, data
+snapshot, workload, and operating conditions in a separate owner-reviewed
+evidence artifact.
+
+## Synthetic local load evidence
+
+CI uses the real probe against a deterministic loopback-only fixture. Run this
+example from the repository root so `$PWD` expands to an absolute repository
+path:
+
+```bash
+node infra/public-beta/run-synthetic-load-evidence.mjs \
+  --release-commit "$(git rev-parse HEAD)" \
+  --output-dir "$PWD/infra/public-beta/evidence/load"
+```
+
+The runner uses an ephemeral `127.0.0.1` port, performs 100 measured route
+requests plus bounded warmup, invokes
+`write-load-readiness-evidence.mjs`, and publishes only `probe.json` and
+`result.json`. It first completes and validates an exact-inventory sibling
+staging directory, then publishes that directory with one final directory-entry
+rename. No final output child path is used after validation. A final-path
+symlink swap therefore fails closed on platforms that reject the rename and is
+restored as an empty real directory without traversing the substituted target;
+before staging, a module-level guard serializes in-process runs and rejects a
+concurrent call before it touches its output path. Each child receives an
+explicit absolute script and anchored-parent cwd. The runner resolves and
+validates the real parent, records its device/inode identity, and changes cwd
+into that anchored directory. After every awaited child or test hook, it
+fstat-verifies the anchor and repairs an unrelated cwd change before any
+relative operation. All stage, output, cleanup, quarantine, and publication
+operations then use relative entries, so a parent rename/replacement cannot
+orphan cleanup or mutate the replacement parent. A changed parent path or
+identity fails with a fixed error; the original anchored parent is restored even
+when the absolute requested path is temporarily unavailable. A final regular
+file, symlink, or non-empty directory entry is atomically quarantined as an
+opaque entry; quarantine cleanup does not follow symlink entries, and the
+empty real output directory is established before cleanup is attempted.
+Legitimate `/tmp` ancestry remains allowed. The writer enforces exact
+top-level and nested probe schemas, including thresholds, status checks,
+failure kinds, and monotonic percentiles, and emits only normalized validated
+fields before emitting `SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING`. Test-only
+failure injection covers probe, writer, validation, write, publication, and
+post-step cleanup phases; failed runs remove only the owned sibling stage and
+leave the requested output as an empty real directory. The final synchronous
+check reuses the writer’s full probe validator and canonical result projection,
+then requires deep semantic equality for both files, including timestamps,
+fingerprints, counts, metrics, thresholds, status checks, and pending flags.
+The result is explicitly
+`eligibleForGatePass: false`, `betaCapacityEvidence: false`, and
+`productionMutation: false`. It is a CI mechanics artifact, not approved beta
+capacity evidence, a hosted target result, or a real data-snapshot result.
+The final synchronous validation-to-rename window is closed for deterministic
+in-process mutations; a same-UID external kernel-level race between those
+operations remains outside what pure Node can absolutely exclude.
 
 ## Public-origin verifier
 
@@ -250,12 +322,12 @@ node infra/public-beta/validate-readiness.mjs --structure-only
 
 `--structure-only` means the scripts, CI wiring, templates, incident plan,
 limitations route, nonce/header middleware, public-origin verifier, preview,
-accessibility, incident-readiness, privacy/support, and claims evidence
-writers, pending human review/tabletop/approval/publication templates, benchmark
-methodology contracts, and their test contracts are present. It never starts the
-app, verifies a public edge, performs a human review or tabletop, publishes a
-policy or copy, activates support, authorizes a comparative claim, or means the
-release is ready.
+accessibility, incident-readiness, privacy/support, claims, and synthetic load
+evidence writers/runners, pending human review/tabletop/approval/publication
+templates, benchmark methodology contracts, and their test contracts are
+present. It never starts the app, verifies a public edge, performs a human
+review or tabletop, publishes a policy or copy, activates support, authorizes a
+comparative claim, or means the release is ready.
 
 An owner-reviewed release evidence manifest can later be evaluated with:
 

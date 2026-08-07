@@ -301,6 +301,42 @@ push commit expression, then writes
 deployment, or cohort change is claimed. R36 preserves the distinction and
 scanner-coverage risk. See `.agents/handoffs/stage-f-claims-evidence.md`.
 
+The parent claims handoff records the final PR #17 audit evidence as a
+same-commit review of the retained `public-beta-claims-<run-id>` artifact: the
+fixed scan/result contract remains
+`AUTOMATED_SCAN_PASS_PUBLICATION_REVIEW_PENDING`,
+`comparativeClaimsStatus: not_authorized`, `eligibleForGatePass: false`, and
+`productionMutation: false`. That parent audit is not publication approval and
+is inherited only as claims-discipline context by later Stage F slices.
+
+**Stage F load-evidence candidate (2026-08-05; synthetic mechanics only):** The
+further stacked `codex/stage-f-load-evidence` branch requires a full lowercase
+release commit, validates the complete canonical `/v1/status` response before
+and after load, refuses status/route redirects, bounds fixture and serialized
+request bodies at 1 MiB, hashes only stable bounded privacy-safe snapshot
+identity fields, measures latency across every request with finite monotonic
+percentiles, and fails closed on missing/malformed/degraded or changed status.
+CI runs the real probe against a deterministic loopback fixture for 100
+measured requests, serializes in-process runs before output mutation, passes
+explicit absolute child cwd/script paths, resolves and anchors the real output
+parent by device/inode, repairs verified cwd-anchor changes after callbacks,
+completes and validates an exact-inventory sibling stage, synchronously
+revalidates bounded no-follow JSON through the writer’s canonical validator and
+deep cross-file projection equality immediately before publication, and
+publishes it with one final directory-entry rename, writing only `probe.json`
+and `result.json`. CI passes an absolute `$GITHUB_WORKSPACE` output path while
+uploading only those two files. Non-empty final output entries are atomically
+quarantined and an empty real output directory is established before no-follow
+quarantine cleanup. Parent renames/replacements are fixed failures cleaned inside
+the anchored original parent; same-UID external kernel-level races between
+final validation and rename remain a documented pure-Node residual boundary.
+The writer emits `SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING` with
+`probeClass: synthetic-local`, `dataSnapshotStatus: synthetic`,
+`eligibleForGatePass: false`, `betaCapacityEvidence: false`, and
+`productionMutation: false`. No approved target, real snapshot, hosted
+capacity, load/p95 gate passage, deployment, or status change is claimed. R37
+preserves this distinction. See `.agents/handoffs/stage-f-load-evidence.md`.
+
 **Exit:** `READY_FOR_PUBLIC_BETA`.
 
 ### Stage G — Differentiation & modes — M5 + Epic D1

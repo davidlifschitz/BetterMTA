@@ -3,10 +3,14 @@ import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import {
   cp,
+  lstat,
   mkdir,
   mkdtemp,
   open,
   readFile,
+  readdir,
+  rename,
+  rmdir,
   rm,
   symlink,
   writeFile,
@@ -16,6 +20,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { runSyntheticLoad } from "../run-synthetic-load-evidence.mjs";
 import test from "node:test";
 
 const execFileAsync = promisify(execFile);
@@ -44,6 +49,14 @@ const claimsReadinessEvidenceScript = join(
   repoRoot,
   "infra/public-beta/write-claims-readiness-evidence.mjs",
 );
+const loadReadinessEvidenceScript = join(
+  repoRoot,
+  "infra/public-beta/write-load-readiness-evidence.mjs",
+);
+const syntheticLoadRunnerScript = join(
+  repoRoot,
+  "infra/public-beta/run-synthetic-load-evidence.mjs",
+);
 const readinessScript = join(repoRoot, "infra/public-beta/validate-readiness.mjs");
 const CLAIMS_METHODOLOGY_FILES = [
   "benchmarks/README.md",
@@ -68,12 +81,13 @@ const REQUIRED_GATES = [
   "claims_discipline",
 ];
 
-async function runNode(script, args = [], { timeout = 30_000 } = {}) {
+async function runNode(script, args = [], { timeout = 30_000, env = {} } = {}) {
   try {
     const result = await execFileAsync(process.execPath, [script, ...args], {
       cwd: repoRoot,
       encoding: "utf8",
       timeout,
+      env: { ...process.env, ...env },
     });
     return { code: 0, stdout: result.stdout, stderr: result.stderr };
   } catch (error) {
@@ -208,15 +222,39 @@ function publicOriginFixture({
   };
 }
 
+function loadStatusBody(overrides = {}) {
+  return canonicalLoadStatusBody(overrides);
+}
+
+function canonicalLoadStatusBody(overrides = {}) {
+  return JSON.stringify({
+    contractVersion: "2026-07-31",
+    dataMode: "synthetic",
+    staticDatasetVersion: "test-v1",
+    realtimeSnapshotId: "rt-test-v1",
+    realtimeAgeSeconds: 0,
+    degraded: false,
+    messages: [],
+    ...overrides,
+  });
+}
+
 test("bounded local load probe emits privacy-safe passing evidence", async () => {
   await withServer((request, response) => {
     request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody());
+      return;
+    }
     response.writeHead(200, { "content-type": "application/json" });
     response.end("{}");
   }, async (baseUrl) => {
     const result = await runNode(loadScript, [
       "--base-url",
       baseUrl,
+      "--release-commit",
+      "a".repeat(40),
       "--requests",
       "8",
       "--concurrency",
@@ -236,6 +274,10 @@ test("bounded local load probe emits privacy-safe passing evidence", async () =>
     assert.equal(evidence.requestCount, 8);
     assert.equal(evidence.failureCount, 0);
     assert.equal(evidence.thresholds.p95Ms, 2000);
+    assert.equal(evidence.releaseCommit, "a".repeat(40));
+    assert.equal(evidence.dataMode, "synthetic");
+    assert.match(evidence.snapshotFingerprint, /^[0-9a-f]{64}$/);
+    assert.equal(evidence.snapshotStable, true);
     assert(!result.stdout.includes(new URL(baseUrl).host));
   });
 });
@@ -244,6 +286,11 @@ test("load probe fails when the allowed error rate is exceeded", async () => {
   let requests = 0;
   await withServer((request, response) => {
     request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody());
+      return;
+    }
     requests += 1;
     response.writeHead(requests % 2 === 0 ? 503 : 200, {
       "content-type": "application/json",
@@ -253,6 +300,8 @@ test("load probe fails when the allowed error rate is exceeded", async () => {
     const result = await runNode(loadScript, [
       "--base-url",
       baseUrl,
+      "--release-commit",
+      "b".repeat(40),
       "--requests",
       "6",
       "--concurrency",
@@ -274,6 +323,8 @@ test("load probe refuses insecure remote targets without exposing the hostname",
   const result = await runNode(loadScript, [
     "--base-url",
     "http://private.example.invalid",
+    "--release-commit",
+    "c".repeat(40),
     "--requests",
     "1",
     "--concurrency",
@@ -288,6 +339,11 @@ test("load probe refuses insecure remote targets without exposing the hostname",
 test("load probe bounds response bodies instead of buffering an endless response", async () => {
   await withServer((request, response) => {
     request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody());
+      return;
+    }
     response.writeHead(200, { "content-type": "application/json" });
     const chunk = "x".repeat(64 * 1024);
     const timer = setInterval(() => response.write(chunk), 2);
@@ -298,6 +354,8 @@ test("load probe bounds response bodies instead of buffering an endless response
       [
         "--base-url",
         baseUrl,
+        "--release-commit",
+        "d".repeat(40),
         "--requests",
         "1",
         "--concurrency",
@@ -312,6 +370,1080 @@ test("load probe bounds response bodies instead of buffering an endless response
     const evidence = JSON.parse(result.stdout);
     assert.equal(evidence.failureKinds.response_too_large, 1);
   });
+});
+
+test("load probe rejects missing or hostile release commits without reflection", async () => {
+  const missing = await runNode(loadScript, [
+    "--base-url",
+    "http://127.0.0.1:8080",
+  ]);
+  assert.equal(missing.code, 2);
+  assert.equal(missing.stdout, "");
+  assert.equal(missing.stderr, "ERROR invalid_arguments\n");
+
+  const hostile = "A".repeat(39) + "!\nprivate.example.invalid";
+  const malformed = await runNode(loadScript, [
+    "--base-url",
+    "http://127.0.0.1:8080",
+    "--release-commit",
+    hostile,
+  ]);
+  assert.equal(malformed.code, 2);
+  assert.equal(malformed.stdout, "");
+  assert.equal(malformed.stderr, "ERROR invalid_arguments\n");
+  assert(!malformed.stderr.includes("private.example.invalid"));
+});
+
+test("load probe fails closed when the status snapshot changes", async () => {
+  let statusReads = 0;
+  await withServer((request, response) => {
+    request.resume();
+    if (request.url === "/v1/status") {
+      statusReads += 1;
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody({
+        staticDatasetVersion: statusReads === 1 ? "test-v1" : "test-v2",
+      }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--release-commit",
+      "e".repeat(40),
+      "--requests",
+      "2",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+      "--max-error-rate",
+      "0",
+    ]);
+    assert.equal(result.code, 1);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.status, "FAIL");
+    assert.equal(evidence.failureKinds.snapshot_changed, 1);
+    assert.equal(evidence.snapshotStable, false);
+    assert(!result.stdout.includes(new URL(baseUrl).host));
+  });
+});
+
+test("load probe rejects missing or malformed status without reflecting response data", async () => {
+  for (const statusResponse of [null, "{\"dataMode\":\"synthetic\",\"staticDatasetVersion\":\"bad\\nprivate.example.invalid\"}"]) {
+    await withServer((request, response) => {
+      request.resume();
+      if (request.url === "/v1/status") {
+        if (statusResponse === null) {
+          response.writeHead(404, { "content-type": "application/json" });
+          response.end("{}");
+        } else {
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end(statusResponse);
+        }
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end("{}");
+    }, async (baseUrl) => {
+      const result = await runNode(loadScript, [
+        "--base-url",
+        baseUrl,
+        "--release-commit",
+        "f".repeat(40),
+        "--requests",
+        "1",
+        "--concurrency",
+        "1",
+        "--warmup",
+        "0",
+      ]);
+      assert.equal(result.code, 1);
+      const evidence = JSON.parse(result.stdout);
+      assert.equal(evidence.status, "FAIL");
+      assert.equal(evidence.failureKinds.status_missing_or_malformed, 1);
+      assert(!result.stdout.includes("private.example.invalid"));
+    });
+  }
+});
+
+test("load probe refuses a redirected status response without contacting the second origin", async () => {
+  let secondOriginHits = 0;
+  await withServer((request, response) => {
+    secondOriginHits += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(canonicalLoadStatusBody());
+  }, async (secondBaseUrl) => {
+    await withServer((request, response) => {
+      request.resume();
+      if (request.url === "/v1/status") {
+        response.writeHead(302, { location: `${secondBaseUrl}/v1/status` });
+        response.end();
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end("{}");
+    }, async (baseUrl) => {
+      const result = await runNode(loadScript, [
+        "--base-url",
+        baseUrl,
+        "--release-commit",
+        "1".repeat(40),
+        "--requests",
+        "1",
+        "--concurrency",
+        "1",
+        "--warmup",
+        "0",
+      ]);
+      assert.equal(result.code, 1);
+      assert.equal(secondOriginHits, 0);
+      const evidence = JSON.parse(result.stdout);
+      assert.equal(evidence.failureKinds.status_missing_or_malformed, 1);
+      assert(!result.stdout.includes(new URL(secondBaseUrl).host));
+    });
+  });
+});
+
+test("load probe refuses a redirected route response without contacting the second origin", async () => {
+  let secondOriginRouteHits = 0;
+  await withServer((request, response) => {
+    request.resume();
+    if (request.method === "POST" && request.url === "/v1/routes/search") {
+      secondOriginRouteHits += 1;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  }, async (secondBaseUrl) => {
+    await withServer((request, response) => {
+      request.resume();
+      if (request.url === "/v1/status") {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(loadStatusBody());
+        return;
+      }
+      if (request.method === "POST" && request.url === "/v1/routes/search") {
+        response.writeHead(302, { location: `${secondBaseUrl}/v1/routes/search` });
+        response.end();
+        return;
+      }
+      response.writeHead(404).end();
+    }, async (baseUrl) => {
+      const result = await runNode(loadScript, [
+        "--base-url",
+        baseUrl,
+        "--release-commit",
+        "2".repeat(40),
+        "--requests",
+        "1",
+        "--concurrency",
+        "1",
+        "--warmup",
+        "0",
+      ]);
+      assert.equal(result.code, 1);
+      assert.equal(secondOriginRouteHits, 0);
+      const evidence = JSON.parse(result.stdout);
+      assert.equal(evidence.failureKinds.network, 1);
+      assert(!result.stdout.includes(new URL(secondBaseUrl).host));
+    });
+  });
+});
+
+test("load probe fails on a bounded route timeout while retaining fixed failure kinds", async () => {
+  await withServer((request, response) => {
+    request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody());
+      return;
+    }
+    setTimeout(() => response.end("{}"), 100);
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--release-commit",
+      "1".repeat(40),
+      "--requests",
+      "1",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+      "--timeout-ms",
+      "100",
+    ]);
+    assert.equal(result.code, 1);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.failureKinds.timeout, 1);
+  });
+});
+
+test("load probe accepts a serialized fixture body at the exact request-size limit", async () => {
+  const maxBodyBytes = 1024 * 1024;
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-fixture-boundary-"));
+  const fixturePath = join(root, "fixture.json");
+  const emptyPayload = JSON.stringify({ payload: "" });
+  const fixture = JSON.stringify({
+    payload: "x".repeat(maxBodyBytes - Buffer.byteLength(emptyPayload)),
+  });
+  assert.equal(Buffer.byteLength(fixture), maxBodyBytes);
+  await writeFile(fixturePath, fixture);
+  let routeBodyBytes = 0;
+  await withServer((request, response) => {
+    if (request.url === "/v1/status") {
+      request.resume();
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody());
+      return;
+    }
+    request.on("data", (chunk) => {
+      routeBodyBytes += chunk.length;
+    });
+    request.on("end", () => {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end("{}");
+    });
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--fixture",
+      fixturePath,
+      "--release-commit",
+      "3".repeat(40),
+      "--requests",
+      "1",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+    ]);
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(routeBodyBytes, maxBodyBytes);
+  });
+  await rm(root, { recursive: true, force: true });
+});
+
+test("load probe rejects a fixture one byte over the request-size limit before any fetch", async () => {
+  const maxFixtureBytes = 1024 * 1024;
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-fixture-oversize-"));
+  const fixturePath = join(root, "fixture.json");
+  const prefix = JSON.stringify({ payload: "x" });
+  await writeFile(fixturePath, `${prefix}${" ".repeat(maxFixtureBytes + 1 - Buffer.byteLength(prefix))}`);
+  let fetches = 0;
+  await withServer((request, response) => {
+    fetches += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end(loadStatusBody());
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--fixture",
+      fixturePath,
+      "--release-commit",
+      "4".repeat(40),
+      "--requests",
+      "1",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+    ]);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "ERROR invalid_arguments\n");
+    assert.equal(fetches, 0);
+  });
+  await rm(root, { recursive: true, force: true });
+});
+
+test("load probe accepts the complete canonical status and excludes dynamic health fields from snapshot identity", async () => {
+  let statusReads = 0;
+  await withServer((request, response) => {
+    request.resume();
+    if (request.url === "/v1/status") {
+      statusReads += 1;
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(canonicalLoadStatusBody({
+        realtimeAgeSeconds: statusReads,
+        messages: [`bounded diagnostic ${statusReads}`],
+      }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--release-commit",
+      "8".repeat(40),
+      "--requests",
+      "2",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+    ]);
+    assert.equal(result.code, 0, result.stderr);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.dataMode, "synthetic");
+    assert.equal(evidence.snapshotStable, true);
+  });
+});
+
+test("load probe does not call a degraded canonical status healthy", async () => {
+  let routeRequests = 0;
+  await withServer((request, response) => {
+    request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(canonicalLoadStatusBody({ degraded: true, messages: ["degraded"] }));
+      return;
+    }
+    routeRequests += 1;
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--release-commit",
+      "8".repeat(40),
+      "--requests",
+      "1",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+    ]);
+    assert.equal(result.code, 1);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.statusChecks.before, "degraded");
+    assert.equal(evidence.failureKinds.status_degraded, 1);
+    assert.equal(routeRequests, 0);
+  });
+});
+
+test("load probe rejects extra canonical status fields without reflecting their values", async () => {
+  await withServer((request, response) => {
+    request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(canonicalLoadStatusBody({
+        hostileExtra: "private.example.invalid",
+      }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--release-commit",
+      "9".repeat(40),
+      "--requests",
+      "1",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+    ]);
+    assert.equal(result.code, 1);
+    assert.match(result.stdout, /status_missing_or_malformed/);
+    assert(!result.stdout.includes("private.example.invalid"));
+  });
+});
+
+test("load p95 gating includes a slow failed request at the exact allowed error-rate boundary", async () => {
+  let routeRequests = 0;
+  await withServer((request, response) => {
+    request.resume();
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(loadStatusBody());
+      return;
+    }
+    routeRequests += 1;
+    if (routeRequests === 100) {
+      setTimeout(() => {
+        response.writeHead(500, { "content-type": "application/json" });
+        response.end("{}");
+      }, 100);
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end("{}");
+  }, async (baseUrl) => {
+    const result = await runNode(loadScript, [
+      "--base-url",
+      baseUrl,
+      "--release-commit",
+      "a".repeat(40),
+      "--requests",
+      "100",
+      "--concurrency",
+      "1",
+      "--warmup",
+      "0",
+      "--p95-ms",
+      "50",
+      "--max-error-rate",
+      "0.01",
+      "--timeout-ms",
+      "500",
+    ]);
+    assert.equal(result.code, 1);
+    const evidence = JSON.parse(result.stdout);
+    assert.equal(evidence.errorRate, 0.01);
+    assert.equal(evidence.failureCount, 1);
+  });
+});
+
+test("load readiness writer emits synthetic pending, gate-ineligible evidence", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-writer-"));
+  const probePath = join(root, "probe.json");
+  const releaseCommit = "2".repeat(40);
+  await writeFile(probePath, JSON.stringify({
+    schemaVersion: 1,
+    generatedAt: "2026-08-05T00:00:00.000Z",
+    status: "PASS",
+    targetClass: "local",
+    releaseCommit,
+    routePath: "/v1/routes/search",
+    requestCount: 100,
+    concurrency: 5,
+    warmupCount: 5,
+    elapsedMs: 50,
+    successCount: 100,
+    failureCount: 0,
+    errorRate: 0,
+    p50Ms: 1,
+    p95Ms: 2,
+    p99Ms: 3,
+    thresholds: { p95Ms: 2000, maxErrorRate: 0.01 },
+    failureKinds: {},
+    dataMode: "synthetic",
+    snapshotFingerprint: "3".repeat(64),
+    snapshotStable: true,
+    statusChecks: { before: "pass", after: "pass" },
+  }) + "\n");
+  const result = await runNode(loadReadinessEvidenceScript, [
+    "--probe",
+    probePath,
+    "--release-commit",
+    releaseCommit,
+  ]);
+  assert.equal(result.code, 0, result.stderr);
+  const evidence = JSON.parse(result.stdout);
+  assert.deepEqual({
+    schemaVersion: evidence.schemaVersion,
+    status: evidence.status,
+    evidenceClass: evidence.evidenceClass,
+    gateId: evidence.gateId,
+    probeClass: evidence.probeClass,
+    targetApprovalStatus: evidence.targetApprovalStatus,
+    dataSnapshotStatus: evidence.dataSnapshotStatus,
+    releaseCommit: evidence.releaseCommit,
+    dataMode: evidence.dataMode,
+    snapshotFingerprint: evidence.snapshotFingerprint,
+    eligibleForGatePass: evidence.eligibleForGatePass,
+    productionMutation: evidence.productionMutation,
+    betaCapacityEvidence: evidence.betaCapacityEvidence,
+  }, {
+    schemaVersion: 1,
+    status: "SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING",
+    evidenceClass: "ci-load-p95-readiness",
+    gateId: "load_p95",
+    probeClass: "synthetic-local",
+    targetApprovalStatus: "pending",
+    dataSnapshotStatus: "synthetic",
+    releaseCommit,
+    dataMode: "synthetic",
+    snapshotFingerprint: "3".repeat(64),
+    eligibleForGatePass: false,
+    productionMutation: false,
+    betaCapacityEvidence: false,
+  });
+  assert.equal(evidence.requestCount, 100);
+  assert.equal(evidence.p95Ms, 2);
+  assert.match(evidence.generatedAt, /^2026|^20/);
+  assert(!/https?:|hostname|url|private.example/i.test(result.stdout));
+});
+
+test("load readiness writer rejects malformed or hostile probe inputs without reflection", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-writer-invalid-"));
+  const releaseCommit = "4".repeat(40);
+  const baseProbe = {
+    schemaVersion: 1,
+    generatedAt: "2026-08-05T00:00:00.000Z",
+    status: "PASS",
+    targetClass: "local",
+    releaseCommit,
+    routePath: "/v1/routes/search",
+    requestCount: 100,
+    concurrency: 5,
+    warmupCount: 5,
+    elapsedMs: 50,
+    successCount: 100,
+    failureCount: 0,
+    errorRate: 0,
+    p50Ms: 1,
+    p95Ms: 2,
+    p99Ms: 3,
+    thresholds: { p95Ms: 2000, maxErrorRate: 0.01 },
+    dataMode: "synthetic",
+    snapshotFingerprint: "5".repeat(64),
+    snapshotStable: true,
+    statusChecks: { before: "pass", after: "pass" },
+  };
+  for (const [name, probe, expected] of [
+    ["hostile", { ...baseProbe, releaseCommit: "bad\nprivate.example.invalid" }, "invalid_arguments"],
+    ["changed", { ...baseProbe, snapshotStable: false }, "invalid_probe"],
+    ["threshold", { ...baseProbe, p95Ms: 2000 }, "invalid_probe"],
+    ["non-monotonic", { ...baseProbe, p50Ms: 3, p95Ms: 2, p99Ms: 4 }, "invalid_probe"],
+  ]) {
+    const probePath = join(root, `${name}.json`);
+    await writeFile(probePath, JSON.stringify(probe));
+    const result = await runNode(loadReadinessEvidenceScript, [
+      "--probe",
+      probePath,
+      "--release-commit",
+      releaseCommit,
+    ]);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, `ERROR ${name === "hostile" ? "invalid_probe" : expected}\n`);
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
+test("load readiness writer rejects unexpected top-level and nested probe keys without reflection", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-writer-schema-"));
+  const releaseCommit = "b".repeat(40);
+  const baseProbe = {
+    schemaVersion: 1,
+    generatedAt: "2026-08-05T00:00:00.000Z",
+    status: "PASS",
+    targetClass: "local",
+    releaseCommit,
+    routePath: "/v1/routes/search",
+    dataMode: "synthetic",
+    snapshotFingerprint: "6".repeat(64),
+    snapshotStable: true,
+    statusChecks: { before: "pass", after: "pass" },
+    requestCount: 100,
+    concurrency: 5,
+    warmupCount: 5,
+    elapsedMs: 50,
+    successCount: 100,
+    failureCount: 0,
+    errorRate: 0,
+    p50Ms: 1,
+    p95Ms: 2,
+    p99Ms: 3,
+    thresholds: { p95Ms: 2000, maxErrorRate: 0.01 },
+    failureKinds: {},
+  };
+  for (const [name, probe] of [
+    ["top-level", { ...baseProbe, hostile: "private.example.invalid" }],
+    ["thresholds", { ...baseProbe, thresholds: { ...baseProbe.thresholds, hostile: "private.example.invalid" } }],
+    ["status-checks", { ...baseProbe, statusChecks: { ...baseProbe.statusChecks, hostile: "private.example.invalid" } }],
+    ["failure-kinds", { ...baseProbe, failureKinds: { hostile: "private.example.invalid" } }],
+  ]) {
+    const probePath = join(root, `${name}.json`);
+    await writeFile(probePath, JSON.stringify(probe));
+    const result = await runNode(loadReadinessEvidenceScript, [
+      "--probe",
+      probePath,
+      "--release-commit",
+      releaseCommit,
+    ]);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+    assert.equal(result.stderr, "ERROR invalid_probe\n");
+    assert(!result.stderr.includes("private.example.invalid"));
+  }
+});
+
+test("synthetic load runner emits only probe and pending result artifacts", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-"));
+  const releaseCommit = "6".repeat(40);
+  const result = await runNode(syntheticLoadRunnerScript, [
+    "--release-commit",
+    releaseCommit,
+    "--output-dir",
+    root,
+  ], { timeout: 30_000 });
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "");
+  assert.deepEqual(await (await import("node:fs/promises")).readdir(root), ["probe.json", "result.json"]);
+  const probe = JSON.parse(await readFile(join(root, "probe.json"), "utf8"));
+  const evidence = JSON.parse(await readFile(join(root, "result.json"), "utf8"));
+  assert.equal(probe.releaseCommit, releaseCommit);
+  assert.equal(probe.requestCount, 100);
+  assert.equal(probe.targetClass, "local");
+  assert.equal(evidence.status, "SYNTHETIC_LOCAL_PASS_BETA_LOAD_PENDING");
+  assert.equal(evidence.eligibleForGatePass, false);
+  assert.equal(evidence.betaCapacityEvidence, false);
+  assert(!/127[.]0[.]0[.]1|localhost|https?:|hostname|url/i.test(JSON.stringify({ probe, evidence })));
+});
+
+test("synthetic load runner rejects non-absolute output paths without reflection", async () => {
+  const hostile = "relative\nprivate.example.invalid";
+  const result = await runNode(syntheticLoadRunnerScript, [
+    "--release-commit",
+    "7".repeat(40),
+    "--output-dir",
+    hostile,
+  ]);
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR invalid_arguments\n");
+  assert(!result.stderr.includes("private.example.invalid"));
+});
+
+test("synthetic load runner removes staged and partial artifacts after deterministic failure injection", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-failure-"));
+  await assert.rejects(
+    runSyntheticLoad({ outputDir: root, releaseCommit: "c".repeat(40) }, { failureAt: "after-probe" }),
+    /injected failure/,
+  );
+  assert.deepEqual(await (await import("node:fs/promises")).readdir(root), []);
+});
+
+test("synthetic load runner cleans every injected pre-publication failure phase", async () => {
+  for (const phase of [
+    "probe",
+    "writer",
+    "validation",
+    "write",
+    "publication",
+    "after-probe",
+    "before-result",
+    "after-result",
+  ]) {
+    const root = await mkdtemp(join(tmpdir(), `bettermta-load-runner-${phase}-`));
+    const outputDir = join(root, "output");
+    await mkdir(outputDir);
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "5".repeat(40) },
+        { failureAt: phase },
+      ),
+      /injected failure/,
+      phase,
+    );
+    assert.deepEqual(await readdir(outputDir), [], phase);
+    assert.deepEqual(
+      (await readdir(root)).filter((entry) => entry.includes(".stage-")),
+      [],
+      phase,
+    );
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner rejects a symlinked final output directory without following it", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-symlink-"));
+  const target = join(root, "target");
+  const output = join(root, "output");
+  await mkdir(target);
+  await symlink(target, output, "dir");
+  const result = await runNode(syntheticLoadRunnerScript, [
+    "--release-commit",
+    "d".repeat(40),
+    "--output-dir",
+    output,
+  ]);
+  assert.equal(result.code, 2);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "ERROR invalid_arguments\n");
+  assert.deepEqual(await (await import("node:fs/promises")).readdir(target), []);
+});
+
+test("synthetic load runner permits a legitimate macOS /tmp ancestor", async () => {
+  const root = await mkdtemp(join("/tmp", "bettermta-load-runner-tmp-"));
+  try {
+    const result = await runNode(syntheticLoadRunnerScript, [
+      "--release-commit",
+      "e".repeat(40),
+      "--output-dir",
+      root,
+    ], { timeout: 30_000 });
+    assert.equal(result.code, 0, result.stderr);
+    assert.deepEqual(await (await import("node:fs/promises")).readdir(root), ["probe.json", "result.json"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner safely replaces a final output symlink swapped before publication", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-swap-"));
+  const outputDir = join(root, "output");
+  const targetDir = join(root, "symlink-target");
+  await mkdir(outputDir);
+  await mkdir(targetDir);
+  let swapped = false;
+  let publication = "success";
+  try {
+    await runSyntheticLoad(
+      { outputDir, releaseCommit: "6".repeat(40) },
+      {
+        beforePublish: async ({ outputDir: swappedOutputDir }) => {
+          await rmdir(swappedOutputDir);
+          await symlink(targetDir, swappedOutputDir, "dir");
+          swapped = true;
+        },
+      },
+    );
+  } catch (error) {
+    publication = "failed";
+    assert.equal(error.message, "synthetic publication failed");
+  }
+  assert.equal(swapped, true);
+  const outputStats = await lstat(outputDir);
+  assert.equal(outputStats.isSymbolicLink(), false);
+  assert.deepEqual(
+    await readdir(outputDir),
+    publication === "success" ? ["probe.json", "result.json"] : [],
+  );
+  assert.deepEqual(await readdir(targetDir), []);
+  assert.deepEqual(
+    (await readdir(root)).filter((entry) => entry.includes(".stage-")),
+    [],
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("synthetic load runner restores an empty real directory after a symlink swap and failure", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-symlink-failure-"));
+  const outputDir = join(root, "output");
+  const targetDir = join(root, "symlink-target");
+  await mkdir(outputDir);
+  await mkdir(targetDir);
+  let swapped = false;
+  try {
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "7".repeat(40) },
+        {
+          failureAt: "publication",
+          beforePublish: async ({ outputDir: swappedOutputDir }) => {
+            await rmdir(swappedOutputDir);
+            await symlink(targetDir, swappedOutputDir, "dir");
+            swapped = true;
+          },
+        },
+      ),
+      (error) => error.message === "injected failure",
+    );
+    assert.equal(swapped, true);
+    const outputStats = await lstat(outputDir);
+    assert.equal(outputStats.isDirectory(), true);
+    assert.equal(outputStats.isSymbolicLink(), false);
+    assert.deepEqual(await readdir(outputDir), []);
+    assert.deepEqual(await readdir(targetDir), []);
+    assert.deepEqual((await readdir(root)).filter((entry) => entry.includes(".stage-")), []);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner restores an empty real directory after a regular-file swap and failure", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-file-failure-"));
+  const outputDir = join(root, "output");
+  await mkdir(outputDir);
+  let swapped = false;
+  try {
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "8".repeat(40) },
+        {
+          failureAt: "publication",
+          beforePublish: async ({ outputDir: swappedOutputDir }) => {
+            await rmdir(swappedOutputDir);
+            await writeFile(swappedOutputDir, "hostile replacement");
+            swapped = true;
+          },
+        },
+      ),
+      (error) => error.message === "injected failure",
+    );
+    assert.equal(swapped, true);
+    const outputStats = await lstat(outputDir);
+    assert.equal(outputStats.isDirectory(), true);
+    assert.equal(outputStats.isSymbolicLink(), false);
+    assert.deepEqual(await readdir(outputDir), []);
+    assert.deepEqual((await readdir(root)).filter((entry) => entry.includes(".stage-")), []);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner quarantines a non-empty final output on publication failure", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-nonempty-output-"));
+  const outputDir = join(root, "output");
+  try {
+    await mkdir(outputDir);
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "a".repeat(40) },
+        {
+          beforePublish: async ({ outputDir: hostileOutputDir }) => {
+            await writeFile(join(hostileOutputDir, "hostile.json"), "hostile");
+          },
+        },
+      ),
+      (error) => error.message === "synthetic publication failed",
+    );
+    const outputStats = await lstat(outputDir);
+    assert.equal(outputStats.isDirectory(), true);
+    assert.equal(outputStats.isSymbolicLink(), false);
+    assert.deepEqual(await readdir(outputDir), []);
+    assert.deepEqual(
+      (await readdir(root)).filter(
+        (entry) => entry.includes(".stage-") || entry.includes(".quarantine-"),
+      ),
+      [],
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner cleans the anchored parent after a renamed and replaced parent swap", async () => {
+  const container = await mkdtemp(join(tmpdir(), "bettermta-load-runner-parent-swap-"));
+  const root = join(container, "parent");
+  await mkdir(root);
+  const outputDir = join(root, "output");
+  const movedParent = join(container, "moved-parent");
+  await mkdir(outputDir);
+  let swapped = false;
+  try {
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "9".repeat(40) },
+        {
+          failureAt: "publication",
+          beforePublish: async () => {
+            await rename(root, movedParent);
+            await mkdir(root);
+            swapped = true;
+          },
+        },
+      ),
+      (error) => error.message === "synthetic output parent changed",
+    );
+    assert.equal(swapped, true);
+    const anchoredOutputStats = await lstat(join(movedParent, "output"));
+    assert.equal(anchoredOutputStats.isDirectory(), true);
+    assert.equal(anchoredOutputStats.isSymbolicLink(), false);
+    assert.deepEqual(await readdir(join(movedParent, "output")), []);
+    assert.deepEqual(
+      (await readdir(movedParent)).filter((entry) => entry.includes(".stage-")),
+      [],
+    );
+    assert.deepEqual(await readdir(root), []);
+  } finally {
+    await rm(container, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner rejects an unexpected staged file added after pre-publication validation", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-inventory-race-"));
+  const outputDir = join(root, "output");
+  await mkdir(outputDir);
+  try {
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "a".repeat(40) },
+        {
+          beforePublish: async ({ stageDir }) => {
+            await writeFile(join(stageDir, "unexpected.json"), "{}");
+          },
+        },
+      ),
+      (error) => error.message === "synthetic artifact inventory failed",
+    );
+    const outputStats = await lstat(outputDir);
+    assert.equal(outputStats.isDirectory(), true);
+    assert.equal(outputStats.isSymbolicLink(), false);
+    assert.deepEqual(await readdir(outputDir), []);
+    assert.deepEqual((await readdir(root)).filter((entry) => entry.includes(".stage-")), []);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner rejects a result schema mutation after pre-publication validation", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-result-race-"));
+  const outputDir = join(root, "output");
+  await mkdir(outputDir);
+  try {
+    await assert.rejects(
+      runSyntheticLoad(
+        { outputDir, releaseCommit: "b".repeat(40) },
+        {
+          beforePublish: async ({ stageDir }) => {
+            const resultPath = join(stageDir, "result.json");
+            const result = JSON.parse(await readFile(resultPath, "utf8"));
+            result.unexpected = "hostile";
+            await writeFile(resultPath, `${JSON.stringify(result)}\n`);
+          },
+        },
+      ),
+      (error) => error.message === "synthetic artifact inventory failed",
+    );
+    const outputStats = await lstat(outputDir);
+    assert.equal(outputStats.isDirectory(), true);
+    assert.equal(outputStats.isSymbolicLink(), false);
+    assert.deepEqual(await readdir(outputDir), []);
+    assert.deepEqual((await readdir(root)).filter((entry) => entry.includes(".stage-")), []);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner serializes concurrent calls without touching the rejected output", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-concurrent-"));
+  const firstOutput = join(root, "first-output");
+  const secondOutput = join(root, "second-output");
+  await mkdir(firstOutput);
+  let releaseHook;
+  let enteredResolve;
+  const entered = new Promise((resolve) => {
+    enteredResolve = resolve;
+  });
+  const hold = new Promise((resolve) => {
+    releaseHook = resolve;
+  });
+  const first = runSyntheticLoad(
+    { outputDir: firstOutput, releaseCommit: "c".repeat(40) },
+    {
+      beforePublish: async () => {
+        enteredResolve();
+        await hold;
+      },
+    },
+  );
+  try {
+    await entered;
+    await assert.rejects(
+      runSyntheticLoad({ outputDir: secondOutput, releaseCommit: "d".repeat(40) }),
+      (error) => error.message === "synthetic load runner already active",
+    );
+    const activeEntries = await readdir(root);
+    assert.equal(activeEntries.includes("second-output"), false);
+    assert.equal(
+      activeEntries.some(
+        (entry) => entry.includes(".stage-") && !entry.startsWith("first-output.stage-"),
+      ),
+      false,
+    );
+    releaseHook();
+    await first;
+    assert.deepEqual(await readdir(firstOutput), ["probe.json", "result.json"]);
+    assert.equal(process.cwd().includes(root), false);
+  } finally {
+    releaseHook();
+    await first.catch(() => {});
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner recovers a cwd-changing publication hook before relative cleanup and publish", async () => {
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-cwd-hook-"));
+  const outputDir = join(root, "output");
+  const unrelated = await mkdtemp(join(tmpdir(), "bettermta-load-runner-unrelated-"));
+  const originalCwd = process.cwd();
+  await mkdir(outputDir);
+  try {
+    await runSyntheticLoad(
+      { outputDir, releaseCommit: "e".repeat(40) },
+      {
+        beforePublish: async () => {
+          process.chdir(unrelated);
+        },
+      },
+    );
+    assert.deepEqual(await readdir(outputDir), ["probe.json", "result.json"]);
+    assert.deepEqual(await readdir(unrelated), []);
+    assert.equal(process.cwd(), originalCwd);
+  } finally {
+    try {
+      process.chdir(originalCwd);
+    } catch {
+      // Preserve the primary test failure if cwd restoration is unavailable.
+    }
+    await rm(root, { recursive: true, force: true });
+    await rm(unrelated, { recursive: true, force: true });
+  }
+});
+
+test("synthetic load runner rejects semantic cross-file mutations after pre-publication validation", async () => {
+  const mutations = [
+    ["invalid probe timestamp", async (stageDir) => {
+      const probePath = join(stageDir, "probe.json");
+      const probe = JSON.parse(await readFile(probePath, "utf8"));
+      probe.generatedAt = "not-a-date";
+      await writeFile(probePath, `${JSON.stringify(probe)}\n`);
+    }],
+    ["negative result metric", async (stageDir) => {
+      const resultPath = join(stageDir, "result.json");
+      const result = JSON.parse(await readFile(resultPath, "utf8"));
+      result.metrics.successCount = -1;
+      await writeFile(resultPath, `${JSON.stringify(result)}\n`);
+    }],
+    ["different result fingerprint", async (stageDir) => {
+      const resultPath = join(stageDir, "result.json");
+      const result = JSON.parse(await readFile(resultPath, "utf8"));
+      result.snapshotFingerprint = "f".repeat(64);
+      await writeFile(resultPath, `${JSON.stringify(result)}\n`);
+    }],
+    ["cross-file release commit mismatch", async (stageDir) => {
+      const resultPath = join(stageDir, "result.json");
+      const result = JSON.parse(await readFile(resultPath, "utf8"));
+      result.releaseCommit = "a".repeat(40);
+      await writeFile(resultPath, `${JSON.stringify(result)}\n`);
+    }],
+  ];
+  for (const [label, mutate] of mutations) {
+    const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-semantic-race-"));
+    const outputDir = join(root, "output");
+    await mkdir(outputDir);
+    try {
+      await assert.rejects(
+        runSyntheticLoad(
+          { outputDir, releaseCommit: "f".repeat(40) },
+          { beforePublish: async ({ stageDir }) => mutate(stageDir) },
+        ),
+        (error) => error.message === "synthetic artifact inventory failed",
+        label,
+      );
+      const outputStats = await lstat(outputDir);
+      assert.equal(outputStats.isDirectory(), true, label);
+      assert.equal(outputStats.isSymbolicLink(), false, label);
+      assert.deepEqual(await readdir(outputDir), [], label);
+      assert.deepEqual(
+        (await readdir(root)).filter((entry) => entry.includes(".stage-")),
+        [],
+        label,
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
 });
 
 test("public-origin verifier emits commit-bound privacy-safe local evidence", async () => {
@@ -1223,6 +2355,52 @@ test("claims readiness tools reject malformed arguments with fixed non-reflectin
   assert(!scannerResult.stderr.includes("private.example.invalid"));
 });
 
+test("load workflow and README use absolute output paths from the repository root", async () => {
+  const workflow = await readFile(join(repoRoot, ".github/workflows/ci.yml"), "utf8");
+  const readinessJob = workflow.match(
+    /^  public-beta-readiness:\n[\s\S]*?(?=^  public-beta-preview:)/m,
+  )?.[0];
+  assert(readinessJob, "public-beta-readiness job is required");
+  assert.match(
+    readinessJob,
+    /--output-dir "\$GITHUB_WORKSPACE\/infra\/public-beta\/evidence\/load"/,
+  );
+  assert.doesNotMatch(
+    readinessJob,
+    /--output-dir infra\/public-beta\/evidence\/load/,
+  );
+
+  const loadReadme = await readFile(
+    join(repoRoot, "infra/public-beta/README.md"),
+    "utf8",
+  );
+  assert.match(loadReadme, /from the repository root/i);
+  assert.match(
+    loadReadme,
+    /--output-dir "\$PWD\/infra\/public-beta\/evidence\/load"/,
+  );
+  assert.doesNotMatch(
+    loadReadme,
+    /--output-dir infra\/public-beta\/evidence\/load/,
+  );
+
+  const root = await mkdtemp(join(tmpdir(), "bettermta-load-runner-absolute-"));
+  const outputDir = join(root, "evidence", "load");
+  try {
+    await mkdir(dirname(outputDir), { recursive: true });
+    const result = await runNode(syntheticLoadRunnerScript, [
+      "--release-commit",
+      "f".repeat(40),
+      "--output-dir",
+      outputDir,
+    ]);
+    assert.equal(result.code, 0, result.stderr);
+    assert.deepEqual(await readdir(outputDir), ["probe.json", "result.json"]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("claims discipline structure requires scanner, writer, review document, and ordered workflow", async () => {
   const root = await mkdtemp(join(tmpdir(), "bettermta-claims-structure-"));
   const result = await runNode(readinessScript, [
@@ -1401,6 +2579,9 @@ test("repository readiness structure is complete without claiming readiness", as
     /npm --prefix apps\/web run e2e/,
     /node --test infra\/public-beta\/tests\/[^\s]+/,
     /validate-readiness[.]mjs --structure-only/,
+    /LOAD_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /run-synthetic-load-evidence[.]mjs/,
+    /public-beta-load-readiness-\$\{\{ github[.]run_id \}\}/,
   ]) {
     assert.match(workflow, pattern);
   }
@@ -1410,6 +2591,14 @@ test("repository readiness structure is complete without claiming readiness", as
   )?.[0];
   assert(readinessJob, "public-beta-readiness job is required");
   for (const pattern of [
+    /LOAD_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /actions\/checkout@v7[\s\S]*?ref: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
+    /run-synthetic-load-evidence[.]mjs/,
+    /--release-commit "\$LOAD_RELEASE_COMMIT"/,
+    /--output-dir "\$GITHUB_WORKSPACE\/infra\/public-beta\/evidence\/load"/,
+    /infra\/public-beta\/evidence\/load\/(?:probe|result)[.]json/,
+    /public-beta-load-readiness-\$\{\{ github[.]run_id \}\}/,
+    /retention-days: 14/,
     /ACCESSIBILITY_RELEASE_COMMIT: \$\{\{ github[.]event[.]pull_request[.]head[.]sha \|\| github[.]sha \}\}/,
     /npm --prefix apps\/web run e2e/,
     /write-accessibility-evidence[.]mjs/,
@@ -1421,6 +2610,26 @@ test("repository readiness structure is complete without claiming readiness", as
   ]) {
     assert.match(readinessJob, pattern);
   }
+  assert.doesNotMatch(
+    readinessJob,
+    /--output-dir infra\/public-beta\/evidence\/load/,
+    "CI must pass an absolute load-evidence output path",
+  );
+  assert(
+    readinessJob.indexOf("validate-readiness.mjs --structure-only") <
+      readinessJob.indexOf("run-synthetic-load-evidence.mjs"),
+    "synthetic load evidence must run after structure validation",
+  );
+  assert(
+    readinessJob.indexOf("run-synthetic-load-evidence.mjs") <
+      readinessJob.indexOf("write-accessibility-evidence.mjs"),
+    "synthetic load evidence must run before human-pending evidence writers",
+  );
+  assert(
+    readinessJob.indexOf("run-synthetic-load-evidence.mjs") <
+      readinessJob.indexOf("public-beta-load-readiness-${{ github.run_id }}"),
+    "synthetic load artifact must upload after the runner completes",
+  );
   assert(
     readinessJob.indexOf("npm --prefix apps/web run e2e") <
       readinessJob.indexOf("write-accessibility-evidence.mjs"),
@@ -1525,6 +2734,8 @@ test("structure validator requires the public limitations, headers, and origin v
   assert.match(result.stderr, /missing:apps\/web\/src\/app\/limitations\/page[.]tsx/);
   assert.match(result.stderr, /missing:apps\/web\/src\/middleware[.]ts/);
   assert.match(result.stderr, /missing:infra\/public-beta\/verify-public-origin[.]mjs/);
+  assert.match(result.stderr, /missing:infra\/public-beta\/write-load-readiness-evidence[.]mjs/);
+  assert.match(result.stderr, /missing:infra\/public-beta\/run-synthetic-load-evidence[.]mjs/);
   assert.match(result.stderr, /missing:infra\/public-beta\/write-preview-evidence[.]mjs/);
   assert.match(
     result.stderr,

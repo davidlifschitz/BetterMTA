@@ -136,6 +136,7 @@ jobs:
       INCIDENT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       PRIVACY_SUPPORT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       CLAIMS_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      LOAD_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -155,6 +156,22 @@ jobs:
         run: |
           node --test infra/public-beta/tests/public-beta-readiness.test.mjs
           node infra/public-beta/validate-readiness.mjs --structure-only
+      - name: Run synthetic local load evidence
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/infra/public-beta/evidence/load"
+          node infra/public-beta/run-synthetic-load-evidence.mjs \
+            --release-commit "$LOAD_RELEASE_COMMIT" \
+            --output-dir "$GITHUB_WORKSPACE/infra/public-beta/evidence/load"
+      - name: Retain synthetic local load readiness evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-beta-load-readiness-${{ github.run_id }}
+          path: |
+            infra/public-beta/evidence/load/probe.json
+            infra/public-beta/evidence/load/result.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Scan public claims
         run: |
           set -euo pipefail
